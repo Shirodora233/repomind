@@ -24,6 +24,18 @@
 
 ## 已知问题
 
+## Python Path.glob 不支持绝对 glob pattern
+
+- 首次发现阶段：Oracle Context 测试阶段
+- 状态：resolved
+- 最后复核：2026-06-19
+- 现象：执行 `python scripts\validate_cases.py` 时，`Path.glob` 收到绝对路径 pattern 后抛出 `NotImplementedError: Non-relative patterns are unsupported`。
+- 影响：默认 case glob 无法在 Windows 环境下发现 YAML case，导致 validator 不能运行。
+- 原因：`pathlib.Path.glob()` 只支持相对 pattern；项目默认 case glob 在共享工具中被构造成了绝对路径。
+- 解决方式：将 case 发现逻辑改为使用 `glob.glob(glob_pattern, recursive=True)` 处理 glob pattern，并继续用 `Path` 做后续路径归一化。
+- 后续注意：后续脚本如果需要支持绝对 glob pattern，优先复用 `scripts/call_chain_common.py` 中的 `discover_case_files()`。
+- 相关文件：`scripts/call_chain_common.py`
+
 ## 根目录中文验收文档读取乱码
 
 - 首次发现阶段：项目初始化与文档确立阶段

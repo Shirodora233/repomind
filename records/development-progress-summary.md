@@ -9,6 +9,7 @@
 | 2026-06-19 | 项目初始化与文档确立 | 建立调用链 baseline 总体计划、评测协议、`AGENTS.md`、`records/` 阶段记录结构和技术问题记录文件。 | `418ddf3 chore: initialize project documentation` | `records/01-project-initialization-and-documentation.md` |
 | 2026-06-19 | 测试样例数据集脚手架 | 拉取 AstrBot 目标仓库到 `repos/AstrBot`，固定 commit；定义 `datasets/call-chain-v1/` 目录结构、`repos.yaml`、case JSON Schema、AstrBot / micro case 目录，并新增 v1 数据集说明。 | `84140da chore(dataset): add call-chain v1 scaffold and docs` | `records/02-test-case-construction.md` |
 | 2026-06-19 | AstrBot pilot golden 标注 | 将 10 个 AstrBot 候选转成正式 YAML case，并完成首版 golden 标注；覆盖 easy / medium / hard、`find_callees` / `find_callers`、negative no-caller、event bus、async generator、动态分派、registry、dynamic import 和 dashboard route。 | `51a2934 chore(dataset): add AstrBot pilot golden cases` | `records/02-test-case-construction.md` |
+| 2026-06-19 | Oracle Context 评测基座 | 搭建 case validator、scorer、Oracle Context runner 和 `oracle-context-v0` prompt；支持 dry-run、mock-golden 自测、OpenAI-compatible API 入口、`.env` 本地配置和多服务商/多模型别名配置。 | 未提交 | `records/03-oracle-context-evaluation.md` |
 
 ## 最近完成
 
@@ -18,12 +19,14 @@
 - 已定义 call-chain v1 数据集目录、repo 清单和 case schema。
 - 已完成 10 个 AstrBot pilot YAML case 的首版 golden 标注。
 - 已验证 10 个 YAML case 通过 schema 校验，且 oracle 文件、golden evidence 文件路径、行号和证据能在 AstrBot pinned commit 中定位。
+- 已搭建 Oracle Context 第一版评测基座，并用 mock-golden / dry-run 跑通 validator、runner 和 scorer。
+- 已加入 `.env` / `.env.example` 和 model provider config，支持 OpenRouter 多模型与 Ollama 本地模型配置。
 
 ## 待推进
 
 - 人工复核首批 10 个 YAML case，重点检查 symbol 命名、动态边界、`max_depth` 与评分预期。
-- 固化 case 校验脚本，覆盖 schema、文件路径、行号和 evidence 检查。
-- 搭建 Oracle Context baseline prompt、runner、输出 parser 和评分脚本。
+- 在本地配置首批真实模型别名，跑少量 Oracle Context baseline。
+- 人工复核 Oracle Context prompt 和 scorer 指标口径。
 - 在 Oracle Context 跑通后，再实现最小 E2E agent / RAG 检索流程。
 
 ## 维护规则

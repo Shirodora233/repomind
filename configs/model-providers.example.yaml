@@ -1,0 +1,39 @@
+# Copy to configs/model-providers.local.yaml when you want machine-specific
+# providers or model aliases. The local file is ignored by Git.
+
+providers:
+  openrouter:
+    type: openai-compatible
+    base_url: "${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}"
+    api_key_env: OPENROUTER_API_KEY
+    api_key_required: true
+    default_model_env: OPENROUTER_MODEL
+    headers:
+      HTTP-Referer: "${OPENROUTER_SITE_URL:-}"
+      X-Title: "${OPENROUTER_APP_NAME:-RepoMind}"
+    models:
+      # Replace these ids with the exact OpenRouter model ids you decide to test.
+      - alias: openrouter-default
+        id: "${OPENROUTER_MODEL:-}"
+        notes: Uses OPENROUTER_MODEL from .env.
+      - alias: strong-online-1
+        id: replace-with-openrouter-model-id
+        notes: Placeholder for a high-capability online model.
+      - alias: cost-effective-1
+        id: replace-with-openrouter-model-id
+        notes: Placeholder for a lower-cost online model.
+
+  ollama:
+    type: openai-compatible
+    base_url: "${OLLAMA_BASE_URL:-http://localhost:11434/v1}"
+    api_key_env: OLLAMA_API_KEY
+    api_key_required: false
+    default_model_env: OLLAMA_MODEL
+    models:
+      # Ollama model ids are local tags such as qwen2.5-coder:7b or llama3.1:8b.
+      - alias: ollama-default
+        id: "${OLLAMA_MODEL:-}"
+        notes: Uses OLLAMA_MODEL from .env.
+      - alias: local-coder-small
+        id: qwen2.5-coder:7b
+        notes: Example local coding model tag; change to a model installed locally.

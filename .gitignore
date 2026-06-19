@@ -1,7 +1,17 @@
 # Local clones of target repositories used for analysis.
 repos/
 
+# Local secrets and machine-specific model/provider overrides.
+.env
+.env.*
+!.env.example
+configs/*.local.yaml
+configs/*.local.yml
+
 # Common local runtime/cache artifacts.
 .cache/
 tmp/
+runs/
+__pycache__/
+*.py[cod]
 *.log
