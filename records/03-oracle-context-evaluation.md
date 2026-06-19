@@ -127,3 +127,9 @@
 - 第二次结果：成功生成 `prediction.yaml` 和 `score.json`。Precision 1.0，Recall 1.0，Evidence Accuracy 1.0；required_edges=5，predicted_edges=5，duplicate_predictions=3，excluded_hits=0，unmatched_predictions=0。
 - 第二次 OpenRouter usage：模型 `deepseek/deepseek-v4-pro-20260423`，provider `DeepSeek`，prompt_tokens=40246，completion_tokens=954，reasoning_tokens=0，total_tokens=41200，cost=0.000999166。
 - 观察：DeepSeek direct 的 provider routing 已可用，但 hard Oracle Context 默认 reasoning 会显著增加成本且可能没有最终答案。后续 DeepSeek Oracle scoring run 应优先使用 `--reasoning-effort none --reasoning-exclude` 或 `deepseek-v4-pro-direct-no-reasoning` alias。
+
+## 2026-06-19 DeepSeek direct-no-reasoning 10-case Oracle baseline v0
+
+- 已完成 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-deepseek-direct-no-reasoning-20260619`。
+- 正式报告见 `reports/baseline/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`。
+- 关键结果：Edge Precision 0.828571，Edge Recall 0.8125，Evidence Accuracy 1.0；10 case 全部完成，无 request / parse error；provider 全部命中 DeepSeek，reasoning_tokens=0，总成本约 0.077030206。

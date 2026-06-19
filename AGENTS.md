@@ -84,3 +84,16 @@
 7. 总结本次变更、问题和下一步。
 
 保持文档、实现和实验结果同步，是本项目后续能够进行可靠消融实验和策略选择的前提。
+
+## 6. reports 目录约定
+
+`reports/` 用于提交正式实验报告和对比结论，尤其是 baseline、E2E、消融实验和模型对比结果。`runs/` 仍然只保存本地原始实验输出，不提交；`records/` 只保存阶段进展、实施备忘和问题摘要；`docs/` 只保存稳定的方法、协议、数据集和评测说明。
+
+后续 agent 跑正式实验时，应优先按以下方式记录：
+
+1. 原始输出写入 `runs/<track>/<stable-run-name>/`。
+2. 正式结果整理到 `reports/<stage>/...md`。
+3. 对应 `records/` 阶段文件只保留简短进展、run path 和 report path。
+4. 如发现可复用技术问题或过时问题，再更新 `records/technical-issues-and-solutions.md`。
+
+正式报告至少应包含实验目标、运行命令、run path、git commit / dirty 状态、case 集合、模型与 provider/routing/reasoning 配置、prompt/runner/scorer/tool 版本、总指标、分 case 指标、成本/token、失败模式和下一步。
