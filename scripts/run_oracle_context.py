@@ -5,6 +5,8 @@ import json
 import os
 import re
 import sys
+import traceback
+import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Any
@@ -105,6 +107,14 @@ def expand_env_vars(value: Any) -> Any:
     return re.sub(r"\$\{(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?::-?(?P<default>[^}]*))?\}", replace, value)
 
 
+def expand_env_in_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: expand_env_in_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [expand_env_in_value(item) for item in value]
+    return expand_env_vars(value)
+
+
 def load_model_config(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"providers": {}}
@@ -127,9 +137,11 @@ def list_models(config: dict[str, Any]) -> None:
         for model in _model_items(provider.get("models") or []):
             alias = model.get("alias", "<no-alias>")
             model_id = expand_env_vars(model.get("id", ""))
+            routing = model.get("routing")
             notes = model.get("notes", "")
             suffix = f" - {notes}" if notes else ""
-            print(f"  - {alias}: {model_id or '<empty>'}{suffix}")
+            routing_suffix = f" routing={expand_env_in_value(routing)}" if routing else ""
+            print(f"  - {alias}: {model_id or '<empty>'}{routing_suffix}{suffix}")
 
 
 def _default_model_config_path() -> Path:
@@ -187,6 +199,11 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
         if expanded:
             headers[str(key)] = str(expanded)
 
+    routing = _merge_dicts(
+        expand_env_in_value(provider_config.get("routing") or {}),
+        expand_env_in_value(model_config.get("routing") or {}),
+    )
+
     if not base_url:
         raise RuntimeError("missing base URL: pass --base-url, configure model provider base_url, or set OPENAI_COMPATIBLE_BASE_URL")
     if not model:
@@ -202,6 +219,7 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
         "model": model,
         "base_url": base_url,
         "headers": headers,
+        "routing": routing,
         "api_key_env": api_key_env,
         "api_key_required": api_key_required,
     }
@@ -224,6 +242,15 @@ def _model_items(models: Any) -> list[dict[str, Any]]:
     return []
 
 
+def _merge_dicts(base: Any, override: Any) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    if isinstance(base, dict):
+        merged.update(base)
+    if isinstance(override, dict):
+        merged.update(override)
+    return merged
+
+
 def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     payload = {
         "model": settings["model"],
@@ -233,6 +260,10 @@ def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse
         ],
         "temperature": args.temperature,
     }
+    if args.max_tokens is not None:
+        payload["max_tokens"] = args.max_tokens
+    if settings.get("routing"):
+        payload["provider"] = settings["routing"]
     body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         settings["base_url"],
@@ -268,6 +299,7 @@ def main() -> int:
     parser.add_argument("--api-key-env", help="Environment variable containing API key. Overrides provider config.")
     parser.add_argument("--list-models", action="store_true", help="List configured model providers and aliases, then exit.")
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--max-tokens", type=int, help="Optional max_tokens sent to the OpenAI-compatible API.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
     parser.add_argument("--line-tolerance", type=int, default=0)
     args = parser.parse_args()
@@ -295,11 +327,15 @@ def main() -> int:
         "model_alias": args.model_alias,
         "model": model_settings["model"] if model_settings else args.model,
         "base_url": model_settings["base_url"] if model_settings else args.base_url,
+        "routing": model_settings["routing"] if model_settings else None,
         "model_config": str(Path(args.model_config)),
         "env_file": str(Path(args.env_file)),
         "prompt": str(Path(args.prompt)),
         "case_ids": [case["id"] for case in cases],
         "line_tolerance": args.line_tolerance,
+        "temperature": args.temperature,
+        "max_tokens": args.max_tokens,
+        "timeout_seconds": args.timeout_seconds,
     }
     write_json(out_root / "run_config.json", run_config)
 
@@ -320,7 +356,11 @@ def main() -> int:
             predictions[case["id"]] = prediction
             continue
 
-        raw_response = call_openai_compatible(prompt, model_settings or {}, args)
+        try:
+            raw_response = call_openai_compatible(prompt, model_settings or {}, args)
+        except Exception as exc:
+            write_text(case_dir / "request_error.txt", format_request_error(exc))
+            continue
         write_json(case_dir / "raw_response.json", raw_response)
         content = response_content(raw_response)
         write_text(case_dir / "raw_response.txt", content)
@@ -345,6 +385,21 @@ def main() -> int:
     else:
         print(f"wrote prompts for {len(cases)} cases to {out_root}")
     return 0
+
+
+def format_request_error(exc: Exception) -> str:
+    lines = [f"{type(exc).__name__}: {exc}"]
+    if isinstance(exc, urllib.error.HTTPError):
+        try:
+            body = exc.read().decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        if body:
+            lines.append("")
+            lines.append(body)
+    lines.append("")
+    lines.append(traceback.format_exc())
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

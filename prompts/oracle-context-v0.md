@@ -32,9 +32,12 @@ Return only YAML matching this shape:
 
 Rules:
 
+- Return only the YAML object. Do not wrap the answer in markdown fences.
 - `caller` and `callee` should be fully qualified symbols when possible.
 - `file` is the repository-relative file where the call expression occurs.
 - `line` is the 1-based line number in the provided line-numbered source.
 - `evidence` should be a short exact source snippet from that line.
 - `confidence_type` must be one of `static_confirmed`, `framework_inferred`, `dynamic_possible`, or `runtime_only`.
+- Always double-quote all string scalar values, especially `caller`, `callee`, `file`, `evidence`, `confidence_type`, and `notes`.
+- If a source snippet contains a colon, hash, bracket, quote, or backslash, still keep it as one double-quoted YAML string and escape internal double quotes.
 - For dynamic, registry, plugin, or framework-dispatch edges, be conservative and use `dynamic_possible` or `runtime_only` when the concrete target is not statically guaranteed.

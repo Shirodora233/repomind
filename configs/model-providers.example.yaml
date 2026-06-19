@@ -16,6 +16,13 @@ providers:
       - alias: openrouter-default
         id: "${OPENROUTER_MODEL:-}"
         notes: Uses OPENROUTER_MODEL from .env.
+      - alias: deepseek-v4-pro-direct
+        id: deepseek/deepseek-v4-pro
+        routing:
+          only:
+            - deepseek
+          allow_fallbacks: false
+        notes: Forces OpenRouter to use the DeepSeek provider slug to avoid higher-cost fallback providers.
       - alias: strong-online-1
         id: replace-with-openrouter-model-id
         notes: Placeholder for a high-capability online model.

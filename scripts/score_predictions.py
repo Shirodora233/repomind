@@ -33,6 +33,9 @@ def extract_payload_from_text(text: str) -> Any:
     candidates = [text]
     for match in re.finditer(r"```(?:yaml|yml|json)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL):
         candidates.insert(0, match.group(1).strip())
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        candidates.insert(0, re.sub(r"^```(?:yaml|yml|json)?\s*", "", stripped, flags=re.IGNORECASE).removesuffix("```").strip())
 
     last_error: Exception | None = None
     for candidate in candidates:
@@ -40,9 +43,40 @@ def extract_payload_from_text(text: str) -> Any:
             return yaml.safe_load(candidate)
         except Exception as exc:
             last_error = exc
+        try:
+            repaired = repair_prediction_yaml(candidate)
+            if repaired != candidate:
+                return yaml.safe_load(repaired)
+        except Exception as exc:
+            last_error = exc
     if last_error:
         raise ValueError(f"could not parse prediction text: {last_error}")
     raise ValueError("could not parse prediction text")
+
+
+def repair_prediction_yaml(text: str) -> str:
+    lines = text.splitlines()
+    repaired: list[str] = []
+    quote_keys = {"caller", "callee", "file", "evidence", "confidence_type", "notes", "case_id"}
+    pattern = re.compile(r"^(?P<indent>\s*)(?P<key>[A-Za-z_][A-Za-z0-9_]*):\s*(?P<value>.*)$")
+    for line in lines:
+        match = pattern.match(line)
+        if not match or match.group("key") not in quote_keys:
+            repaired.append(line)
+            continue
+        value = match.group("value").strip()
+        if value == "" or value.startswith(("'", '"', "{", "[", "|", ">")):
+            repaired.append(line)
+            continue
+        if value in {"[]", "{}"} or value.lower() in {"true", "false", "null"}:
+            repaired.append(line)
+            continue
+        if match.group("key") == "line" and value.isdigit():
+            repaired.append(line)
+            continue
+        escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+        repaired.append(f"{match.group('indent')}{match.group('key')}: \"{escaped}\"")
+    return "\n".join(repaired)
 
 
 def load_prediction_path(path: Path) -> dict[str, dict[str, Any]]:

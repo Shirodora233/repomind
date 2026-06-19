@@ -9,7 +9,7 @@
 | 2026-06-19 | 项目初始化与文档确立 | 建立调用链 baseline 总体计划、评测协议、`AGENTS.md`、`records/` 阶段记录结构和技术问题记录文件。 | `418ddf3 chore: initialize project documentation` | `records/01-project-initialization-and-documentation.md` |
 | 2026-06-19 | 测试样例数据集脚手架 | 拉取 AstrBot 目标仓库到 `repos/AstrBot`，固定 commit；定义 `datasets/call-chain-v1/` 目录结构、`repos.yaml`、case JSON Schema、AstrBot / micro case 目录，并新增 v1 数据集说明。 | `84140da chore(dataset): add call-chain v1 scaffold and docs` | `records/02-test-case-construction.md` |
 | 2026-06-19 | AstrBot pilot golden 标注 | 将 10 个 AstrBot 候选转成正式 YAML case，并完成首版 golden 标注；覆盖 easy / medium / hard、`find_callees` / `find_callers`、negative no-caller、event bus、async generator、动态分派、registry、dynamic import 和 dashboard route。 | `51a2934 chore(dataset): add AstrBot pilot golden cases` | `records/02-test-case-construction.md` |
-| 2026-06-19 | Oracle Context 评测基座 | 搭建 case validator、scorer、Oracle Context runner 和 `oracle-context-v0` prompt；支持 dry-run、mock-golden 自测、OpenAI-compatible API 入口、`.env` 本地配置和多服务商/多模型别名配置。 | 未提交 | `records/03-oracle-context-evaluation.md` |
+| 2026-06-19 | Oracle Context 评测基座 | 搭建 case validator、scorer、Oracle Context runner 和 `oracle-context-v0` prompt；支持 dry-run、mock-golden 自测、OpenAI-compatible API 入口、`.env` 本地配置和多服务商/多模型别名配置。 | `7970c74 feat(evaluation): add oracle evaluation harness` | `records/03-oracle-context-evaluation.md` |
 
 ## 最近完成
 
@@ -21,12 +21,15 @@
 - 已验证 10 个 YAML case 通过 schema 校验，且 oracle 文件、golden evidence 文件路径、行号和证据能在 AstrBot pinned commit 中定位。
 - 已搭建 Oracle Context 第一版评测基座，并用 mock-golden / dry-run 跑通 validator、runner 和 scorer。
 - 已加入 `.env` / `.env.example` 和 model provider config，支持 OpenRouter 多模型与 Ollama 本地模型配置。
+- 已用 OpenRouter 跑 3 个模型的 5-case Oracle Context smoke：DeepSeek / Tencent 在 callback edge 上漏报，GPT-5.5 recall 满但多报 FastAPI dependency edge。
+- 已为 OpenRouter DeepSeek 增加 provider routing alias，避免不指定 DeepSeek provider 导致成本偏高。
+- 已修复模型 YAML 输出解析问题，并给 Oracle runner 增加 `--max-tokens` 和 case-level request error 记录。
 
 ## 待推进
 
 - 人工复核首批 10 个 YAML case，重点检查 symbol 命名、动态边界、`max_depth` 与评分预期。
-- 在本地配置首批真实模型别名，跑少量 Oracle Context baseline。
 - 人工复核 Oracle Context prompt 和 scorer 指标口径。
+- 分批跑完整 10-case Oracle Context baseline。
 - 在 Oracle Context 跑通后，再实现最小 E2E agent / RAG 检索流程。
 
 ## 维护规则
