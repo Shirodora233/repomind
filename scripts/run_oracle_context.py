@@ -32,6 +32,15 @@ from call_chain_common import (
     write_yaml,
 )
 from score_predictions import extract_payload_from_text, normalize_prediction_payload, score_cases
+from versioning import (
+    git_commit,
+    git_status_short,
+    sha256_file,
+    snapshot_text_file,
+    write_case_manifest,
+    write_redacted_yaml_snapshot,
+    write_version_manifest,
+)
 
 
 DEFAULT_PROMPT = PROJECT_ROOT / "prompts" / "oracle-context-v0.md"
@@ -327,18 +336,26 @@ def main() -> int:
     parser.add_argument("--reasoning-exclude", action="store_true", help="Set OpenRouter reasoning.exclude=true.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
     parser.add_argument("--line-tolerance", type=int, default=0)
+    parser.add_argument("--runner-version", default="oracle-context-runner-v0")
+    parser.add_argument("--prompt-version", default="oracle-context-v0")
+    parser.add_argument("--scorer-version", default="call-chain-scorer-v0")
     args = parser.parse_args()
 
+    prompt_path = Path(args.prompt)
+    model_config_path = Path(args.model_config)
+
     load_env_file(Path(args.env_file))
-    model_config = load_model_config(Path(args.model_config))
+    model_config = load_model_config(model_config_path)
     if args.list_models:
         list_models(model_config)
         return 0
 
-    prompt_template = load_text(Path(args.prompt))
+    prompt_template = load_text(prompt_path)
     repos = load_repos()
     case_files = discover_case_files(args.cases)
-    cases = filter_cases(load_cases(case_files), args.case_id)
+    all_cases = load_cases(case_files)
+    case_files_by_id = {str(case.get("id")): path for path, case in zip(case_files, all_cases)}
+    cases = filter_cases(all_cases, args.case_id)
     out_root = Path(args.out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
 
@@ -346,6 +363,26 @@ def main() -> int:
     model_settings: dict[str, Any] | None = None
     if args.provider == "openai-compatible":
         model_settings = resolve_model_settings(args, model_config)
+
+    snapshot_text_file(prompt_path, out_root / "prompt_snapshot.md")
+    write_redacted_yaml_snapshot(model_config, out_root / "model_config_snapshot.yaml")
+    write_case_manifest(out_root, cases, case_files_by_id)
+    write_version_manifest(
+        out_root,
+        run_type="oracle-context",
+        versions={
+            "runner": args.runner_version,
+            "prompt": args.prompt_version,
+            "scorer": args.scorer_version,
+        },
+        files=[
+            ("runner", Path(__file__), args.runner_version),
+            ("prompt", prompt_path, args.prompt_version),
+            ("scorer", PROJECT_ROOT / "scripts" / "score_predictions.py", args.scorer_version),
+            ("model_config", model_config_path, None),
+        ],
+    )
+
     run_config = {
         "provider": args.provider,
         "model_provider": args.model_provider,
@@ -354,9 +391,18 @@ def main() -> int:
         "base_url": model_settings["base_url"] if model_settings else args.base_url,
         "routing": model_settings["routing"] if model_settings else None,
         "reasoning": model_settings["reasoning"] if model_settings else None,
-        "model_config": str(Path(args.model_config)),
+        "model_config": str(model_config_path),
+        "model_config_sha256": sha256_file(model_config_path),
         "env_file": str(Path(args.env_file)),
-        "prompt": str(Path(args.prompt)),
+        "prompt": str(prompt_path),
+        "prompt_version": args.prompt_version,
+        "prompt_sha256": sha256_file(prompt_path),
+        "runner_version": args.runner_version,
+        "runner_sha256": sha256_file(Path(__file__)),
+        "scorer_version": args.scorer_version,
+        "scorer_sha256": sha256_file(PROJECT_ROOT / "scripts" / "score_predictions.py"),
+        "git_commit": git_commit(),
+        "git_dirty": bool(git_status_short()),
         "case_ids": [case["id"] for case in cases],
         "line_tolerance": args.line_tolerance,
         "temperature": args.temperature,

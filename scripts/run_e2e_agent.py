@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import argparse
-import fnmatch
 import json
 import re
 import sys
 import urllib.request
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -15,12 +13,11 @@ from call_chain_common import (
     discover_case_files,
     dump_yaml,
     filter_cases,
-    line_numbered,
     load_cases,
     load_repos,
     load_text,
+    load_yaml,
     output_edge_schema,
-    read_repo_file,
     repo_path_for_case,
     safe_name,
     utc_timestamp,
@@ -36,40 +33,35 @@ from run_oracle_context import (
     make_mock_golden_prediction,
     resolve_model_settings,
 )
+from e2e_tools import (
+    DEFAULT_LIST_LIMIT,
+    DEFAULT_MAX_CONTEXT_TOKENS,
+    DEFAULT_MAX_FILES_READ,
+    DEFAULT_MAX_TOOL_CALLS,
+    DEFAULT_SEARCH_LIMIT,
+    RepoToolbox,
+    ToolBudget,
+    tool_specs_for_prompt,
+)
 from score_predictions import extract_payload_from_text, normalize_prediction_payload, score_cases
+from versioning import (
+    git_commit,
+    git_status_short,
+    sha256_file,
+    snapshot_text_file,
+    write_case_manifest,
+    write_redacted_yaml_snapshot,
+    write_version_manifest,
+)
 
 
 DEFAULT_PROMPT = PROJECT_ROOT / "prompts" / "e2e-agent-v0.md"
+DEFAULT_SYSTEM_PROMPT = PROJECT_ROOT / "prompts" / "e2e-agent-system-v0.md"
+DEFAULT_TOOL_CONFIG = PROJECT_ROOT / "configs" / "e2e-tools-v0.yaml"
 DEFAULT_ENV_FILE = PROJECT_ROOT / ".env"
 DEFAULT_MODEL_CONFIG = PROJECT_ROOT / "configs" / "model-providers.example.yaml"
 DEFAULT_LOCAL_MODEL_CONFIG = PROJECT_ROOT / "configs" / "model-providers.local.yaml"
-DEFAULT_MAX_TOOL_CALLS = 20
-DEFAULT_MAX_FILES_READ = 12
-DEFAULT_MAX_CONTEXT_TOKENS = 24000
-DEFAULT_LIST_LIMIT = 200
-DEFAULT_SEARCH_LIMIT = 50
 DEFAULT_MAX_AGENT_STEPS = 12
-AGENT_SYSTEM_PROMPT = """You are a repo-only call-chain analysis agent.
-
-Use tools to inspect the repository before answering. At every turn return exactly one JSON object and no markdown.
-
-Tool actions:
-{"action":"list_files","args":{"pattern":"**/*.py","max_results":200}}
-{"action":"search_text","args":{"query":"symbol_or_text","pattern":"**/*.py","max_results":50}}
-{"action":"read_file","args":{"path":"repo/relative/path.py","start_line":1,"end_line":120}}
-
-Final action:
-{"action":"final","prediction":{"case_id":"...","edges":[{"caller":"...","callee":"...","file":"...","line":1,"evidence":"...","confidence_type":"static_confirmed","notes":"..."}]}}
-
-Rules:
-- Return one action per turn.
-- Do not include prose, analysis, or explanations outside the JSON object.
-- Use repo-relative paths.
-- Prefer reading the target definition before answering.
-- If the target definition has enough evidence for the requested max_depth, return the final prediction instead of rereading the same file.
-- Final edges must be symbol-level call edges with exact source evidence.
-- Do not include imports, comments, docstrings, strings, tests, or external deps as calls.
-"""
 E2E_METADATA_KEYS = {
     "id",
     "dataset_version",
@@ -86,18 +78,6 @@ E2E_METADATA_KEYS = {
     "include_tests",
     "external_deps",
 }
-TEXT_SUFFIXES = {
-    ".py",
-    ".pyi",
-    ".md",
-    ".txt",
-    ".yaml",
-    ".yml",
-    ".json",
-    ".toml",
-    ".ini",
-    ".cfg",
-}
 
 
 def _default_model_config_path() -> Path:
@@ -106,160 +86,7 @@ def _default_model_config_path() -> Path:
     return DEFAULT_MODEL_CONFIG
 
 
-@dataclass
-class ToolBudget:
-    max_tool_calls: int = DEFAULT_MAX_TOOL_CALLS
-    max_files_read: int = DEFAULT_MAX_FILES_READ
-    max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS
-    tool_calls: int = 0
-    files_read: set[str] = field(default_factory=set)
-    context_tokens: int = 0
-
-
-class RepoToolbox:
-    def __init__(self, repo_path: Path, *, include_tests: bool, budget: ToolBudget):
-        self.repo_path = repo_path.resolve()
-        self.include_tests = include_tests
-        self.budget = budget
-        self.trace: list[dict[str, Any]] = []
-
-    def list_files(self, pattern: str = "**/*.py", *, max_results: int = DEFAULT_LIST_LIMIT) -> dict[str, Any]:
-        def run() -> dict[str, Any]:
-            files = [
-                path
-                for path in self._iter_repo_files()
-                if fnmatch.fnmatch(self._rel(path), pattern) or fnmatch.fnmatch(path.name, pattern)
-            ]
-            rel_files = [self._rel(path) for path in sorted(files)[:max_results]]
-            return {"files": rel_files, "count": len(files), "truncated": len(files) > len(rel_files)}
-
-        return self._call("list_files", {"pattern": pattern, "max_results": max_results}, run)
-
-    def search_text(self, query: str, *, pattern: str = "**/*.py", max_results: int = DEFAULT_SEARCH_LIMIT) -> dict[str, Any]:
-        def run() -> dict[str, Any]:
-            matches: list[dict[str, Any]] = []
-            for path in self._iter_repo_files():
-                rel_path = self._rel(path)
-                if not (fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(path.name, pattern)):
-                    continue
-                try:
-                    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-                except OSError:
-                    continue
-                for line_no, line in enumerate(lines, start=1):
-                    if query in line:
-                        matches.append({"file": rel_path, "line": line_no, "text": line.strip()})
-                        if len(matches) >= max_results:
-                            return {"matches": matches, "truncated": True}
-            return {"matches": matches, "truncated": False}
-
-        return self._call("search_text", {"query": query, "pattern": pattern, "max_results": max_results}, run)
-
-    def read_file(self, path: str, *, start_line: int | None = None, end_line: int | None = None) -> dict[str, Any]:
-        def run() -> dict[str, Any]:
-            rel_path = self._normalize_rel(path)
-            if rel_path not in self.budget.files_read and len(self.budget.files_read) >= self.budget.max_files_read:
-                return {"error": "max_files_read exceeded", "path": rel_path}
-            abs_path = self._resolve_rel(rel_path)
-            try:
-                source = read_repo_file(self.repo_path, rel_path)
-            except OSError as exc:
-                return {"error": str(exc), "path": rel_path}
-            lines = source.splitlines()
-            start = max(1, start_line or 1)
-            end = min(len(lines), end_line or len(lines))
-            if end < start:
-                content = ""
-            else:
-                content = line_numbered("\n".join(lines[start - 1 : end]), start=start)
-            self.budget.files_read.add(rel_path)
-            content, truncated = self._fit_context(content)
-            return {
-                "path": rel_path,
-                "start_line": start,
-                "end_line": end,
-                "content": content,
-                "truncated": truncated,
-                "exists": abs_path.exists(),
-            }
-
-        return self._call("read_file", {"path": path, "start_line": start_line, "end_line": end_line}, run)
-
-    def _call(self, name: str, args: dict[str, Any], run: Any) -> dict[str, Any]:
-        if self.budget.tool_calls >= self.budget.max_tool_calls:
-            result = {"error": "max_tool_calls exceeded"}
-        else:
-            self.budget.tool_calls += 1
-            result = run()
-        record = {"index": len(self.trace) + 1, "tool": name, "args": args, "result": self._trace_result(result)}
-        self.trace.append(record)
-        return result
-
-    def _iter_repo_files(self) -> list[Path]:
-        files: list[Path] = []
-        for path in self.repo_path.rglob("*"):
-            if not path.is_file():
-                continue
-            rel_path = self._rel(path)
-            if self._is_ignored_path(rel_path):
-                continue
-            if not self.include_tests and self._is_test_path(rel_path):
-                continue
-            if path.suffix.lower() not in TEXT_SUFFIXES:
-                continue
-            files.append(path)
-        return files
-
-    def _resolve_rel(self, path: str) -> Path:
-        rel_path = self._normalize_rel(path)
-        abs_path = (self.repo_path / rel_path).resolve()
-        if self.repo_path not in abs_path.parents and abs_path != self.repo_path:
-            raise ValueError(f"path escapes repo root: {path}")
-        return abs_path
-
-    def _normalize_rel(self, path: str) -> str:
-        return path.replace("\\", "/").lstrip("/")
-
-    def _rel(self, path: Path) -> str:
-        return path.resolve().relative_to(self.repo_path).as_posix()
-
-    def _is_ignored_path(self, rel_path: str) -> bool:
-        parts = rel_path.split("/")
-        return any(part in {".git", ".venv", "venv", "__pycache__", "node_modules"} for part in parts)
-
-    def _is_test_path(self, rel_path: str) -> bool:
-        parts = rel_path.lower().split("/")
-        name = parts[-1]
-        return "tests" in parts or "test" in parts or name.startswith("test_") or name.endswith("_test.py")
-
-    def _fit_context(self, content: str) -> tuple[str, bool]:
-        token_estimate = estimate_tokens(content)
-        remaining = self.budget.max_context_tokens - self.budget.context_tokens
-        if token_estimate <= max(remaining, 0):
-            self.budget.context_tokens += token_estimate
-            return content, False
-        if remaining <= 0:
-            return "", True
-        max_chars = max(0, remaining * 4)
-        truncated = content[:max_chars]
-        self.budget.context_tokens += estimate_tokens(truncated)
-        return truncated, True
-
-    def _trace_result(self, result: dict[str, Any]) -> dict[str, Any]:
-        sanitized = dict(result)
-        content = sanitized.get("content")
-        if isinstance(content, str) and len(content) > 2000:
-            sanitized["content"] = content[:2000] + "\n...<truncated in trace>..."
-        return sanitized
-
-
-def estimate_tokens(text: str) -> int:
-    if not text:
-        return 0
-    return max(1, (len(text) + 3) // 4)
-
-
-def build_e2e_prompt(case: dict[str, Any], prompt_template: str, budget: ToolBudget) -> str:
+def build_e2e_prompt(case: dict[str, Any], prompt_template: str, budget: ToolBudget, tool_config: dict[str, Any]) -> str:
     metadata = dump_yaml(case_metadata_for_e2e_prompt(case)).strip()
     tool_budget = dump_yaml(
         {
@@ -272,13 +99,7 @@ def build_e2e_prompt(case: dict[str, Any], prompt_template: str, budget: ToolBud
             "must_return_evidence": True,
         }
     ).strip()
-    tool_specs = dump_yaml(
-        [
-            {"name": "list_files", "args": {"pattern": "glob pattern, default **/*.py", "max_results": "integer"}},
-            {"name": "search_text", "args": {"query": "exact text query", "pattern": "glob pattern", "max_results": "integer"}},
-            {"name": "read_file", "args": {"path": "repo-relative file path", "start_line": "optional", "end_line": "optional"}},
-        ]
-    ).strip()
+    tool_specs = dump_yaml(tool_specs_for_prompt(tool_config)).strip()
     output_schema = dump_yaml(output_edge_schema()).strip()
     return (
         prompt_template.replace("{{CASE_METADATA}}", metadata)
@@ -407,12 +228,13 @@ def run_openai_compatible_loop(
     case: dict[str, Any],
     toolbox: RepoToolbox,
     task_prompt: str,
+    system_prompt: str,
     model_settings: dict[str, Any],
     args: argparse.Namespace,
     case_dir: Path,
 ) -> dict[str, Any] | None:
     messages = [
-        {"role": "system", "content": AGENT_SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": task_prompt + "\n\nBegin by choosing one tool action."},
     ]
     model_trace: list[dict[str, Any]] = []
@@ -589,6 +411,8 @@ def main() -> int:
     parser.add_argument("--cases", nargs="*", help="Case file, directory, or glob. Defaults to all call-chain v1 YAML cases.")
     parser.add_argument("--case-id", action="append", help="Only run a specific case id. Can be repeated.")
     parser.add_argument("--prompt", default=str(DEFAULT_PROMPT), help="Prompt template path.")
+    parser.add_argument("--system-prompt", default=str(DEFAULT_SYSTEM_PROMPT), help="System prompt path for the JSON action loop.")
+    parser.add_argument("--tool-config", default=str(DEFAULT_TOOL_CONFIG), help="Versioned E2E tool interface config YAML path.")
     parser.add_argument("--out-dir", default=str(PROJECT_ROOT / "runs" / "e2e-agent" / utc_timestamp()), help="Run output directory.")
     parser.add_argument("--provider", choices=["dry-run", "mock-golden", "openai-compatible"], default="dry-run")
     parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE), help="Optional .env file loaded before provider/model resolution.")
@@ -614,24 +438,68 @@ def main() -> int:
     parser.add_argument("--max-files-read", type=int, default=DEFAULT_MAX_FILES_READ)
     parser.add_argument("--max-context-tokens", type=int, default=DEFAULT_MAX_CONTEXT_TOKENS)
     parser.add_argument("--line-tolerance", type=int, default=0)
+    parser.add_argument("--runner-version", default="e2e-agent-runner-v0")
+    parser.add_argument("--agent-strategy-version", default="e2e-agent-strategy-v0")
+    parser.add_argument("--task-prompt-version", default="e2e-task-v0")
+    parser.add_argument("--system-prompt-version", default="e2e-agent-system-v0")
+    parser.add_argument("--tool-version", default="e2e-tools-v0")
+    parser.add_argument("--scorer-version", default="call-chain-scorer-v0")
     args = parser.parse_args()
 
+    prompt_path = Path(args.prompt)
+    system_prompt_path = Path(args.system_prompt)
+    tool_config_path = Path(args.tool_config)
+    model_config_path = Path(args.model_config)
+
     load_env_file(Path(args.env_file))
-    model_config = load_model_config(Path(args.model_config))
+    model_config = load_model_config(model_config_path)
     if args.list_models:
         list_models(model_config)
         return 0
 
-    prompt_template = load_text(Path(args.prompt))
+    prompt_template = load_text(prompt_path)
+    system_prompt = load_text(system_prompt_path)
+    tool_config = load_yaml(tool_config_path)
+    if not isinstance(tool_config, dict):
+        raise ValueError(f"{tool_config_path}: tool config must be a YAML mapping")
     repos = load_repos()
     case_files = discover_case_files(args.cases)
-    cases = filter_cases(load_cases(case_files), args.case_id)
+    all_cases = load_cases(case_files)
+    case_files_by_id = {str(case.get("id")): path for path, case in zip(case_files, all_cases)}
+    cases = filter_cases(all_cases, args.case_id)
     out_root = Path(args.out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
 
     model_settings: dict[str, Any] | None = None
     if args.provider == "openai-compatible":
         model_settings = resolve_model_settings(args, model_config)
+
+    snapshot_text_file(prompt_path, out_root / "prompt_snapshot.md")
+    snapshot_text_file(system_prompt_path, out_root / "system_prompt_snapshot.md")
+    snapshot_text_file(tool_config_path, out_root / "tool_config_snapshot.yaml")
+    write_redacted_yaml_snapshot(model_config, out_root / "model_config_snapshot.yaml")
+    write_case_manifest(out_root, cases, case_files_by_id)
+    write_version_manifest(
+        out_root,
+        run_type="e2e-agent",
+        versions={
+            "runner": args.runner_version,
+            "agent_strategy": args.agent_strategy_version,
+            "task_prompt": args.task_prompt_version,
+            "system_prompt": args.system_prompt_version,
+            "tools": args.tool_version,
+            "scorer": args.scorer_version,
+        },
+        files=[
+            ("runner", Path(__file__), args.runner_version),
+            ("task_prompt", prompt_path, args.task_prompt_version),
+            ("system_prompt", system_prompt_path, args.system_prompt_version),
+            ("tool_config", tool_config_path, args.tool_version),
+            ("tool_implementation", PROJECT_ROOT / "scripts" / "e2e_tools.py", args.tool_version),
+            ("scorer", PROJECT_ROOT / "scripts" / "score_predictions.py", args.scorer_version),
+            ("model_config", model_config_path, None),
+        ],
+    )
 
     run_config = {
         "provider": args.provider,
@@ -641,9 +509,26 @@ def main() -> int:
         "base_url": model_settings["base_url"] if model_settings else args.base_url,
         "routing": model_settings["routing"] if model_settings else None,
         "reasoning": model_settings["reasoning"] if model_settings else None,
-        "model_config": str(Path(args.model_config)),
+        "model_config": str(model_config_path),
+        "model_config_sha256": sha256_file(model_config_path),
         "env_file": str(Path(args.env_file)),
-        "prompt": str(Path(args.prompt)),
+        "prompt": str(prompt_path),
+        "prompt_version": args.task_prompt_version,
+        "prompt_sha256": sha256_file(prompt_path),
+        "system_prompt": str(system_prompt_path),
+        "system_prompt_version": args.system_prompt_version,
+        "system_prompt_sha256": sha256_file(system_prompt_path),
+        "tool_config": str(tool_config_path),
+        "tool_version": args.tool_version,
+        "tool_config_sha256": sha256_file(tool_config_path),
+        "tool_implementation_sha256": sha256_file(PROJECT_ROOT / "scripts" / "e2e_tools.py"),
+        "runner_version": args.runner_version,
+        "runner_sha256": sha256_file(Path(__file__)),
+        "agent_strategy_version": args.agent_strategy_version,
+        "scorer_version": args.scorer_version,
+        "scorer_sha256": sha256_file(PROJECT_ROOT / "scripts" / "score_predictions.py"),
+        "git_commit": git_commit(),
+        "git_dirty": bool(git_status_short()),
         "case_ids": [case["id"] for case in cases],
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
@@ -669,7 +554,7 @@ def main() -> int:
         budget = ToolBudget(args.max_tool_calls, args.max_files_read, args.max_context_tokens)
         toolbox = RepoToolbox(repo_path, include_tests=bool(case.get("include_tests")), budget=budget)
 
-        prompt = build_e2e_prompt(case, prompt_template, budget)
+        prompt = build_e2e_prompt(case, prompt_template, budget, tool_config)
         write_text(case_dir / "task.md", prompt)
         write_json(case_dir / "case_metadata.json", case_metadata_for_e2e_prompt(case))
 
@@ -680,7 +565,7 @@ def main() -> int:
             write_yaml(case_dir / "prediction.yaml", prediction)
         elif args.provider == "openai-compatible":
             try:
-                prediction = run_openai_compatible_loop(case, toolbox, prompt, model_settings or {}, args, case_dir)
+                prediction = run_openai_compatible_loop(case, toolbox, prompt, system_prompt, model_settings or {}, args, case_dir)
             except Exception as exc:
                 write_text(case_dir / "request_error.txt", format_request_error(exc))
             if prediction:

@@ -1,0 +1,53 @@
+version: e2e-tools-v0
+name: repo-basic-tools
+protocol: json_action_text_loop
+scope: repo_only
+default_limits:
+  max_tool_calls: 20
+  max_files_read: 12
+  max_context_tokens: 24000
+defaults:
+  list_limit: 200
+  search_limit: 50
+tools:
+  - name: list_files
+    description: List repository files matching a glob pattern.
+    args:
+      pattern: "glob pattern; default **/*.py"
+      max_results: "integer; default 200"
+    returns:
+      files: "repo-relative paths"
+      count: "total matches before truncation"
+      truncated: "true when more files matched than returned"
+    behavior:
+      - Excludes tests when include_tests is false.
+      - Excludes common cache and dependency directories.
+      - Returns only text-like source/config/document files.
+  - name: search_text
+    description: Search exact text in repository files.
+    args:
+      query: "literal substring to search"
+      pattern: "glob pattern; default **/*.py"
+      max_results: "integer; default 50"
+    returns:
+      matches: "file, line, and stripped source text"
+      truncated: "true when max_results is reached"
+    behavior:
+      - Uses literal substring matching, not regex.
+      - Excludes tests when include_tests is false.
+  - name: read_file
+    description: Read a repository-relative file with line numbers.
+    args:
+      path: "repo-relative file path"
+      start_line: "optional 1-based start line"
+      end_line: "optional 1-based end line"
+    returns:
+      path: "repo-relative path"
+      start_line: "first returned source line"
+      end_line: "last returned source line"
+      content: "line-numbered source text"
+      truncated: "true when context budget truncates content"
+      exists: "whether the resolved file exists"
+    behavior:
+      - Enforces max_files_read.
+      - Enforces max_context_tokens using a rough character-based token estimate.
