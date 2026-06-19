@@ -1,0 +1,28 @@
+# Source repositories used by call-chain dataset v1.
+# Real repository source code is cloned under repos/ and ignored by Git.
+
+repos:
+  astrbot:
+    name: AstrBot
+    url: https://github.com/AstrBotDevs/AstrBot.git
+    local_path: repos/AstrBot
+    commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+    default_branch: master
+    clone:
+      depth: 1
+      cloned_at: "2026-06-19"
+      head_summary: "143f846 fix: support renamed MCP streamable HTTP client"
+      file_count: 1454
+    language_profile:
+      primary: python
+      secondary:
+        - vue
+        - typescript
+    intended_usage:
+      - real_project
+      - medium
+      - hard
+      - python_dynamic
+    notes: >
+      Used as a representative dynamic Python project with agent, provider,
+      platform adapter, plugin, pipeline, async, and external SDK patterns.

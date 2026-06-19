@@ -1,0 +1,7 @@
+# Local clones of target repositories used for analysis.
+repos/
+
+# Common local runtime/cache artifacts.
+.cache/
+tmp/
+*.log

@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://repomind.local/schemas/call-chain-case.schema.json",
+  "title": "Call Chain Evaluation Case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "dataset_version",
+    "repo_key",
+    "commit_sha",
+    "language",
+    "target",
+    "task_type",
+    "direction",
+    "max_depth",
+    "scope",
+    "difficulty",
+    "include_tests",
+    "external_deps",
+    "features",
+    "oracle_context",
+    "golden"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{3}$"
+    },
+    "dataset_version": {
+      "type": "string",
+      "const": "call-chain-v1"
+    },
+    "repo_key": {
+      "type": "string",
+      "description": "Key into datasets/call-chain-v1/repos.yaml."
+    },
+    "repo_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{7,40}$"
+    },
+    "language": {
+      "type": "string",
+      "enum": ["python", "typescript", "javascript", "go", "java", "mixed"]
+    },
+    "target": {
+      "$ref": "#/$defs/symbol"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": ["function", "method", "class", "constructor", "route", "handler", "unknown"]
+    },
+    "task_type": {
+      "type": "string",
+      "enum": ["find_callers", "find_callees", "trace_path", "impact_analysis"]
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["upstream", "downstream", "bidirectional", "path_between"]
+    },
+    "entry_symbol": {
+      "$ref": "#/$defs/symbol"
+    },
+    "target_symbol": {
+      "$ref": "#/$defs/symbol"
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["repo_only", "repo_and_tests", "repo_plus_external_boundaries"]
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard", "challenge"]
+    },
+    "include_tests": {
+      "type": "boolean"
+    },
+    "external_deps": {
+      "type": "string",
+      "enum": ["exclude", "boundary_only", "include"]
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_call",
+          "cross_file",
+          "same_name_distractor",
+          "class_method",
+          "constructor",
+          "async",
+          "decorator",
+          "inheritance",
+          "factory",
+          "registry",
+          "plugin",
+          "event_bus",
+          "callback",
+          "dynamic_import",
+          "dependency_injection",
+          "polymorphism",
+          "route_handler",
+          "negative_case",
+          "external_boundary"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "notes": {
+      "type": "string"
+    },
+    "oracle_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files"],
+      "properties": {
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/context_file"
+          }
+        },
+        "exclude_files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "golden": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_edges", "optional_edges", "excluded_edges", "runtime_only_edges"],
+      "properties": {
+        "required_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "optional_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "excluded_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excluded_edge"
+          }
+        },
+        "runtime_only_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "symbol": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Fully qualified symbol when possible."
+    },
+    "context_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "target_definition",
+            "direct_caller",
+            "direct_callee",
+            "indirect_caller",
+            "indirect_callee",
+            "base_class",
+            "registry",
+            "factory",
+            "router",
+            "type_definition",
+            "config",
+            "distractor",
+            "other"
+          ]
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/symbol"
+          }
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caller", "callee", "file", "line", "evidence", "confidence_type"],
+      "properties": {
+        "caller": {
+          "$ref": "#/$defs/symbol"
+        },
+        "callee": {
+          "$ref": "#/$defs/symbol"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence_type": {
+          "type": "string",
+          "enum": ["static_confirmed", "framework_inferred", "dynamic_possible", "runtime_only"]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "excluded_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caller", "callee", "reason"],
+      "properties": {
+        "caller": {
+          "$ref": "#/$defs/symbol"
+        },
+        "callee": {
+          "$ref": "#/$defs/symbol"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
