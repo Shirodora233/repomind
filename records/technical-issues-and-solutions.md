@@ -119,3 +119,27 @@
 - 解决方式：已在 `scripts/run_oracle_context.py` 增加 `--reasoning-effort`、`--reasoning-max-tokens`、`--reasoning-exclude`，并支持从 model config 读取 `reasoning`。对 Oracle scoring run，可使用 `--reasoning-effort none --reasoning-exclude`，或使用 `tencent-hy3-preview-no-reasoning` / `deepseek-v4-pro-direct-no-reasoning` alias。
 - 后续注意：如果某个模型强制 reasoning 且拒绝 `effort: none`，应记录该模型的限制，并改用较低 reasoning effort、单独 reasoning budget，或换用非 thinking variant；不要把 `content: null` 当作普通 YAML 解析问题。
 - 相关文件：`scripts/run_oracle_context.py`、`configs/model-providers.example.yaml`
+
+## DeepSeek E2E hard case 未及时 final 或 final 被截断
+
+- 首次发现阶段：RAG / Agentic Retrieval 阶段
+- 状态：active
+- 最后复核：2026-06-19
+- 现象：使用 `deepseek-v4-pro-direct-no-reasoning` 跑 E2E hard case `astrbot-agent-001` 时，模型已经通过 repo-only 工具读到目标文件，`definition_accuracy=1.0`、`retrieval_recall=1.0`，但在 step budget 内倾向继续分析或继续检索，没有稳定返回 `action=final`；开启 finalization 后，最终 JSON 又可能因 `max_tokens` 不足被截断，导致没有生成 `prediction.yaml` / `score.json`。
+- 影响：真实 E2E run 可能表现为“无分数”，但根因不一定是检索失败；可能是 agent 协议执行失败、输出过长、final 格式不完整或模型没有遵守 JSON-only 约束。
+- 原因：当前 E2E loop 使用文本协议模拟 tool-calling，模型容易夹带自然语言分析；hard case 中候选边较多，final prediction 较长，`max_tokens` 较小时容易截断在 JSON 中间。
+- 已采取措施：`scripts/run_e2e_agent.py` 已增加 `model_trace.json`、`messages.json`、逐步 `raw_response_step_XX.json/txt`，支持从夹杂解释文字中提取 JSON action，并在 step budget 用尽后追加 final-only 调用。
+- 后续注意：遇到无 `score.json` 时，先检查 `retrieval_metrics.json` 和 `model_trace.json`。如果检索指标已命中，应优先调整 final prompt、`max_tokens`、输出压缩策略或改用原生 tool-calling / structured output，而不是直接判定 RAG 检索失败。
+- 相关文件：`scripts/run_e2e_agent.py`、`records/04-rag-agentic-retrieval.md`
+
+## DeepSeek E2E 漏报对象方法型 repo 内调用边
+
+- 首次发现阶段：RAG / Agentic Retrieval 阶段
+- 状态：active
+- 最后复核：2026-06-19
+- 现象：使用 `deepseek-v4-pro-direct-no-reasoning` 跑 hard case `astrbot-pipeline-002` 时，脚本成功生成 `prediction.yaml` 和 `score.json`，且 `definition_accuracy=1.0`、`retrieval_recall=1.0`；最终 Precision 1.0、Recall 0.5、Evidence Accuracy 1.0。漏报的 required edges 是 `ProcessStage.process -> AstrMessageEvent.get_extra` 和 `ProcessStage.process -> AstrMessageEvent.set_extra`。
+- 影响：模型即使读到了包含 evidence 的目标文件，也可能把实例对象方法调用误判为外部 / 框架调用而排除，造成 recall 偏低。这类问题会影响 E2E 与 Oracle Context 的对照分析。
+- 原因：当前 prompt 只说明 `scope=repo_only` 和 `external_deps=exclude`，但没有充分解释“对象来自 repo 内类型时，其方法调用是否应计入 symbol-level edge”。模型倾向保留显式子阶段调用，漏掉 `event.get_extra`、`event.set_extra` 这类对象方法边界案例。
+- 解决方式：尚未完全解决。下一步应在 E2E prompt 中明确 repo 内对象方法的判定规则，并考虑增加 AST / symbol index 工具，帮助模型把变量类型、导入符号和 fully qualified callee 对齐。
+- 后续注意：分析 E2E 失败时应区分检索失败和边界理解失败；如果 `retrieval_recall=1.0` 但 edge recall 低，优先检查模型是否漏掉对象方法、动态分派、注册表或框架回调边。
+- 相关文件：`scripts/run_e2e_agent.py`、`prompts/e2e-agent-v0.md`、`datasets/call-chain-v1/cases/astrbot/astrbot-pipeline-002.yaml`
