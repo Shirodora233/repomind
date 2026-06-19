@@ -1,0 +1,88 @@
+id: astrbot-pipeline-003
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - async
+  - polymorphism
+  - dependency_injection
+  - cross_file
+notes: >
+  Attribute-dispatch case. The process method statically calls
+  self.agent_sub_stage.process, while initialize chooses the concrete sub-stage.
+oracle_context:
+  files:
+    - path: astrbot/core/pipeline/process_stage/method/agent_request.py
+      role: target_definition
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+        - astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.initialize
+      reason: Contains the target and the initialization logic that selects the concrete sub-stage.
+    - path: astrbot/core/star/session_llm_manager.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.star.session_llm_manager.SessionServiceManager.should_process_llm_request
+      reason: Contains the static pre-check callee.
+    - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      reason: One possible concrete implementation of self.agent_sub_stage.process.
+    - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/third_party.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.third_party.ThirdPartyAgentSubStage.process
+      reason: Another possible concrete implementation of self.agent_sub_stage.process.
+  notes: >
+    The exact concrete process method depends on configuration observed during
+    initialize. The required edge captures the static attribute call; concrete
+    class edges are optional.
+golden:
+  required_edges:
+    - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+      callee: astrbot.core.star.session_llm_manager.SessionServiceManager.should_process_llm_request
+      file: astrbot/core/pipeline/process_stage/method/agent_request.py
+      line: 41
+      evidence: "if not await SessionServiceManager.should_process_llm_request(event):"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.agent_sub_stage.process
+      file: astrbot/core/pipeline/process_stage/method/agent_request.py
+      line: 47
+      evidence: "async for resp in self.agent_sub_stage.process(event, self.prov_wake_prefix):"
+      confidence_type: dynamic_possible
+      notes: "The attribute call is static, but its concrete target is selected in initialize."
+  optional_edges:
+    - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      file: astrbot/core/pipeline/process_stage/method/agent_request.py
+      line: 47
+      evidence: "async for resp in self.agent_sub_stage.process(event, self.prov_wake_prefix):"
+      confidence_type: dynamic_possible
+      notes: "initialize assigns InternalAgentSubStage on line 29 for the default agent path."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.third_party.ThirdPartyAgentSubStage.process
+      file: astrbot/core/pipeline/process_stage/method/agent_request.py
+      line: 47
+      evidence: "async for resp in self.agent_sub_stage.process(event, self.prov_wake_prefix):"
+      confidence_type: dynamic_possible
+      notes: "initialize assigns ThirdPartyAgentSubStage on line 31 for third-party agent mode."
+  excluded_edges:
+    - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.initialize
+      file: astrbot/core/pipeline/process_stage/method/agent_request.py
+      line: 32
+      reason: initialize calls self.agent_sub_stage.initialize; process does not call initialize.
+      evidence: "await self.agent_sub_stage.initialize(ctx)"
+  runtime_only_edges: []

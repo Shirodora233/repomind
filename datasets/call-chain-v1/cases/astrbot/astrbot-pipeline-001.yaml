@@ -1,0 +1,54 @@
+id: astrbot-pipeline-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.pipeline.scheduler.PipelineScheduler.execute
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - cross_file
+  - event_bus
+  - async
+notes: >
+  Upstream smoke case with a single repo caller found from the event bus.
+oracle_context:
+  files:
+    - path: astrbot/core/pipeline/scheduler.py
+      role: target_definition
+      symbols:
+        - astrbot.core.pipeline.scheduler.PipelineScheduler.execute
+      reason: Contains the target scheduler method.
+    - path: astrbot/core/event_bus.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.event_bus.EventBus.dispatch
+      reason: Contains the direct caller of PipelineScheduler.execute.
+  notes: >
+    The expected answer should not include methods called by execute itself,
+    because this case asks for upstream callers.
+golden:
+  required_edges:
+    - caller: astrbot.core.event_bus.EventBus.dispatch
+      callee: astrbot.core.pipeline.scheduler.PipelineScheduler.execute
+      file: astrbot/core/event_bus.py
+      line: 52
+      evidence: "task = asyncio.create_task(scheduler.execute(event))"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.pipeline.scheduler.PipelineScheduler.execute
+      callee: astrbot.core.pipeline.scheduler.PipelineScheduler._process_stages
+      file: astrbot/core/pipeline/scheduler.py
+      line: 87
+      reason: This is a downstream callee of execute, not an upstream caller of execute.
+      evidence: "await self._process_stages(event)"
+  runtime_only_edges: []

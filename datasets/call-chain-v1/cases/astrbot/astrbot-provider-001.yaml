@@ -1,0 +1,122 @@
+id: astrbot-provider-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.provider.manager.ProviderManager.load_provider
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - registry
+  - dynamic_import
+  - factory
+  - async
+  - cross_file
+notes: >
+  Provider loading case that mixes static helper calls with registry-driven
+  dynamic import and class construction.
+oracle_context:
+  files:
+    - path: astrbot/core/provider/manager.py
+      role: target_definition
+      symbols:
+        - astrbot.core.provider.manager.ProviderManager.load_provider
+        - astrbot.core.provider.manager.ProviderManager.get_merged_provider_config
+        - astrbot.core.provider.manager.ProviderManager._resolve_env_key_list
+        - astrbot.core.provider.manager.ProviderManager.dynamic_import_provider
+        - astrbot.core.provider.manager.HasInitialize.initialize
+      reason: Contains the target and direct static helper calls.
+    - path: astrbot/core/provider/register.py
+      role: registry
+      symbols:
+        - astrbot.core.provider.register.register_provider_adapter
+        - astrbot.core.provider.register.provider_cls_map
+      reason: Contains the registry populated by provider adapters and read by load_provider.
+    - path: astrbot/core/provider/entities.py
+      role: type_definition
+      symbols:
+        - astrbot.core.provider.entities.ProviderMetaData
+      reason: Defines the metadata stored in provider_cls_map.
+    - path: astrbot/core/provider/sources/openai_source.py
+      role: registry
+      symbols:
+        - astrbot.core.provider.sources.openai_source.ProviderOpenAIOfficial
+      reason: Example provider class registered through register_provider_adapter.
+    - path: astrbot/core/provider/sources/volcengine_tts.py
+      role: registry
+      symbols:
+        - astrbot.core.provider.sources.volcengine_tts.ProviderVolcengineTTS
+      reason: Example TTS provider class registered through register_provider_adapter.
+  notes: >
+    Concrete provider constructors depend on provider_config["type"] and the
+    registry state. They are not required static edges.
+golden:
+  required_edges:
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.manager.ProviderManager.get_merged_provider_config
+      file: astrbot/core/provider/manager.py
+      line: 579
+      evidence: "provider_config = self.get_merged_provider_config(provider_config)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.manager.ProviderManager._resolve_env_key_list
+      file: astrbot/core/provider/manager.py
+      line: 582
+      evidence: "provider_config = self._resolve_env_key_list(provider_config)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.manager.ProviderManager.dynamic_import_provider
+      file: astrbot/core/provider/manager.py
+      line: 598
+      evidence: "self.dynamic_import_provider(provider_config[\"type\"])"
+      confidence_type: static_confirmed
+  optional_edges:
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.register.provider_cls_map.cls_type
+      file: astrbot/core/provider/manager.py
+      line: 636
+      evidence: "inst = cls_type(provider_config, self.provider_settings)"
+      confidence_type: dynamic_possible
+      notes: "provider_metadata.cls_type is read from provider_cls_map; similar constructor callsites appear on lines 659, 682, 707, and 716."
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.manager.HasInitialize.initialize
+      file: astrbot/core/provider/manager.py
+      line: 639
+      evidence: "await inst.initialize()"
+      confidence_type: dynamic_possible
+      notes: "The call is conditional on isinstance(inst, HasInitialize); similar callsites appear on lines 662, 688, 709, and 718."
+  excluded_edges:
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.register.register_provider_adapter
+      file: astrbot/core/provider/manager.py
+      line: 619
+      reason: load_provider reads provider_cls_map; it does not call the registration decorator.
+      evidence: "provider_metadata = provider_cls_map[provider_config[\"type\"]]"
+    - caller: astrbot.core.provider.register.register_provider_adapter.decorator
+      callee: astrbot.core.provider.manager.ProviderManager.load_provider
+      file: astrbot/core/provider/register.py
+      line: 49
+      reason: The decorator stores ProviderMetaData in provider_cls_map; it does not call ProviderManager.load_provider.
+      evidence: "provider_cls_map[provider_type_name] = pm"
+  runtime_only_edges:
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.sources.openai_source.ProviderOpenAIOfficial
+      file: astrbot/core/provider/manager.py
+      line: 682
+      evidence: "inst = cls_type("
+      confidence_type: runtime_only
+      notes: "Only applies when provider_config selects the registered OpenAI provider class."
+    - caller: astrbot.core.provider.manager.ProviderManager.load_provider
+      callee: astrbot.core.provider.sources.volcengine_tts.ProviderVolcengineTTS
+      file: astrbot/core/provider/manager.py
+      line: 659
+      evidence: "inst = cls_type(provider_config, self.provider_settings)"
+      confidence_type: runtime_only
+      notes: "Only applies when provider_config selects the registered Volcengine TTS provider class."

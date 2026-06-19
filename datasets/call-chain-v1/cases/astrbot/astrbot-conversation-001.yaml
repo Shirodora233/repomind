@@ -1,0 +1,63 @@
+id: astrbot-conversation-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.conversation_mgr.ConversationManager.add_message_pair
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - negative_case
+  - same_name_distractor
+  - class_method
+notes: >
+  Negative no-caller case. The target method exists, but no non-test repo caller
+  is present at the pinned commit.
+oracle_context:
+  files:
+    - path: astrbot/core/conversation_mgr.py
+      role: target_definition
+      symbols:
+        - astrbot.core.conversation_mgr.ConversationManager.add_message_pair
+        - astrbot.core.conversation_mgr.ConversationManager.update_conversation
+        - astrbot.core.conversation_mgr.ConversationManager.update_conversation_title
+        - astrbot.core.conversation_mgr.ConversationManager.update_conversation_persona_id
+      reason: Contains the target and same-class conversation methods that can distract caller search.
+    - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      role: distractor
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._save_to_history
+      reason: Contains nearby conversation-history logic that calls update_conversation, not add_message_pair.
+  notes: >
+    A repo-wide search for add_message_pair at this commit finds only the method
+    definition. Correct output should contain no required caller edges.
+golden:
+  required_edges: []
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._save_to_history
+      callee: astrbot.core.conversation_mgr.ConversationManager.add_message_pair
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 509
+      reason: _save_to_history calls ConversationManager.update_conversation, not add_message_pair.
+      evidence: "await self.conv_manager.update_conversation("
+    - caller: astrbot.core.conversation_mgr.ConversationManager.update_conversation_title
+      callee: astrbot.core.conversation_mgr.ConversationManager.add_message_pair
+      file: astrbot/core/conversation_mgr.py
+      line: 304
+      reason: update_conversation_title delegates to update_conversation, not to add_message_pair.
+      evidence: "await self.update_conversation("
+    - caller: astrbot.core.conversation_mgr.ConversationManager.update_conversation_persona_id
+      callee: astrbot.core.conversation_mgr.ConversationManager.add_message_pair
+      file: astrbot/core/conversation_mgr.py
+      line: 326
+      reason: update_conversation_persona_id delegates to update_conversation, not to add_message_pair.
+      evidence: "await self.update_conversation("
+  runtime_only_edges: []

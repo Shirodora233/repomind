@@ -1,0 +1,104 @@
+id: astrbot-agent-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.astr_main_agent.build_main_agent
+target_type: function
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - async
+  - cross_file
+  - dependency_injection
+notes: >
+  Main agent builder case with several direct helper calls in one large module.
+oracle_context:
+  files:
+    - path: astrbot/core/astr_main_agent.py
+      role: target_definition
+      symbols:
+        - astrbot.core.astr_main_agent.build_main_agent
+        - astrbot.core.astr_main_agent._select_provider
+        - astrbot.core.astr_main_agent._get_session_conv
+        - astrbot.core.astr_main_agent._apply_file_extract
+        - astrbot.core.astr_main_agent._decorate_llm_request
+        - astrbot.core.astr_main_agent._apply_kb
+        - astrbot.core.astr_main_agent._plugin_tool_fix
+        - astrbot.core.astr_main_agent._apply_web_search_tools
+        - astrbot.core.astr_main_agent._apply_llm_safety_mode
+      reason: Contains the target and all direct helper callees for this max_depth 1 case.
+    - path: astrbot/core/star/context.py
+      role: indirect_callee
+      symbols:
+        - astrbot.core.star.context.Context.get_provider_by_id
+        - astrbot.core.star.context.Context.get_using_provider
+      reason: Called inside _select_provider, but not directly by build_main_agent.
+  notes: >
+    This case asks only for direct callees of build_main_agent. Helper-internal
+    calls such as Context.get_provider_by_id are excluded.
+golden:
+  required_edges:
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._select_provider
+      file: astrbot/core/astr_main_agent.py
+      line: 1341
+      evidence: "provider = provider or _select_provider(event, plugin_context)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._get_session_conv
+      file: astrbot/core/astr_main_agent.py
+      line: 1489
+      evidence: "conversation = await _get_session_conv(event, plugin_context)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_file_extract
+      file: astrbot/core/astr_main_agent.py
+      line: 1512
+      evidence: "await _apply_file_extract(event, req, config)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._decorate_llm_request
+      file: astrbot/core/astr_main_agent.py
+      line: 1524
+      evidence: "persona_allowed_tools = await _decorate_llm_request("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_kb
+      file: astrbot/core/astr_main_agent.py
+      line: 1528
+      evidence: "await _apply_kb(event, req, plugin_context, config)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._plugin_tool_fix
+      file: astrbot/core/astr_main_agent.py
+      line: 1533
+      evidence: "_plugin_tool_fix(event, req)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_web_search_tools
+      file: astrbot/core/astr_main_agent.py
+      line: 1534
+      evidence: "await _apply_web_search_tools(event, req, plugin_context)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_llm_safety_mode
+      file: astrbot/core/astr_main_agent.py
+      line: 1537
+      evidence: "_apply_llm_safety_mode(config, req)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.star.context.Context.get_provider_by_id
+      file: astrbot/core/astr_main_agent.py
+      line: 221
+      reason: get_provider_by_id is called inside _select_provider, not directly by build_main_agent.
+      evidence: "provider = plugin_context.get_provider_by_id(sel_provider)"
+  runtime_only_edges: []

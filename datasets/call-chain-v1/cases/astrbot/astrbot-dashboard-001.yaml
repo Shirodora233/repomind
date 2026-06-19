@@ -1,0 +1,79 @@
+id: astrbot-dashboard-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.api.providers.create_provider
+target_type: route
+task_type: find_callees
+direction: downstream
+max_depth: 2
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - route_handler
+  - async
+  - cross_file
+  - dependency_injection
+notes: >
+  Dashboard API route case that follows a route handler into a service and then
+  into the core provider manager.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/api/providers.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.api.providers.create_provider
+        - astrbot.dashboard.api.providers.get_service
+      reason: Contains the route handler and FastAPI dependency annotation.
+    - path: astrbot/dashboard/schemas.py
+      role: direct_callee
+      symbols:
+        - astrbot.dashboard.schemas.ProviderConfigRequest.to_dashboard_config
+      reason: Contains the request conversion method called by the route handler.
+    - path: astrbot/dashboard/services/config_service.py
+      role: direct_callee
+      symbols:
+        - astrbot.dashboard.services.config_service.ProviderConfigService.create_provider
+      reason: Contains the service method called by the route handler.
+    - path: astrbot/core/provider/manager.py
+      role: indirect_callee
+      symbols:
+        - astrbot.core.provider.manager.ProviderManager.create_provider
+        - astrbot.core.provider.manager.ProviderManager.load_provider
+      reason: Contains the manager method reached at depth 2 and a deeper method that should not be included.
+  notes: >
+    max_depth is 2. The manager create_provider call is included, but the deeper
+    load_provider call from ProviderManager.create_provider is outside scope.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.api.providers.create_provider
+      callee: astrbot.dashboard.schemas.ProviderConfigRequest.to_dashboard_config
+      file: astrbot/dashboard/api/providers.py
+      line: 275
+      evidence: "await service.create_provider(payload.to_dashboard_config())"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.api.providers.create_provider
+      callee: astrbot.dashboard.services.config_service.ProviderConfigService.create_provider
+      file: astrbot/dashboard/api/providers.py
+      line: 275
+      evidence: "await service.create_provider(payload.to_dashboard_config())"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.config_service.ProviderConfigService.create_provider
+      callee: astrbot.core.provider.manager.ProviderManager.create_provider
+      file: astrbot/dashboard/services/config_service.py
+      line: 1606
+      evidence: "await self.provider_manager.create_provider(config)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.api.providers.create_provider
+      callee: astrbot.core.provider.manager.ProviderManager.load_provider
+      file: astrbot/core/provider/manager.py
+      line: 876
+      reason: load_provider is reached through ProviderManager.create_provider at depth 3, so it is outside this case's max_depth 2.
+      evidence: "await self.load_provider(new_config)"
+  runtime_only_edges: []

@@ -1,0 +1,100 @@
+id: astrbot-agent-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - async
+  - plugin
+  - event_bus
+  - cross_file
+notes: >
+  Core LLM request case with event hooks, agent construction, streaming/non-streaming
+  execution branches, and local history-saving helper calls.
+oracle_context:
+  files:
+    - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      role: target_definition
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._save_to_history
+      reason: Contains the target method and a local helper called by the target.
+    - path: astrbot/core/pipeline/context.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.pipeline.context.call_event_hook
+      reason: Contains the event hook helper invoked by the target.
+    - path: astrbot/core/astr_main_agent.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.astr_main_agent.build_main_agent
+      reason: Contains the agent builder invoked by the target.
+    - path: astrbot/core/astr_agent_run_util.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.astr_agent_run_util.run_live_agent
+        - astrbot.core.astr_agent_run_util.run_agent
+      reason: Contains execution helpers invoked by different branches of the target.
+    - path: astrbot/core/conversation_mgr.py
+      role: indirect_callee
+      symbols:
+        - astrbot.core.conversation_mgr.ConversationManager.update_conversation
+      reason: Used by _save_to_history, but not a direct max_depth 1 callee of the target.
+  notes: >
+    Branch conditions decide whether run_live_agent or run_agent executes at
+    runtime, but both direct callsites are statically visible in this method.
+golden:
+  required_edges:
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.context.call_event_hook
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 213
+      evidence: "await call_event_hook(event, EventType.OnWaitingLLMRequestEvent)"
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 264 for OnLLMRequestEvent."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.astr_main_agent.build_main_agent
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 226
+      evidence: "build_result: MainAgentBuildResult | None = await build_main_agent("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.astr_agent_run_util.run_live_agent
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 310
+      evidence: "run_live_agent("
+      confidence_type: static_confirmed
+      notes: "This direct call is guarded by live/streaming branch conditions."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._save_to_history
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 327
+      evidence: "await self._save_to_history("
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 402 in another branch."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.astr_agent_run_util.run_agent
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 342
+      evidence: "run_agent("
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 372 in another branch."
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.conversation_mgr.ConversationManager.update_conversation
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 509
+      reason: update_conversation is called by _save_to_history, so it is depth 2 from process and outside max_depth 1.
+      evidence: "await self.conv_manager.update_conversation("
+  runtime_only_edges: []
