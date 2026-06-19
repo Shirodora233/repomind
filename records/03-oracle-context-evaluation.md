@@ -105,3 +105,15 @@
 - 观察 case-level request error 记录是否足够诊断全量运行问题。
 - 使用 OpenRouter 或 Ollama 继续跑少量 easy + medium case，并逐步扩展到 hard case。
 - 保存真实模型 raw response、parsed prediction 和 score，分析格式错误、漏边、误报和证据错误。
+
+## 2026-06-19 hard case 重测记录
+
+- 提交 `7ab2791 fix(evaluation): harden oracle runner parsing and routing` 后，选择 hard case `astrbot-agent-001` 做 Oracle Context 重测。
+- 首先使用 `deepseek-v4-pro-direct` 路由运行同一 case，OpenRouter 返回 `404 No endpoints available matching your guardrail restrictions and data policy`。判断为账号级 privacy / data policy 与请求级 `provider.only=["deepseek"]`、`allow_fallbacks=false` 合并后没有可用 endpoint。该问题已记录到技术问题文档；在成本敏感的 DeepSeek 实验中，不应为了跑通而取消 direct routing。
+- 随后使用 `tencent/hy3-preview` 运行同一 hard case。未控制 reasoning 时，`max_tokens=1200` 和 `max_tokens=4000` 两次请求都被 reasoning token 耗尽，返回 `content: null`，无法生成 `prediction.yaml`。
+- 为 runner 增加 OpenRouter reasoning 控制：`--reasoning-effort`、`--reasoning-max-tokens`、`--reasoning-exclude`，并支持从 provider/model config 读取 `reasoning` 配置；同时将 `content: null` 规范为空字符串，避免写成 `"None"` 干扰 parse error 判断。
+- 在 `configs/model-providers.example.yaml` 中新增 `tencent-hy3-preview-no-reasoning` alias，默认使用 `reasoning: {effort: none, exclude: true}`。
+- 使用命令 `python scripts\run_oracle_context.py --provider openai-compatible --model-provider openrouter --model tencent/hy3-preview --case-id astrbot-agent-001 --out-dir runs\oracle-context\hard-tencent-hy3-agent-001-reasoning-none --max-tokens 1600 --reasoning-effort none --reasoning-exclude --timeout-seconds 180` 重跑成功。
+- 本次 hard case 结果：Precision 1.0，Recall 1.0，Evidence Accuracy 1.0；required_edges=5，predicted_edges=5，duplicate_predictions=3，excluded_hits=0，unmatched_predictions=0。
+- OpenRouter 实际返回模型为 `tencent/hy3-preview-20260421`，provider 为 `SiliconFlow`，prompt_tokens=38293，completion_tokens=942，reasoning_tokens=0，total_tokens=39235，cost=0.002772258。
+- 观察：`astrbot-agent-001` 能暴露 hard Oracle Context 的两个有效压力点：一是 reasoning 预算会影响是否产出可评分答案；二是模型容易按 callsite 返回重复 `caller -> callee` 边，而当前 scorer 会将其折叠为 symbol-level edge 并单独统计 `duplicate_predictions`。

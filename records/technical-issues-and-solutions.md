@@ -95,3 +95,27 @@
 - 解决方式：已执行 `git init` 重新初始化仓库，之后 `git status --short` 可正常返回未跟踪文件列表。
 - 后续注意：如果后续再次出现类似问题，先检查 `.git` 是否为空或损坏，不要直接删除、重置或移动 `.git`。
 - 相关文件：`.git`
+
+## OpenRouter DeepSeek direct routing 被账号隐私或数据策略拦截
+
+- 首次发现阶段：Oracle Context 测试阶段
+- 状态：active
+- 最后复核：2026-06-19
+- 现象：使用 `deepseek-v4-pro-direct` alias 调用 `astrbot-agent-001` hard case 时，OpenRouter 返回 `404 No endpoints available matching your guardrail restrictions and data policy. Configure: https://openrouter.ai/settings/privacy`。
+- 影响：DeepSeek direct provider 的成本控制配置已经生效，但当前账号级 privacy / data policy 可能不允许该 endpoint，因此无法在不放开 fallback 的前提下完成请求。
+- 原因：OpenRouter 的请求级 provider routing 会与账号级 allowed / ignored provider、privacy / data policy 合并。`provider.only=["deepseek"]` 且 `allow_fallbacks=false` 时，如果账号策略不允许 DeepSeek endpoint，就没有可用 provider。
+- 解决方式：不要为了跑通成本敏感实验而删除 DeepSeek direct routing。先在 OpenRouter privacy settings 中确认 DeepSeek provider 是否被允许；确认后再重跑 `--model-provider openrouter --model-alias deepseek-v4-pro-direct`。
+- 后续注意：如果必须临时使用非 DeepSeek provider 或允许 fallback，必须在实验记录和 run_config 中说明原因，因为这会改变成本与可比性。
+- 相关文件：`configs/model-providers.example.yaml`、`scripts/run_oracle_context.py`
+
+## reasoning token 耗尽导致 OpenRouter 返回 content null
+
+- 首次发现阶段：Oracle Context 测试阶段
+- 状态：resolved
+- 最后复核：2026-06-19
+- 现象：`tencent/hy3-preview` 在 `astrbot-agent-001` hard case 中，`max_tokens=1200` 和 `max_tokens=4000` 两次请求都返回 `content: null`，`finish_reason: length`，全部 completion token 都进入 `reasoning_tokens`，runner 因没有可解析 YAML 而生成 `parse_error.txt`。
+- 影响：模型可能完成了大量内部推理，但没有给出最终答案；继续盲目提高 `max_tokens` 会增加成本，且不一定改善可评分输出。
+- 原因：OpenRouter 将 reasoning token 计入输出 token；部分 thinking 模型默认会输出 reasoning，长 Oracle Context hard case 容易把输出预算消耗在 reasoning 上。
+- 解决方式：已在 `scripts/run_oracle_context.py` 增加 `--reasoning-effort`、`--reasoning-max-tokens`、`--reasoning-exclude`，并支持从 model config 读取 `reasoning`。对 Oracle scoring run，可使用 `--reasoning-effort none --reasoning-exclude`，或使用 `tencent-hy3-preview-no-reasoning` alias。
+- 后续注意：如果某个模型强制 reasoning 且拒绝 `effort: none`，应记录该模型的限制，并改用较低 reasoning effort、单独 reasoning budget，或换用非 thinking variant；不要把 `content: null` 当作普通 YAML 解析问题。
+- 相关文件：`scripts/run_oracle_context.py`、`configs/model-providers.example.yaml`

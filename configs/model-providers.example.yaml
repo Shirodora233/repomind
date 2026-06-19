@@ -23,6 +23,12 @@ providers:
             - deepseek
           allow_fallbacks: false
         notes: Forces OpenRouter to use the DeepSeek provider slug to avoid higher-cost fallback providers.
+      - alias: tencent-hy3-preview-no-reasoning
+        id: tencent/hy3-preview
+        reasoning:
+          effort: none
+          exclude: true
+        notes: Disables OpenRouter reasoning output for Oracle scoring runs so max_tokens is reserved for the YAML answer.
       - alias: strong-online-1
         id: replace-with-openrouter-model-id
         notes: Placeholder for a high-capability online model.

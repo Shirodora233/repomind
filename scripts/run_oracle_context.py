@@ -138,10 +138,12 @@ def list_models(config: dict[str, Any]) -> None:
             alias = model.get("alias", "<no-alias>")
             model_id = expand_env_vars(model.get("id", ""))
             routing = model.get("routing")
+            reasoning = model.get("reasoning")
             notes = model.get("notes", "")
             suffix = f" - {notes}" if notes else ""
             routing_suffix = f" routing={expand_env_in_value(routing)}" if routing else ""
-            print(f"  - {alias}: {model_id or '<empty>'}{routing_suffix}{suffix}")
+            reasoning_suffix = f" reasoning={expand_env_in_value(reasoning)}" if reasoning else ""
+            print(f"  - {alias}: {model_id or '<empty>'}{routing_suffix}{reasoning_suffix}{suffix}")
 
 
 def _default_model_config_path() -> Path:
@@ -203,6 +205,16 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
         expand_env_in_value(provider_config.get("routing") or {}),
         expand_env_in_value(model_config.get("routing") or {}),
     )
+    reasoning = _merge_dicts(
+        expand_env_in_value(provider_config.get("reasoning") or {}),
+        expand_env_in_value(model_config.get("reasoning") or {}),
+    )
+    if args.reasoning_effort:
+        reasoning["effort"] = args.reasoning_effort
+    if args.reasoning_max_tokens is not None:
+        reasoning["max_tokens"] = args.reasoning_max_tokens
+    if args.reasoning_exclude:
+        reasoning["exclude"] = True
 
     if not base_url:
         raise RuntimeError("missing base URL: pass --base-url, configure model provider base_url, or set OPENAI_COMPATIBLE_BASE_URL")
@@ -220,6 +232,7 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
         "base_url": base_url,
         "headers": headers,
         "routing": routing,
+        "reasoning": reasoning,
         "api_key_env": api_key_env,
         "api_key_required": api_key_required,
     }
@@ -264,6 +277,8 @@ def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse
         payload["max_tokens"] = args.max_tokens
     if settings.get("routing"):
         payload["provider"] = settings["routing"]
+    if settings.get("reasoning"):
+        payload["reasoning"] = settings["reasoning"]
     body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         settings["base_url"],
@@ -280,7 +295,10 @@ def response_content(response: dict[str, Any]) -> str:
     if not choices:
         return ""
     message = choices[0].get("message") or {}
-    return str(message.get("content", ""))
+    content = message.get("content")
+    if content is None:
+        return ""
+    return str(content)
 
 
 def main() -> int:
@@ -300,6 +318,13 @@ def main() -> int:
     parser.add_argument("--list-models", action="store_true", help="List configured model providers and aliases, then exit.")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, help="Optional max_tokens sent to the OpenAI-compatible API.")
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["xhigh", "high", "medium", "low", "minimal", "none"],
+        help="Optional OpenRouter reasoning.effort value for reasoning-capable models.",
+    )
+    parser.add_argument("--reasoning-max-tokens", type=int, help="Optional OpenRouter reasoning.max_tokens value.")
+    parser.add_argument("--reasoning-exclude", action="store_true", help="Set OpenRouter reasoning.exclude=true.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
     parser.add_argument("--line-tolerance", type=int, default=0)
     args = parser.parse_args()
@@ -328,6 +353,7 @@ def main() -> int:
         "model": model_settings["model"] if model_settings else args.model,
         "base_url": model_settings["base_url"] if model_settings else args.base_url,
         "routing": model_settings["routing"] if model_settings else None,
+        "reasoning": model_settings["reasoning"] if model_settings else None,
         "model_config": str(Path(args.model_config)),
         "env_file": str(Path(args.env_file)),
         "prompt": str(Path(args.prompt)),
@@ -335,6 +361,9 @@ def main() -> int:
         "line_tolerance": args.line_tolerance,
         "temperature": args.temperature,
         "max_tokens": args.max_tokens,
+        "reasoning_effort": args.reasoning_effort,
+        "reasoning_max_tokens": args.reasoning_max_tokens,
+        "reasoning_exclude": args.reasoning_exclude,
         "timeout_seconds": args.timeout_seconds,
     }
     write_json(out_root / "run_config.json", run_config)
