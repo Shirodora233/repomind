@@ -23,6 +23,16 @@ providers:
             - deepseek
           allow_fallbacks: false
         notes: Forces OpenRouter to use the DeepSeek provider slug to avoid higher-cost fallback providers.
+      - alias: deepseek-v4-pro-direct-no-reasoning
+        id: deepseek/deepseek-v4-pro
+        routing:
+          only:
+            - deepseek
+          allow_fallbacks: false
+        reasoning:
+          effort: none
+          exclude: true
+        notes: Forces the DeepSeek provider and disables reasoning output for Oracle scoring runs.
       - alias: tencent-hy3-preview-no-reasoning
         id: tencent/hy3-preview
         reasoning:

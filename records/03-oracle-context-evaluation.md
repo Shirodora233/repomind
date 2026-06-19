@@ -117,3 +117,13 @@
 - 本次 hard case 结果：Precision 1.0，Recall 1.0，Evidence Accuracy 1.0；required_edges=5，predicted_edges=5，duplicate_predictions=3，excluded_hits=0，unmatched_predictions=0。
 - OpenRouter 实际返回模型为 `tencent/hy3-preview-20260421`，provider 为 `SiliconFlow`，prompt_tokens=38293，completion_tokens=942，reasoning_tokens=0，total_tokens=39235，cost=0.002772258。
 - 观察：`astrbot-agent-001` 能暴露 hard Oracle Context 的两个有效压力点：一是 reasoning 预算会影响是否产出可评分答案；二是模型容易按 callsite 返回重复 `caller -> callee` 边，而当前 scorer 会将其折叠为 symbol-level edge 并单独统计 `duplicate_predictions`。
+
+## 2026-06-19 DeepSeek direct 重测记录
+
+- 用户调整 OpenRouter privacy / provider 设置后，重新使用 `deepseek-v4-pro-direct` 跑 hard case `astrbot-agent-001`。
+- 第一次命令：`python scripts\run_oracle_context.py --provider openai-compatible --model-provider openrouter --model-alias deepseek-v4-pro-direct --case-id astrbot-agent-001 --out-dir runs\oracle-context\hard-deepseek-direct-agent-001-after-settings --max-tokens 2000 --timeout-seconds 240`。
+- 第一次结果：请求已成功命中 DeepSeek direct，OpenRouter 返回模型 `deepseek/deepseek-v4-pro-20260423`，provider 为 `DeepSeek`，说明账号设置修改生效。但 `finish_reason=length`，`completion_tokens=2000` 全部为 `reasoning_tokens`，`content` 为空，无法评分；本次 cost=0.01924701。
+- 第二次命令：`python scripts\run_oracle_context.py --provider openai-compatible --model-provider openrouter --model-alias deepseek-v4-pro-direct --case-id astrbot-agent-001 --out-dir runs\oracle-context\hard-deepseek-direct-agent-001-reasoning-none --max-tokens 1800 --reasoning-effort none --reasoning-exclude --timeout-seconds 240`。
+- 第二次结果：成功生成 `prediction.yaml` 和 `score.json`。Precision 1.0，Recall 1.0，Evidence Accuracy 1.0；required_edges=5，predicted_edges=5，duplicate_predictions=3，excluded_hits=0，unmatched_predictions=0。
+- 第二次 OpenRouter usage：模型 `deepseek/deepseek-v4-pro-20260423`，provider `DeepSeek`，prompt_tokens=40246，completion_tokens=954，reasoning_tokens=0，total_tokens=41200，cost=0.000999166。
+- 观察：DeepSeek direct 的 provider routing 已可用，但 hard Oracle Context 默认 reasoning 会显著增加成本且可能没有最终答案。后续 DeepSeek Oracle scoring run 应优先使用 `--reasoning-effort none --reasoning-exclude` 或 `deepseek-v4-pro-direct-no-reasoning` alias。
