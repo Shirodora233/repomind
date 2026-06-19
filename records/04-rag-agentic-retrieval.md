@@ -34,9 +34,11 @@
 
 ## 下一步
 
-- 设计 agent loop 的工具集合与调用上限。
-- 实现检索、读文件、证据输出和 trace 保存。
-- 跑首批 E2E baseline 并与 Oracle Context 结果对照。
+- 扩展更多模型的 Oracle Context 与 E2E baseline，优先覆盖代表性在线模型和后续可本地微调的小模型。
+- 形成多模型 baseline 对比报告，按 case、难度、任务方向、失败类型、成本和 token 做横向分析。
+- 基于多模型结果复核 pilot case 质量，识别稳定区分 case、过易 case、边界含糊 case 和可能需要修正 golden 的 case。
+- 在开始优化前，将测试集扩展到 50+ case，覆盖更多 repo、调用方向、难度层级和动态调用模式。
+- 待 50+ case 测试集与多模型 baseline 稳定后，再进入 Prompt Engineering、RAG、tool strategy 和 Fine-tune 消融实验。
 
 ## 2026-06-19 E2E 最小框架初始化
 
@@ -69,3 +71,9 @@
 - `astrbot-pipeline-002` 结果：成功生成 `prediction.yaml` 和 `score.json`；Precision 1.0，Recall 0.5，Evidence Accuracy 1.0；tool_calls=3，files_read=1，definition_accuracy=1.0，retrieval_recall=1.0，总 cost 约 0.001435993。
 - 失败模式：DeepSeek 找到了目标文件并读到 required edge evidence 文件，但漏报 `AstrMessageEvent.get_extra` 和 `AstrMessageEvent.set_extra`，说明这轮主要是模型对“对象方法调用是否计入 repo 内 symbol-level edge”的边界理解问题，不是检索失败。
 - 后续改进：真实 E2E baseline 需要进一步调 prompt，明确对象方法、实例字段方法和 symbol-level 去重规则；也可以增加 AST/symbol index 工具，减少模型靠自然语言推断 fully qualified callee 的压力。
+## 2026-06-19 DeepSeek direct-no-reasoning 10-case E2E baseline v0
+
+- 已完成 10-case E2E Agentic Retrieval baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-deepseek-direct-no-reasoning-20260619`。
+- 正式报告见 `reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`。
+- 关键结果：Edge Precision 0.446154，Edge Recall 0.84375，Evidence Accuracy 1.0；Definition Accuracy 1.0，Retrieval Recall 1.0，tool_calls=69，files_read=17；provider 全部命中 DeepSeek，reasoning_tokens=0，总成本约 0.042644065。
+- 初步判断：当前 E2E 主要瓶颈不是检索失败，而是检索成功后过度返回 helper / constructor / utility 边，以及 repo 内对象方法和动态 sub-stage 边界判断不稳定。但该结论只来自单模型 10-case baseline，下一步应先扩展多模型测试，并用多模型结果指导测试集扩展到 50+，暂不进入优化阶段。
