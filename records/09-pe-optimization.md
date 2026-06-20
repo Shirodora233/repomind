@@ -51,3 +51,16 @@
     - `python -c "import yaml, pathlib; yaml.safe_load(pathlib.Path('configs/experiments/pe-v1.yaml').read_text(encoding='utf-8')); print('pe config yaml ok')"`
     - 使用临时 sample prediction 运行 `python scripts/pe_postprocess.py --input tmp/pe_postprocess_sample.yaml --case-metadata tmp/pe_case_metadata.json --dry-run`，确认 6 条输入被确定性清洗为 2 条输出，并移除测试、外部、malformed 和重复边；临时样例已删除。
   - 后续需要集成 agent 决定是否把 PE prompt/postprocess 版本写入公共 `configs/evaluation-versions.yaml` 或正式 docs；本次按文件所有权未修改公共版本文件。
+- 2026-06-21：新增 PE matrix runner / command planner，支持为后续 16 组 PE pilot 生成可复现命令清单；本次未跑全量真实模型实验。
+  - 新增 `scripts/run_pe_matrix.py`，从 `configs/experiments/pe-v1.yaml` 读取 `pilot.case_ids` 和 `pilot.combinations`，支持 `--dry-run`、`--track oracle/e2e/both`、`--model-provider`、`--model-alias`、`--case-limit` 和 `--combination`。
+  - dry-run 默认写入 `runs/pe/plans/pe-matrix-plan-*.json`；计划中包含 Oracle / E2E runner 命令模板、run_dir、case ids、模型 provider/alias、prompt version、runner/scorer version、postprocess 与重评分命令模板。
+  - 在计划中显式记录 `S/F/C/P` 映射：`S` -> `prompts/pe/system-v1.md`，`F` -> `prompts/pe/few-shot-examples-v1.yaml`，`C` -> `prompts/pe/reasoning-checklist-v1.md`，`P` -> `scripts/pe_postprocess.py`。
+  - 当前 Oracle / E2E runner 尚不能按单维度自动拼装 `S/F/C` prompt；包含 `S/F/C` 的组合会标记 `requires_prompt_assembly=true` 和 `template_requires_prompt_assembly*`，不会伪装为已可直接运行的正式实验。
+  - 当前 runner 也未内置 PE postprocess hook；包含 `P` 的组合会标记 `requires_postprocess_orchestration=true`，并额外生成 postprocess + `score_predictions.py` 重评分命令模板。
+  - 更新 `configs/experiments/pe-v1.yaml` 的 `matrix_runner` 契约，并在 `reports/pe/README.md` 说明 `runs/pe/plans/` 只是本地命令计划，不是正式报告。
+  - 最小验证：
+    - `python -m py_compile scripts/run_pe_matrix.py`
+    - `python scripts/run_pe_matrix.py --help`
+    - `python scripts/run_pe_matrix.py --dry-run --case-limit 1 --combination base/S+F+C+P`
+    - dry-run 输出 `runs/pe/plans/pe-matrix-plan-20260620T173357Z.json`，共 8 条 runner command templates（2 个组合 × 2 个 track × 2 个 primary models）；验证期间没有调用模型。
+  - 尚未完成：真实 16 组 PE pilot、S/F/C prompt assembler、P 组合的真实 postprocess 后重评分闭环。

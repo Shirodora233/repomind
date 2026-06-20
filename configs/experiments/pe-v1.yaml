@@ -64,6 +64,17 @@ runner_usage:
   e2e_prompt_args: --prompt prompts/pe/e2e-task-pe-v1.md --system-prompt prompts/pe/e2e-agent-system-pe-v1.md --task-prompt-version e2e-task-pe-v1 --system-prompt-version e2e-agent-system-pe-v1
   note: PE v1 scaffold is runnable, but no large-scale real-model PE pilot has been run yet.
 
+matrix_runner:
+  script: scripts/run_pe_matrix.py
+  default_mode: dry_run_plan_only
+  plan_dir: runs/pe/plans
+  prompt_assembly_status: planned_not_implemented
+  exact_combination_policy:
+    base: use baseline Oracle/E2E prompts and no PE postprocess
+    S_F_C: combinations containing S, F, or C need assembled prompt templates before real model runs
+    P: combinations containing P need deterministic postprocess plus re-score orchestration after runner prediction output
+  note: Command plans must mark prompt/postprocess gaps explicitly and must not be reported as completed PE experiments.
+
 pilot:
   matrix: full_factorial_2x2x2x2
   combinations:
