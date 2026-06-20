@@ -39,14 +39,15 @@
 | 2026-06-20 | Golden 边界修订 | `97321a8` | 修订 `astrbot-pipeline-003` 与 `scrapy-signal-001` 边界 |
 | 2026-06-20 | Scorer v1 | `faf9f73` | constructor-normalized 辅助指标与 50-case 对比报告 |
 | 2026-06-20 | Runner timing v1 | `a358ef1` | Oracle / E2E structured wall-clock timing |
-| 2026-06-20 | Caller case 扩展到 70 | 未提交 | 新增 20 个 `find_callers` case，并完成 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测 |
+| 2026-06-20 | Caller case 扩展到 70 | `4cde701` | 新增 20 个 `find_callers` case，并完成 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测 |
 
 ## 当前待办
 
-- 基于 70-case strict / constructor-normalized 双指标和 caller E2E 结果，确定 PE / RAG v1 的优化目标 case 集。
-- 设计 Prompt Engineering v1：明确对象方法、动态注册、callback、constructor symbol 和 excluded edge 的输出约束。
-- 设计 RAG / E2E v1：优先解决检索后 final edge 收敛、symbol canonicalization 和多 action 文本协议问题。
-- 后续正式实验从 runner v1 开始比较 wall-clock runtime；旧 runner v0 baseline 不回填运行时间。
+- baseline 70-case test set 冻结，后续 PE / RAG 调参使用 stratified pilot subset，最终再回到完整 70-case。
+- PE v1 使用 `configs/experiments/pe-v1.yaml` 中的 20-case pilot subset，先跑 16 组四维组合，再选 4-6 组跑全量。
+- RAG v1 默认使用 `Qwen/Qwen3-Embedding-0.6B + BM25 hybrid`，并对比 Jina code embedding 与 BGE-M3。
+- Fine-tune 先构造数据集和 validator，正式训练需等待本地推理批次结束，避免本地 GPU / Ollama 资源冲突。
+- 消融矩阵等待 PE / RAG / Fine-tune 单项版本冻结后再运行，不在优化前直接跑完整 All。
 
 ## 维护规则
 

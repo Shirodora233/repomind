@@ -1,0 +1,75 @@
+version: rag-v1
+stage: rag_pipeline
+status: planned
+
+baseline_reference:
+  dataset: call-chain-v1
+  test_set_status: frozen
+  baseline_report: reports/baseline/summary/baseline-summary-v0-20260620.md
+  e2e_runner: e2e-agent-runner-v1
+  scorer: call-chain-scorer-v1
+
+pipeline_requirements:
+  - code_chunk_index
+  - embedding_index
+  - lexical_keyword_search
+  - hybrid_retrieval
+  - context_pack_builder
+  - generation_fusion
+  - retrieval_metrics
+
+embedding_candidates:
+  default:
+    name: Qwen/Qwen3-Embedding-0.6B
+    role: primary local embedding model for multilingual code retrieval
+    dimension: 1024
+    notes: instruction-aware; use query instruction for call-chain retrieval
+  lightweight_code_baseline:
+    name: jinaai/jina-embeddings-v2-base-code
+    role: fast code embedding baseline
+  hybrid_reference:
+    name: BAAI/bge-m3
+    role: dense/sparse/multi-vector reference model
+  optional_api_upper_bound:
+    name: voyage-code-3
+    role: paid API upper-bound reference
+    status: optional_after_local_baselines
+
+retrieval_variants:
+  - bm25_only
+  - qwen3_dense
+  - jina_code_dense
+  - bge_m3_dense
+  - qwen3_dense_plus_bm25
+  - jina_code_plus_bm25
+  - bge_m3_plus_bm25
+
+metrics:
+  retrieval:
+    - Recall@5
+    - Recall@10
+    - MRR
+    - EvidenceFileRecall
+    - DefinitionAccuracy
+  e2e:
+    - EdgePrecision
+    - EdgeRecall
+    - EvidenceAccuracy
+    - ToolCalls
+    - FilesRead
+    - ContextTokens
+    - Runtime
+    - TokenCost
+
+case_sets:
+  pilot: use pe-v1 pilot case_ids unless a retrieval-specific subset is justified in the report
+  full: all_70_cases
+
+resource_constraints:
+  local_gpu_embedding_must_not_overlap_with_formal_finetune_training: true
+  online_model_runs_can_overlap_with_finetune_data_construction: true
+
+reporting:
+  batch_dir: reports/rag/batches
+  summary_dir: reports/rag/summary
+  record_file: records/10-rag-pipeline.md

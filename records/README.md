@@ -33,6 +33,10 @@
 - `06-experiment-versioning-and-reproducibility.md`：实验版本化与复现机制。
 - `07-cross-repo-baseline-analysis.md`：跨仓库 baseline 分析与 50-case 汇总阶段。
 - `08-documentation-and-report-organization.md`：正式文档与报告目录整理阶段。
+- `09-pe-optimization.md`：Prompt Engineering 优化阶段。
+- `10-rag-pipeline.md`：RAG Pipeline 优化阶段。
+- `11-finetune-data-and-training.md`：Fine-tune 数据与训练阶段。
+- `12-ablation-and-strategy-selection.md`：消融实验与策略选择阶段。
 
 ## 什么时候需要更新记录
 

@@ -1,0 +1,53 @@
+version: ablation-v1
+stage: ablation_and_strategy_selection
+status: planned_after_single_track_freeze
+
+baseline_reference:
+  dataset: call-chain-v1
+  baseline_report: reports/baseline/summary/baseline-summary-v0-20260620.md
+
+entry_gates:
+  pe_best_frozen: false
+  rag_best_frozen: false
+  finetune_best_frozen: false
+  notes: run full ablation only after PE, RAG, and fine-tune each have a stable single-track version or an explicit stop decision
+
+required_matrix:
+  - Base
+  - PE only
+  - RAG only
+  - Fine-tune only
+  - PE+RAG
+  - PE+Fine-tune
+  - RAG+Fine-tune
+  - All
+
+comparison_requirements:
+  tracks:
+    oracle: required_where_applicable
+    e2e: required
+  metrics:
+    main:
+      - EdgePrecision
+      - EdgeRecall
+      - EvidenceAccuracy
+    e2e:
+      - DefinitionAccuracy
+      - RetrievalRecall
+      - ToolCalls
+      - FilesRead
+      - TokenCost
+      - Runtime
+    rag:
+      - Recall@K
+      - MRR
+  analysis:
+    - best_strategy
+    - applicable_conditions
+    - failure_modes
+    - cost_runtime_tradeoff
+    - model_size_tradeoff
+
+reporting:
+  summary_dir: reports/ablation/summary
+  record_file: records/12-ablation-and-strategy-selection.md

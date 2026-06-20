@@ -1,0 +1,102 @@
+version: pe-v1
+stage: prompt_engineering
+status: planned
+
+baseline_reference:
+  dataset: call-chain-v1
+  test_set_status: frozen
+  baseline_report: reports/baseline/summary/baseline-summary-v0-20260620.md
+  scorer: call-chain-scorer-v1
+  oracle_runner: oracle-context-runner-v1
+  e2e_runner: e2e-agent-runner-v1
+
+optimization_dimensions:
+  system_prompt:
+    id: S
+    goal: clarify role, symbol-level edge definition, direction, output schema, and exclusion rules
+  few_shot:
+    id: F
+    minimum_examples: 20
+    goal: cover caller/callee, negative, callback, constructor, object-method, large fan-in, and framework cases
+  reasoning_checklist:
+    id: C
+    goal: use an evidence-first verification checklist without requiring verbose chain-of-thought output
+  postprocess:
+    id: P
+    goal: deterministic filtering, sorting, de-duplication, depth checks, and canonical symbol cleanup without golden leakage
+
+pilot:
+  matrix: full_factorial_2x2x2x2
+  combinations:
+    - base
+    - S
+    - F
+    - C
+    - P
+    - S+F
+    - S+C
+    - S+P
+    - F+C
+    - F+P
+    - C+P
+    - S+F+C
+    - S+F+P
+    - S+C+P
+    - F+C+P
+    - S+F+C+P
+  case_ids:
+    - astrbot-conversation-001
+    - astrbot-platform-001
+    - scrapy-crawler-001
+    - scrapy-engine-005
+    - astrbot-agent-002
+    - astrbot-chat-002
+    - astrbot-conversation-003
+    - astrbot-eventbus-001
+    - astrbot-negative-001
+    - astrbot-platform-005
+    - astrbot-tools-002
+    - scrapy-feed-001
+    - scrapy-crawler-006
+    - scrapy-download-004
+    - astrbot-agent-001
+    - astrbot-chat-003
+    - astrbot-hook-001
+    - astrbot-pipeline-002
+    - scrapy-feed-003
+    - scrapy-signal-004
+  coverage:
+    task_type:
+      find_callers: 10
+      find_callees: 10
+    difficulty:
+      easy: 4
+      medium: 10
+      hard: 6
+    repos:
+      astrbot: 13
+      scrapy: 7
+
+full_run:
+  case_set: all_70_cases
+  selection_rule: choose 4-6 representative combinations after pilot based on precision, recall, evidence accuracy, cost, and failure modes
+
+models:
+  primary:
+    - provider: openrouter
+      alias: deepseek-v4-pro-direct-no-reasoning
+    - provider: openrouter
+      alias: tencent-hy3-preview-no-reasoning
+  local_optional:
+    - provider: ollama-native
+      alias: gemma4-e2b
+      rule: run only selected best PE variant unless local resource schedule is idle
+
+tracks:
+  oracle: required
+  e2e: required
+
+reporting:
+  batch_dir: reports/pe/batches
+  summary_dir: reports/pe/summary
+  record_file: records/09-pe-optimization.md

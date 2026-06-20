@@ -97,3 +97,26 @@
 4. 如发现可复用技术问题或过时问题，再更新 `records/technical-issues-and-solutions.md`。
 
 正式报告至少应包含实验目标、运行命令、run path、git commit / dirty 状态、case 集合、模型与 provider/routing/reasoning 配置、prompt/runner/scorer/tool 版本、总指标、分 case 指标、成本/token、失败模式和下一步。
+
+## 7. 多 agent 并行与资源约束
+
+进入 PE / RAG / Fine-tune 优化阶段后，允许多 agent 并行推进，但必须遵守文件所有权、实验隔离和本地资源互斥规则。
+
+并行开发默认文件所有权：
+
+- PE 线：`prompts/pe/`、`scripts/pe_postprocess.py`、`configs/experiments/pe-*.yaml`、`reports/pe/`、`records/09-pe-optimization.md`。
+- RAG 线：`scripts/rag_*.py`、`configs/experiments/rag-*.yaml`、`reports/rag/`、`records/10-rag-pipeline.md`。
+- Fine-tune 线：`datasets/finetune-v1/`、`scripts/build_finetune_dataset.py`、`scripts/validate_finetune_dataset.py`、`configs/experiments/finetune-*.yaml`、`reports/finetune/`、`records/11-finetune-data-and-training.md`。
+- Evaluation / ablation 线：`configs/experiments/ablation-*.yaml`、`scripts/aggregate_*`、`reports/ablation/`、`records/12-ablation-and-strategy-selection.md`。
+
+公共文件由集成 agent 统一维护，包括 `AGENTS.md`、`records/development-progress-summary.md`、`configs/evaluation-versions.yaml`、`docs/` 中的正式协议文档和跨阶段 README。其他 agent 如需修改公共文件，应先在阶段记录中说明原因，避免并发提交互相覆盖。
+
+提交必须按功能拆分。每个 agent 在提交前应检查 `git status --short` 和 `git diff --name-only`，只 stage 自己负责的文件，不要把其他 agent 或用户的修改带入提交。
+
+本地 GPU / Ollama 资源约束：
+
+- 正式微调训练不得与任何本地模型推理实验并发运行。
+- Gemma4 / Qwen 等 Ollama 本地 Oracle、E2E 推理不得与 LoRA / QLoRA 训练并发运行。
+- 如果 embedding 索引或 rerank 使用本地 GPU，也不得与正式微调训练并发运行。
+- PE / RAG 的在线模型 API 实验、文档编写、脚本开发、数据集构造和报告整理可以与微调数据准备并行。
+- 启动正式训练前，应确认没有运行中的本地推理批次，记录 git commit、数据版本、训练配置和环境快照。

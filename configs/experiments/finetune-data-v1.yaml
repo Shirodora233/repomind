@@ -1,0 +1,49 @@
+version: finetune-data-v1
+stage: fine_tune_data_and_training
+status: planned
+
+target_model:
+  local_baseline_alias: gemma4-e2b
+  training_method: QLoRA
+  training_source: Hugging Face format weights
+  deployment_reference: Ollama gemma4:e2b remains local inference baseline only
+
+data_requirements:
+  minimum_examples: 500
+  format: jsonl
+  required_sample_types:
+    - positive_call_edges
+    - negative_non_call_cases
+    - same_name_distractors
+    - import_or_string_not_call
+    - callback_registration_boundary
+    - runtime_only_boundary
+    - constructor_symbol_cases
+    - caller_direction_cases
+    - callee_direction_cases
+    - evidence_output_cases
+
+leakage_rules:
+  split_by_repo: true
+  excluded_test_repos:
+    - AstrBotDevs/AstrBot
+    - scrapy/scrapy
+  train_repos_must_not_overlap_dev_or_test: true
+  current_call_chain_v1_test_cases_must_not_enter_training: true
+
+gates:
+  smoke_dataset_examples: 50
+  full_dataset_examples: 500
+  validate_before_training: true
+  smoke_train_before_formal_train: true
+
+resource_constraints:
+  formal_training_must_not_overlap_local_ollama_inference: true
+  formal_training_must_not_overlap_local_gpu_embedding_indexing: true
+  online_api_runs_may_overlap_with_dataset_construction: true
+  record_environment_snapshot_before_training: true
+
+reporting:
+  batch_dir: reports/finetune/batches
+  summary_dir: reports/finetune/summary
+  record_file: records/11-finetune-data-and-training.md
