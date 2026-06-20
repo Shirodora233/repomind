@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,8 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "experiments" / "finetune-data-v1.yaml"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "datasets" / "finetune-v1" / "smoke" / "synthetic-micro-smoke.jsonl"
+DEFAULT_FULL_SYNTHETIC_OUTPUT_PATH = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-dry.jsonl"
+DEFAULT_FULL_SYNTHETIC_MANIFEST_PATH = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-dry-manifest.json"
 DATASET_VERSION = "finetune-data-v1"
 SYNTHETIC_PATTERN_COUNT = 25
 
@@ -35,6 +38,22 @@ def write_jsonl(path: Path, samples: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [json.dumps(sample, ensure_ascii=False, sort_keys=True) for sample in samples]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_json(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def resolve_project_path(path: str | Path) -> Path:
+    resolved = Path(path)
+    if not resolved.is_absolute():
+        resolved = PROJECT_ROOT / resolved
+    return resolved
+
+
+def sorted_counter(values: list[str]) -> dict[str, int]:
+    return dict(sorted(Counter(values).items()))
 
 
 def edge(
@@ -1075,33 +1094,213 @@ def build_samples(count: int) -> list[dict[str, Any]]:
     return [synthetic_sample(index) for index in range(1, count + 1)]
 
 
+def retag_full_synthetic_sample(sample: dict[str, Any], index: int) -> dict[str, Any]:
+    sample_id = f"ft-full-synth-{index:03d}"
+    sample["id"] = sample_id
+    sample["source_id"] = f"full-synthetic-template-{(index - 1) % SYNTHETIC_PATTERN_COUNT:02d}"
+    sample["source_refs"] = [
+        {
+            "kind": "manual_note",
+            "id": "full_synthetic_dry_generation_plan",
+        }
+    ]
+    sample["notes"] = (
+        "Synthetic full-dataset candidate generated for dry planning only. "
+        "Not frozen and not derived from AstrBot, Scrapy, or evaluation cases."
+    )
+    sample["output"]["case_id"] = sample_id
+    sample["messages"][-1]["content"] = json.dumps(
+        sample["output"],
+        ensure_ascii=False,
+        indent=2,
+        sort_keys=True,
+    )
+    return sample
+
+
+def build_target_samples(count: int, target: str) -> list[dict[str, Any]]:
+    samples = build_samples(count)
+    if target == "full_synthetic":
+        return [retag_full_synthetic_sample(sample, index) for index, sample in enumerate(samples, start=1)]
+    return samples
+
+
+def summarize_samples(samples: list[dict[str, Any]]) -> dict[str, Any]:
+    split_counts = sorted_counter([sample["split"] for sample in samples])
+    source_type_counts = sorted_counter([sample.get("source_type", "unknown") for sample in samples])
+    tag_counts = sorted_counter(
+        [
+            tag
+            for sample in samples
+            for tag in sample.get("tags", [])
+            if isinstance(tag, str) and tag.strip()
+        ]
+    )
+
+    repo_group_summary: dict[str, dict[str, Any]] = {}
+    for sample in samples:
+        leakage = sample.get("leakage", {})
+        group = leakage.get("split_by_repo_group") or sample["repo"]
+        split = sample["split"]
+        item = repo_group_summary.setdefault(
+            group,
+            {
+                "sample_count": 0,
+                "repos": set(),
+                "splits": set(),
+            },
+        )
+        item["sample_count"] += 1
+        item["repos"].add(sample["repo"])
+        item["splits"].add(split)
+
+    repo_split_group_counts: Counter[str] = Counter()
+    normalized_repo_groups: dict[str, dict[str, Any]] = {}
+    for group, item in sorted(repo_group_summary.items()):
+        splits = sorted(item["splits"])
+        for split in splits:
+            repo_split_group_counts[split] += 1
+        normalized_repo_groups[group] = {
+            "sample_count": item["sample_count"],
+            "repos": sorted(item["repos"]),
+            "splits": splits,
+        }
+
+    return {
+        "sample_count": len(samples),
+        "split_counts": split_counts,
+        "source_type_counts": source_type_counts,
+        "tag_counts": tag_counts,
+        "repo_split_group_counts": dict(sorted(repo_split_group_counts.items())),
+        "repo_split_groups": normalized_repo_groups,
+    }
+
+
+def build_manifest(
+    *,
+    samples: list[dict[str, Any]],
+    target: str,
+    count: int,
+    config_path: Path,
+    output_path: Path,
+    jsonl_written: bool,
+    mode: str,
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    leakage_rules = config.get("leakage_rules", {}) if isinstance(config.get("leakage_rules"), dict) else {}
+    return {
+        "dataset_version": DATASET_VERSION,
+        "target": target,
+        "mode": mode,
+        "requested_count": count,
+        "jsonl_written": jsonl_written,
+        "jsonl_path": str(output_path),
+        "config_path": str(config_path),
+        "source_plan_path": "datasets/finetune-v1/source-plan.md",
+        "summary": summarize_samples(samples),
+        "leakage_rules": {
+            "split_by_repo": bool(leakage_rules.get("split_by_repo", True)),
+            "blocked_train_dev_repos": leakage_rules.get("excluded_test_repos", []),
+            "train_repos_must_not_overlap_dev_or_test": bool(
+                leakage_rules.get("train_repos_must_not_overlap_dev_or_test", True)
+            ),
+            "current_call_chain_v1_test_cases_must_not_enter_training": bool(
+                leakage_rules.get("current_call_chain_v1_test_cases_must_not_enter_training", True)
+            ),
+        },
+        "notes": [
+            "full_synthetic is a deterministic synthetic_micro dry-generation target, not the frozen formal dataset.",
+            "AstrBotDevs/AstrBot and scrapy/scrapy remain blocked from train/dev.",
+            "Formal training was not started by this builder.",
+        ],
+    }
+
+
+def configured_count_for_target(config: dict[str, Any], target: str) -> int:
+    gates = config.get("gates", {}) if isinstance(config.get("gates"), dict) else {}
+    if target == "full_synthetic":
+        return int(gates.get("full_dataset_examples") or 500)
+    return int(gates.get("smoke_dataset_examples") or 50)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build fine-tune JSONL data.")
     parser.add_argument("--config", default=str(DEFAULT_CONFIG_PATH), help="Experiment config path.")
-    parser.add_argument("--out", default=str(DEFAULT_OUTPUT_PATH), help="Output JSONL path.")
-    parser.add_argument("--count", type=int, help="Number of synthetic smoke examples to generate.")
+    parser.add_argument(
+        "--target",
+        choices=["smoke", "full_synthetic"],
+        default="smoke",
+        help="Build target. full_synthetic defaults to dry manifest mode unless --write-jsonl is set.",
+    )
+    parser.add_argument("--out", help="Output JSONL path.")
+    parser.add_argument("--count", type=int, help="Number of synthetic examples to generate or dry-plan.")
+    parser.add_argument("--dry-run", action="store_true", help="Generate the in-memory plan without writing JSONL.")
+    parser.add_argument(
+        "--write-jsonl",
+        action="store_true",
+        help="Allow full_synthetic to write JSONL. Use runs/ or tmp/ unless intentionally freezing data.",
+    )
+    parser.add_argument("--manifest-out", help="Optional JSON manifest path for dry/full generation summaries.")
     args = parser.parse_args()
 
-    config = load_config(Path(args.config))
-    configured_count = (
-        config.get("gates", {}).get("smoke_dataset_examples")
-        if isinstance(config.get("gates"), dict)
+    config_path = resolve_project_path(args.config)
+    config = load_config(config_path)
+    count = args.count or configured_count_for_target(config, args.target)
+    if count < 1:
+        raise ValueError("count must be positive")
+
+    smoke_range = (
+        config.get("data_requirements", {}).get("smoke_examples_allowed_range")
+        if isinstance(config.get("data_requirements"), dict)
         else None
     )
-    count = args.count or int(configured_count or 50)
-    output_path = Path(args.out)
-    if not output_path.is_absolute():
-        output_path = PROJECT_ROOT / output_path
+    smoke_max = int(smoke_range[1]) if isinstance(smoke_range, list) and len(smoke_range) == 2 else 50
+    if args.target == "smoke" and count > smoke_max and not args.dry_run:
+        raise ValueError(
+            f"smoke target writes are capped at {smoke_max}; use --target full_synthetic --dry-run "
+            "or pass --dry-run for larger planning counts"
+        )
 
-    samples = build_samples(count)
-    write_jsonl(output_path, samples)
+    default_output = DEFAULT_OUTPUT_PATH if args.target == "smoke" else DEFAULT_FULL_SYNTHETIC_OUTPUT_PATH
+    output_path = resolve_project_path(args.out or default_output)
+    full_defaults_to_dry = args.target == "full_synthetic" and not args.write_jsonl
+    dry_run = args.dry_run or full_defaults_to_dry
+    jsonl_written = not dry_run and (args.target == "smoke" or args.write_jsonl)
 
-    split_counts: dict[str, int] = {}
-    for sample in samples:
-        split_counts[sample["split"]] = split_counts.get(sample["split"], 0) + 1
+    samples = build_target_samples(count, args.target)
+    manifest = build_manifest(
+        samples=samples,
+        target=args.target,
+        count=count,
+        config_path=config_path,
+        output_path=output_path,
+        jsonl_written=jsonl_written,
+        mode="dry_run" if dry_run else "write_jsonl",
+        config=config,
+    )
 
-    print(f"wrote {len(samples)} synthetic_micro samples to {output_path}")
-    print("split counts:", json.dumps(split_counts, sort_keys=True))
+    if jsonl_written:
+        write_jsonl(output_path, samples)
+
+    manifest_path: Path | None = None
+    if args.manifest_out:
+        manifest_path = resolve_project_path(args.manifest_out)
+    elif args.target == "full_synthetic":
+        manifest_path = DEFAULT_FULL_SYNTHETIC_MANIFEST_PATH
+    if manifest_path is not None:
+        write_json(manifest_path, manifest)
+
+    action = "planned" if dry_run else "wrote"
+    print(f"{action} {len(samples)} synthetic_micro samples for target={args.target}")
+    if jsonl_written:
+        print(f"jsonl path: {output_path}")
+    else:
+        print(f"jsonl path: not written (planned path would be {output_path})")
+    if manifest_path is not None:
+        print(f"manifest path: {manifest_path}")
+    print("split counts:", json.dumps(manifest["summary"]["split_counts"], sort_keys=True))
+    print("source type counts:", json.dumps(manifest["summary"]["source_type_counts"], sort_keys=True))
+    print("repo split group counts:", json.dumps(manifest["summary"]["repo_split_group_counts"], sort_keys=True))
     print("formal training was not started")
     return 0
 

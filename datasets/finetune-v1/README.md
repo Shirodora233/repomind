@@ -2,13 +2,14 @@
 
 This directory contains the versioned fine-tuning data format for the call-chain task.
 
-The current checked-in implementation is a smoke+ skeleton. It can generate and validate a 50-sample synthetic micro JSONL dataset without using local Ollama, GPU inference, or any formal training job. This is still below the 500+ sample threshold required before formal fine-tuning.
+The current checked-in implementation is a smoke+ skeleton plus a 500+ source planning entry. It can generate and validate a 50-sample synthetic micro JSONL dataset without using local Ollama, GPU inference, or any formal training job. The 500+ dataset is planned but not frozen.
 
 ## Layout
 
 ```text
 datasets/finetune-v1/
   README.md
+  source-plan.md
   schemas/
     finetune-sample.schema.json
   smoke/
@@ -76,6 +77,28 @@ Validate it with:
 python scripts/validate_finetune_dataset.py --jsonl datasets/finetune-v1/smoke/synthetic-micro-smoke.jsonl
 ```
 
+The validator prints a dataset-level summary covering sample count, split counts, source type counts, required tag coverage, and repo split group counts.
+
+## 500+ Planning Entry
+
+The formal 500+ data source plan is tracked in `source-plan.md`. It defines a planned 400 train / 100 dev / 40 holdout shape, with the training export requiring at least 500 train/dev examples before formal training.
+
+The plan is not frozen. The concrete real-project repo list still needs pinned local source snapshots, extraction notes, and validation evidence before any training starts.
+
+Current hard leakage rule:
+
+- `AstrBotDevs/AstrBot` is forbidden in train/dev.
+- `scrapy/scrapy` is forbidden in train/dev.
+- Current `datasets/call-chain-v1` AstrBot/Scrapy cases must not be transformed into train/dev examples.
+
+The builder has a dry full-synthetic planning target:
+
+```powershell
+python scripts/build_finetune_dataset.py --target full_synthetic --count 500 --dry-run --manifest-out runs/finetune/full-synthetic-dry-manifest.json
+```
+
+This command generates an in-memory 500-sample synthetic plan and writes only a small manifest. It does not write a large JSONL unless `--write-jsonl` is explicitly passed. Any temporary large JSONL should go under `runs/` or `tmp/` and should not be committed before data freeze review.
+
 ## Expansion Rules for 500+ Samples
 
 The full v1 dataset must contain at least 500 samples before formal training starts.
@@ -91,4 +114,4 @@ Expansion should follow these rules:
 - Run the validator before any smoke training or formal training.
 - Record data version, git commit or dirty status, config, validation result, and resource status before training.
 
-Formal training, Ollama local inference, and GPU indexing are intentionally out of scope for this smoke+ skeleton.
+Formal training, Ollama local inference, and GPU indexing are intentionally out of scope for this smoke+ skeleton and 500+ planning entry.

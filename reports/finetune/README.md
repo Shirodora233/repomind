@@ -2,10 +2,11 @@
 
 本目录保存 Fine-tune 数据构造、训练 smoke、正式 LoRA / QLoRA 训练和评估报告。
 
-当前 Fine-tune v1 只完成 50 条数据 smoke+ 骨架，尚未达到正式训练所需的 500+ 样本：
+当前 Fine-tune v1 完成 50 条数据 smoke+ 骨架，并新增 500+ 数据来源规划入口；正式 500+ 数据集尚未冻结，尚未达到训练启动条件：
 
 - 数据 schema：`datasets/finetune-v1/schemas/finetune-sample.schema.json`
 - smoke 数据：`datasets/finetune-v1/smoke/synthetic-micro-smoke.jsonl`
+- 500+ 来源计划：`datasets/finetune-v1/source-plan.md`
 - builder：`scripts/build_finetune_dataset.py`
 - validator：`scripts/validate_finetune_dataset.py`
 - 实验配置：`configs/experiments/finetune-data-v1.yaml`
@@ -18,9 +19,11 @@
 
 正式训练启动前必须满足：
 
-- 数据集达到或明确计划达到 500+ 样本。
+- train/dev 数据集冻结并达到 500+ 样本。
 - AstrBot / Scrapy 等当前 test repos 不进入 train/dev。
-- validator 通过。
+- validator 通过，并保存样本数、split、source_type、tag coverage、repo split groups 等 dataset-level summary。
+- 真实项目来源已固定 repo id、commit / source snapshot、split 和提取说明。
 - smoke+ 只用于 schema、覆盖面、split 隔离和泄漏检查，不代表正式训练数据已完成。
+- `full_synthetic` builder 目标默认只生成 dry manifest；大 JSONL 不应提交，除非完成冻结评审。
 - 没有运行中的本地 Ollama 推理、GPU embedding 或其他占用 GPU 的实验。
 - 已记录 git commit、数据版本、训练配置和环境快照。

@@ -276,7 +276,9 @@ def validate_samples(
     sample_ids: dict[str, str] = {}
     fingerprints: dict[str, str] = {}
     split_counts: dict[str, int] = {}
+    source_type_counts: dict[str, int] = {}
     tag_counts: dict[str, int] = {}
+    repo_group_summary: dict[str, dict[str, Any]] = {}
 
     leakage_rules = config.get("leakage_rules", {}) if isinstance(config.get("leakage_rules"), dict) else {}
     split_by_repo = bool(leakage_rules.get("split_by_repo", True))
@@ -337,6 +339,19 @@ def validate_samples(
                 repo_splits.setdefault(repo, set()).add(split)
                 group_splits.setdefault(group, set()).add(split)
                 split_counts[split] = split_counts.get(split, 0) + 1
+                source_type = sample.get("source_type", "unknown")
+                source_type_counts[source_type] = source_type_counts.get(source_type, 0) + 1
+                group_item = repo_group_summary.setdefault(
+                    group,
+                    {
+                        "sample_count": 0,
+                        "repos": set(),
+                        "splits": set(),
+                    },
+                )
+                group_item["sample_count"] += 1
+                group_item["repos"].add(repo)
+                group_item["splits"].add(split)
                 for tag in sample.get("tags", []):
                     if isinstance(tag, str) and tag.strip():
                         tag_counts[tag] = tag_counts.get(tag, 0) + 1
@@ -365,13 +380,28 @@ def validate_samples(
     for tag in missing_required_sample_types:
         all_errors.append(f"required_sample_types coverage missing: {tag!r} is not present in any sample tags")
 
+    normalized_repo_group_summary: dict[str, dict[str, Any]] = {}
+    repo_split_group_counts: dict[str, int] = {}
+    for group, item in sorted(repo_group_summary.items()):
+        splits = sorted(item["splits"])
+        for split in splits:
+            repo_split_group_counts[split] = repo_split_group_counts.get(split, 0) + 1
+        normalized_repo_group_summary[group] = {
+            "sample_count": item["sample_count"],
+            "repos": sorted(item["repos"]),
+            "splits": splits,
+        }
+
     return {
         "file_count": len(files),
         "sample_count": len(reports),
         "split_counts": split_counts,
+        "source_type_counts": source_type_counts,
         "tag_counts": tag_counts,
         "required_sample_types": required_sample_types,
         "missing_required_sample_types": missing_required_sample_types,
+        "repo_split_group_counts": dict(sorted(repo_split_group_counts.items())),
+        "repo_split_groups": normalized_repo_group_summary,
         "error_count": len(all_errors),
         "warning_count": len(all_warnings),
         "errors": all_errors,
@@ -414,9 +444,12 @@ def main() -> int:
 
     print(f"validated {summary['sample_count']} samples from {summary['file_count']} JSONL files")
     print("split counts:", json.dumps(summary["split_counts"], sort_keys=True))
+    print("source type counts:", json.dumps(summary["source_type_counts"], sort_keys=True))
+    print("repo split group counts:", json.dumps(summary["repo_split_group_counts"], sort_keys=True))
     if summary["required_sample_types"]:
         covered = len(summary["required_sample_types"]) - len(summary["missing_required_sample_types"])
         print(f"required sample type coverage: {covered}/{len(summary['required_sample_types'])}")
+        print("tag counts:", json.dumps(summary["tag_counts"], sort_keys=True))
     if summary["warnings"]:
         print("\nwarnings:")
         for warning in summary["warnings"]:

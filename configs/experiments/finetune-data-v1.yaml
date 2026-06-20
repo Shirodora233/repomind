@@ -1,11 +1,13 @@
 version: finetune-data-v1
 stage: fine_tune_data_and_training
-status: smoke_plus_schema_builder_validator_ready
+status: smoke_plus_ready_full_500_source_planning_entry_ready
 
 dataset:
   root: datasets/finetune-v1
   schema: datasets/finetune-v1/schemas/finetune-sample.schema.json
   smoke_jsonl: datasets/finetune-v1/smoke/synthetic-micro-smoke.jsonl
+  source_plan: datasets/finetune-v1/source-plan.md
+  full_synthetic_manifest_default: runs/finetune/full-synthetic-dry-manifest.json
   current_smoke_source_type: synthetic_micro
   jsonl_required_fields:
     - instruction
@@ -58,6 +60,8 @@ data_requirements:
     min_train_repos: 3
     min_dev_repos: 1
     train_dev_repos_must_exclude_current_test_repos: true
+    planned_train_dev_examples_before_training: 500
+    planned_holdout_or_test_examples: 40
     negative_case_target_ratio: "20%-30%"
     dynamic_boundary_examples_required: true
     output_edges_must_include:
@@ -74,7 +78,51 @@ leakage_rules:
     - AstrBotDevs/AstrBot
     - scrapy/scrapy
   train_repos_must_not_overlap_dev_or_test: true
+  dev_repos_must_not_overlap_test: true
   current_call_chain_v1_test_cases_must_not_enter_training: true
+  test_repos_are_evaluation_only:
+    - AstrBotDevs/AstrBot
+    - scrapy/scrapy
+
+source_plan:
+  status: planned_not_frozen
+  path: datasets/finetune-v1/source-plan.md
+  formal_training_started: false
+  full_dataset_frozen: false
+  freeze_gate_train_dev_examples: 500
+  planned_split_counts:
+    train: 400
+    dev: 100
+    test_holdout_or_external_eval: 40
+  planned_source_mix:
+    real_project: 260
+    synthetic_micro_or_full_synthetic: 160
+    human_authored: 80
+  split_policy:
+    train:
+      min_repo_groups: 3
+      blocked_repos:
+        - AstrBotDevs/AstrBot
+        - scrapy/scrapy
+    dev:
+      min_repo_groups: 1
+      must_not_overlap_train: true
+      blocked_repos:
+        - AstrBotDevs/AstrBot
+        - scrapy/scrapy
+    test:
+      current_eval_repos:
+        - AstrBotDevs/AstrBot
+        - scrapy/scrapy
+      must_not_enter_training_export: true
+  builder_targets:
+    smoke:
+      default_count: 50
+      writes_checked_in_jsonl: true
+    full_synthetic:
+      default_count: 500
+      default_mode: dry_run_manifest_only
+      commit_large_jsonl: false
 
 gates:
   smoke_dataset_examples: 50
