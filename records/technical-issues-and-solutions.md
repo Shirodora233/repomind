@@ -167,3 +167,15 @@
 - 解决方式：尚未解决。后续可选方案包括：发现多个 action 时返回 parse error 并要求模型重试；只接受第一个 action 并忽略后续内容；加强 system prompt；或改用原生 tool calling / structured output。
 - 后续注意：分析 E2E 失败时，先检查 `model_trace.json`。如果 `tool_calls=0` 且 trace 中出现多个 JSON action，不要把它归因于检索策略本身。
 - 相关文件：`scripts/run_e2e_agent.py`、`prompts/e2e-agent-system-v0.md`、`records/04-rag-agentic-retrieval.md`
+
+## runner 未结构化记录整批 wall-clock runtime
+
+- 首次发现阶段：跨仓库 baseline 分析阶段
+- 状态：active
+- 最后复核：2026-06-20
+- 现象：第五批 10-case 三模型复测报告需要记录运行时间，但 `run_config.json` / `version_manifest.json` 中没有整批 wall-clock start/end/duration 字段。在线模型 raw response 只提供 API usage / cost，不提供本地观察到的端到端耗时；Ollama native response 虽然有单次 `total_duration`，但它不是 runner 级 wall-clock。
+- 影响：正式 baseline 和后续消融实验难以稳定比较模型端到端耗时、工具循环耗时和批运行耗时，只能依赖终端观察或文件时间近似，复现性不足。
+- 原因：当前 `run_oracle_context.py` 和 `run_e2e_agent.py` 的版本化快照主要关注 prompt / runner / scorer / tool / model 配置，还没有记录批运行开始时间、结束时间、总耗时、单 case 耗时。
+- 解决方式：尚未解决。后续应在 Oracle runner 和 E2E runner 中增加 structured timing 字段，例如 `started_at`、`finished_at`、`duration_seconds`，并在 case-level metadata 中记录单 case duration。
+- 后续注意：在修复前，正式报告中的在线模型运行时间只能标注为“runner 未结构化记录”；不要把 OpenRouter `usage` 或 Ollama `total_duration` 误写成整批 wall-clock。
+- 相关文件：`scripts/run_oracle_context.py`、`scripts/run_e2e_agent.py`、`reports/baseline/fifth-10-case-model-comparison-v0-20260620.md`

@@ -21,6 +21,7 @@
 | 2026-06-20 | AstrBot case 第三批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 20 扩到 30；覆盖 plugin hook、handler registry、webhook callback、queue listener、platform dynamic import、ASGI route wrapper、no-caller negative 和 function tool registry，并通过 validator / mock-golden Oracle / mock-golden E2E。 | 未提交 | `datasets/call-chain-v1/cases/astrbot/`、`records/02-test-case-construction.md` |
 | 2026-06-20 | Scrapy case 第四批扩展 | 拉取第二真实仓库 Scrapy 到 `repos/Scrapy`，固定 commit；新增 10 个 Scrapy YAML golden case，case 总数从 30 扩展到 40，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。 | `b3b5157 chore(dataset): add Scrapy call-chain cases` | `records/02-scrapy-case-expansion.md` |
 | 2026-06-20 | Scrapy 10-case 三模型复测 | 对 Scrapy 第四批 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认在线模型区分度明显，主要失败集中在 signal callback registration、upstream over-report 和 protocol canonical symbol。 | 本次报告提交 | `reports/baseline/scrapy-10-case-model-comparison-v0-20260620.md`、`records/02-scrapy-case-expansion.md` |
+| 2026-06-20 | 第五批 10-case 三模型复测 | 对扩展到 50-case 后的第五批新增 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认新增 case 能覆盖构造器 canonical symbol、Deferred callback depth、registration-only negative 和注册表 symbol 边界。 | 本次报告提交 | `reports/baseline/fifth-10-case-model-comparison-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
 
 ## 最近完成
 
@@ -53,10 +54,10 @@
 - 已完成 Scrapy 第四批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
 - 已完成 AstrBot 第三批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 正式复测，并生成正式中文报告。
 - 已基于跨仓库失败模式新增第五批 10 个 YAML case，当前 `call-chain-v1` 共 50 个 case，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。
+- 已完成第五批新增 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
 
 ## 待推进
 
-- 对第五批新增 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 Oracle / E2E 复测，并生成对比报告。
 - 汇总 50-case baseline，标记过易、过难、golden 不稳定或边界定义不清的 case。
 - 人工复核代表性低分 E2E trace，例如 `astrbot-chat-003`、`astrbot-star-001`、`scrapy-signal-001`，确认检索命中后低 recall 的具体原因。
 - 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。

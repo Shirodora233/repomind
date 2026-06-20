@@ -56,3 +56,28 @@
   - `astrbot-star-001`、`astrbot-asgi-001`、`astrbot-webhook-002` 是第三批最有诊断价值的失败 case。
   - 第五批扩展应继续优先补 `find_callers`、negative/no-caller、callback/registration、constructor/factory/dynamic loading 和 runtime-only/protocol 场景。
 - 验证：六个正式 run 均生成 `score.json`；原始输出保存在 `runs/`，不纳入提交。
+
+### 2026-06-20：第五批 10 个 case 三模型复测
+
+- 目标：对扩展到 50-case 后的第五批新增 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B 的 Oracle Context 与 E2E，判断新增 case 的区分度和共同失败模式。
+- Case IDs：`scrapy-signal-002`、`scrapy-signal-003`、`scrapy-crawlspider-001`、`scrapy-engine-003`、`scrapy-engine-004`、`scrapy-feed-001`、`astrbot-webhook-003`、`astrbot-context-001`、`astrbot-platform-004`、`astrbot-webhook-004`。
+- 已完成六个正式 run：
+  - `runs/oracle/fifth-10-deepseek-v4-pro-direct-no-reasoning-20260620`
+  - `runs/oracle/fifth-10-tencent-hy3-preview-no-reasoning-20260620`
+  - `runs/oracle/fifth-10-gemma4-e2b-20260620`
+  - `runs/e2e/fifth-10-deepseek-v4-pro-direct-no-reasoning-20260620`
+  - `runs/e2e/fifth-10-tencent-hy3-preview-no-reasoning-20260620`
+  - `runs/e2e/fifth-10-gemma4-e2b-20260620`
+- 正式报告：`reports/baseline/fifth-10-case-model-comparison-v0-20260620.md`。
+- 主要结果：
+  - Oracle DeepSeek：Precision 0.730769，Recall 0.904762，Evidence Accuracy 1.000000，cost 约 0.050774940。
+  - Oracle Tencent HY3：Precision 0.904762，Recall 0.904762，Evidence Accuracy 1.000000，cost 约 0.007490269。
+  - Oracle Gemma4：Precision 0.470588，Recall 0.380952，Evidence Accuracy 0.625000。
+  - E2E DeepSeek：Precision 0.695652，Recall 0.761905，Evidence Accuracy 1.000000，Definition Accuracy / Retrieval Recall 均为 1.000000，cost 约 0.031372722。
+  - E2E Tencent HY3：Precision 0.666667，Recall 0.761905，Evidence Accuracy 1.000000，Definition Accuracy 0.900000，Retrieval Recall 1.000000，cost 约 0.011818849。
+  - E2E Gemma4：Precision 0.090909，Recall 0.047619，Evidence Accuracy 0.000000，Definition Accuracy 0.800000，Retrieval Recall 0.777778。
+- 主要结论：
+  - 第五批能继续拉开模型差距，并补充了构造器 canonical symbol、Deferred callback depth、registration-only negative、注册表实例/类 symbol 边界等关键失败模式。
+  - 在线模型在 E2E 中检索基本到位，但 final edge 收敛仍明显低于 Oracle，说明优化重点应转向边界规则、symbol canonicalization 和 final 输出约束。
+  - Gemma4 E2B 未微调前仍适合作为本地小模型 baseline / fine-tune 候选，但不能作为可靠标注辅助。
+- 验证：六个正式 run 均生成 `score.json`；E2E run 均生成 `e2e_metrics.json`、`tool_config_snapshot.yaml` 和 `version_manifest.json`。原始输出保存在 `runs/`，不纳入提交。
