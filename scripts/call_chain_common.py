@@ -175,6 +175,10 @@ def utc_timestamp() -> str:
     return _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
+def utc_now_iso() -> str:
+    return _dt.datetime.now(tz=_dt.timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
 def safe_name(value: str) -> str:
     lowered = value.strip().lower()
     return re.sub(r"[^a-z0-9_.-]+", "-", lowered).strip("-") or "run"

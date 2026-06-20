@@ -62,6 +62,15 @@ must_return_evidence: true
 - E2E 附加指标：Definition Accuracy、Retrieval Recall、Tool Calls、Files Read、Token Cost。
 - 失败案例摘要和下一步改进方向。
 
+正式 runner 必须结构化记录 wall-clock timing：
+
+- run-level：`started_at`、`finished_at`、`duration_seconds`、`case_count`。
+- case-level：每个 case 的 `started_at`、`finished_at`、`duration_seconds`、`status`。
+- E2E step-level：真实模型 E2E run 应在 `model_trace.json` 中记录模型响应耗时；工具 action 应记录工具执行耗时。
+- timing 输出默认写入 run 根目录 `timing.json`，逐 case 写入对应 case 子目录 `timing.json`，并在 `run_config.json` 中记录 timing summary 和 `timing_file`。
+
+旧 baseline v0 run 未结构化记录 wall-clock runtime，不应事后用文件时间作为正式 runtime 指标；后续消融和优化实验从 runner timing 可用版本开始比较运行时间。
+
 ## 4. 评分口径
 
 默认 `score.json` 同时保留 strict 指标和 constructor-normalized 辅助指标：

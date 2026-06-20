@@ -93,7 +93,7 @@
   - DeepSeek / HY3 的 E2E Retrieval Recall 均为 1.000000，但 Edge Recall 明显低于 Oracle，说明当前在线模型主瓶颈在 final edge 收敛、symbol canonicalization、depth 和动态边界判断。
   - 当前 50 case 中，13 个为 over-easy candidate，3 个为明显 E2E gap，7 个为 precision boundary，2 个建议人工复核 golden / reasoning 边界。
 - Golden 修订：`astrbot-pipeline-003` 已改为把配置决定的两个 concrete sub-stage `process` 边都作为 required edge，原 `AgentRequestSubStage.agent_sub_stage.process` 合成属性边不再作为 required edge；`scrapy-signal-001` 已补齐 `CoreStats.item_dropped` 与 `CoreStats.response_received` 两个 signal receiver registration 的 excluded edge；validator 通过，并已基于已有预测重新生成相关 `score.json` 与 50-case 汇总。
-- 下一步：在开始 PE / RAG / Fine-tune 优化前，给 runner 补 structured wall-clock timing，并基于 strict / constructor-normalized 双指标确定 PE / RAG v1 目标 case 集。
+- 下一步：在开始 PE / RAG / Fine-tune 优化前，基于 strict / constructor-normalized 双指标确定 PE / RAG v1 目标 case 集。
 
 ### 2026-06-20：实现 constructor-normalized scorer 辅助指标
 
@@ -119,3 +119,12 @@
   - E2E Tencent HY3：Strict Recall 0.834586，Constructor-normalized Recall 0.872180。
   - Gemma4 E2B 两条轨道均无变化，说明本地小模型主要问题不是 constructor 表达差异。
 - 结论：constructor-normalized 能解释 13 个 run-case 观测中的轻量 symbol 表达差异，但不改变当前 baseline 的主要瓶颈判断；后续正式优化报告应同时展示 strict 与 constructor-normalized 指标。
+
+### 2026-06-20：实现 runner structured wall-clock timing
+
+- 目标：后续正式 PE / RAG / Fine-tune 实验需要可复现比较端到端运行时间；旧 baseline v0 不重跑，只记录其未结构化 runtime 的限制。
+- 实现：Oracle / E2E runner 均写入 run-level `timing.json` 和逐 case `timing.json`，并在 `run_config.json` 记录 timing summary 与 `timing_file`。
+- E2E 细节：`model_trace.json` 记录每步模型响应耗时；非 final 工具 action 记录工具执行耗时；`e2e_metrics.json` summary 记录总 `duration_seconds`。
+- 版本：新增 `oracle-context-runner-v1` 和 `e2e-agent-runner-v1`，并将两个 runner 默认 `--runner-version` 更新为 v1。
+- 验证：已通过 `python -m py_compile scripts\run_oracle_context.py scripts\run_e2e_agent.py scripts\score_predictions.py scripts\call_chain_common.py`、`python scripts\validate_cases.py --cases datasets\call-chain-v1\cases`、Oracle mock-golden timing smoke 和 E2E mock-golden timing smoke；两个 smoke 均使用 `scrapy-feed-001`，预测分数均为 1.0，并确认 `timing.json` / case-level `timing.json` / `run_config.json` timing summary 已生成。
+- 决策：不为旧 50-case baseline 全量重跑 runtime。旧 run 的正式报告可注明 runner 未结构化记录 wall-clock；后续优化实验从 runner v1 开始比较运行时间。

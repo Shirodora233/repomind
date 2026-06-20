@@ -33,9 +33,17 @@ runner_versions:
   oracle-context-runner-v0:
     runner: scripts/run_oracle_context.py
     prompt: oracle-context-v0
+  oracle-context-runner-v1:
+    runner: scripts/run_oracle_context.py
+    prompt: oracle-context-v0
+    changes: records structured run-level and case-level wall-clock timing
   e2e-agent-runner-v0:
     runner: scripts/run_e2e_agent.py
     strategy: e2e-agent-strategy-v0
+  e2e-agent-runner-v1:
+    runner: scripts/run_e2e_agent.py
+    strategy: e2e-agent-strategy-v0
+    changes: records structured run-level, case-level, model-step, and tool-step wall-clock timing
 
 scorer_versions:
   call-chain-scorer-v0:

@@ -25,6 +25,7 @@
 | 2026-06-20 | 50-case baseline 汇总 | 聚合 50 个 case 的三模型 Oracle / E2E 主线结果，形成整体指标、成本、分仓库/难度表现和 case 质量分层；修订 `astrbot-pipeline-003` 动态 sub-stage golden，并补齐 `scrapy-signal-001` registration callback excluded edges。 | 未提交 | `reports/baseline/50-case-baseline-summary-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
 | 2026-06-20 | scorer v1 辅助指标 | 实现 constructor-normalized scorer 辅助指标，保留 strict 主分数，同时受控等价匹配 constructor edge 的 `ClassName` / `ClassName.__init__` 表达；更新评测协议和 scorer 版本。 | 未提交 | `scripts/score_predictions.py`、`docs/call-chain-evaluation-protocol.md`、`records/07-cross-repo-baseline-analysis.md` |
 | 2026-06-20 | constructor-normalized 50-case 对比 | 基于 scorer v1 对 30 个正式 run 重新评分，生成 50-case strict vs constructor-normalized 对比报告，确认该辅助指标只解释少量 constructor symbol 表达差异，不改变主要瓶颈判断。 | 未提交 | `reports/baseline/50-case-constructor-normalized-comparison-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
+| 2026-06-20 | runner structured timing | 新增 `oracle-context-runner-v1` 与 `e2e-agent-runner-v1`，结构化记录 run-level、case-level wall-clock timing；E2E 额外记录模型 step 与工具 action 耗时。 | 本次提交 | `scripts/run_oracle_context.py`、`scripts/run_e2e_agent.py`、`docs/call-chain-evaluation-protocol.md`、`records/06-experiment-versioning-and-reproducibility.md`、`records/07-cross-repo-baseline-analysis.md` |
 
 ## 最近完成
 
@@ -63,11 +64,11 @@
 - 已补齐 `scrapy-signal-001` golden 中 `CoreStats.item_dropped` 与 `CoreStats.response_received` 两个 signal receiver registration 的 excluded edge，用于更准确标记 callback registration 误报。
 - 已实现 `call-chain-scorer-v1` constructor-normalized 辅助指标，并将 Oracle / E2E runner 默认 scorer version 更新为 v1；strict 主分数保持不变。
 - 已生成 50-case constructor-normalized 对比报告；在线模型 strict recall 有小幅提升，Gemma4 E2B 无变化，说明 constructor 表达差异只是局部边界问题。
+- 已实现 `oracle-context-runner-v1` 与 `e2e-agent-runner-v1` structured timing：run 根目录、case 子目录和 `run_config.json` 均记录 wall-clock timing；E2E trace 记录模型响应与工具执行耗时。
 
 ## 待推进
 
 - 人工复核代表性低分 / 边界 case，例如 `scrapy-feed-001`、`astrbot-chat-003`、`astrbot-star-001`，确认 max_depth 和 dynamic boundary 是否需要更新说明或 golden。
-- 给 Oracle / E2E runner 增加 structured wall-clock timing，补齐后续正式实验的运行时间记录。
 - 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。
 - 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50-case 代表性边界复核，并确定 PE / RAG v1 的优化目标 case 集。
 - 本地模型后续以 `gemma4:e2b` 作为主要小模型候选；`qwen3.5:2b` 保留为低成本下限或格式/指令跟随诊断模型。

@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,7 @@ from call_chain_common import (
     output_edge_schema,
     repo_path_for_case,
     safe_name,
+    utc_now_iso,
     utc_timestamp,
     write_json,
     write_text,
@@ -228,12 +230,22 @@ def run_openai_compatible_loop(
     model_trace: list[dict[str, Any]] = []
 
     for step in range(1, args.max_agent_steps + 1):
+        model_started_at = utc_now_iso()
+        model_started_perf = time.perf_counter()
         raw_response = call_openai_compatible_messages(messages, model_settings, args)
+        model_finished_at = utc_now_iso()
+        model_duration_seconds = round(time.perf_counter() - model_started_perf, 3)
         write_json(case_dir / f"raw_response_step_{step:02d}.json", raw_response)
         content = response_content(raw_response)
         write_text(case_dir / f"raw_response_step_{step:02d}.txt", content)
 
-        trace_item: dict[str, Any] = {"step": step, "content": content}
+        trace_item: dict[str, Any] = {
+            "step": step,
+            "content": content,
+            "model_call_started_at": model_started_at,
+            "model_call_finished_at": model_finished_at,
+            "model_call_duration_seconds": model_duration_seconds,
+        }
         try:
             action = extract_agent_action(content)
             trace_item["action"] = action
@@ -261,7 +273,12 @@ def run_openai_compatible_loop(
             persist_agent_state(case_dir, case["id"], messages, model_trace)
             return normalized.get(case["id"])
 
+        tool_started_at = utc_now_iso()
+        tool_started_perf = time.perf_counter()
         observation = execute_agent_action(action, toolbox)
+        trace_item["tool_started_at"] = tool_started_at
+        trace_item["tool_finished_at"] = utc_now_iso()
+        trace_item["tool_duration_seconds"] = round(time.perf_counter() - tool_started_perf, 3)
         messages.append(
             {
                 "role": "user",
@@ -304,11 +321,22 @@ def force_final_action(
             "content": "Tool/step budget is exhausted. Do not call tools. Return exactly one JSON final action now, using only gathered observations.",
         }
     )
+    model_started_at = utc_now_iso()
+    model_started_perf = time.perf_counter()
     raw_response = call_openai_compatible_messages(messages, model_settings, args)
+    model_finished_at = utc_now_iso()
+    model_duration_seconds = round(time.perf_counter() - model_started_perf, 3)
     write_json(case_dir / f"raw_response_step_{step:02d}_finalize.json", raw_response)
     content = response_content(raw_response)
     write_text(case_dir / f"raw_response_step_{step:02d}_finalize.txt", content)
-    trace_item: dict[str, Any] = {"step": step, "content": content, "finalize": True}
+    trace_item: dict[str, Any] = {
+        "step": step,
+        "content": content,
+        "finalize": True,
+        "model_call_started_at": model_started_at,
+        "model_call_finished_at": model_finished_at,
+        "model_call_duration_seconds": model_duration_seconds,
+    }
     try:
         action = extract_agent_action(content)
         trace_item["action"] = action
@@ -426,7 +454,7 @@ def main() -> int:
     parser.add_argument("--max-files-read", type=int, default=DEFAULT_MAX_FILES_READ)
     parser.add_argument("--max-context-tokens", type=int, default=DEFAULT_MAX_CONTEXT_TOKENS)
     parser.add_argument("--line-tolerance", type=int, default=0)
-    parser.add_argument("--runner-version", default="e2e-agent-runner-v0")
+    parser.add_argument("--runner-version", default="e2e-agent-runner-v1")
     parser.add_argument("--agent-strategy-version", default="e2e-agent-strategy-v0")
     parser.add_argument("--task-prompt-version", default="e2e-task-v0")
     parser.add_argument("--system-prompt-version", default="e2e-agent-system-v0")
@@ -457,6 +485,9 @@ def main() -> int:
     cases = filter_cases(all_cases, args.case_id)
     out_root = Path(args.out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
+    run_started_at = utc_now_iso()
+    run_started_perf = time.perf_counter()
+    case_timings: list[dict[str, Any]] = []
 
     model_settings: dict[str, Any] | None = None
     if args.provider == "openai-compatible":
@@ -532,6 +563,13 @@ def main() -> int:
         "max_context_tokens": args.max_context_tokens,
         "line_tolerance": args.line_tolerance,
         "scope": "repo_only",
+        "timing_file": "timing.json",
+        "timing": {
+            "started_at": run_started_at,
+            "finished_at": None,
+            "duration_seconds": None,
+            "case_count": len(cases),
+        },
     }
     write_json(out_root / "run_config.json", run_config)
 
@@ -543,29 +581,54 @@ def main() -> int:
         repo_path = repo_path_for_case(case, repos)
         budget = ToolBudget(args.max_tool_calls, args.max_files_read, args.max_context_tokens)
         toolbox = RepoToolbox(repo_path, include_tests=bool(case.get("include_tests")), budget=budget)
-
-        prompt = build_e2e_prompt(case, prompt_template, budget, tool_config)
-        write_text(case_dir / "task.md", prompt)
-        write_json(case_dir / "case_metadata.json", case_metadata_for_e2e_prompt(case))
-
+        case_started_at = utc_now_iso()
+        case_started_perf = time.perf_counter()
+        case_timing: dict[str, Any] = {
+            "case_id": case["id"],
+            "started_at": case_started_at,
+            "finished_at": None,
+            "duration_seconds": None,
+            "status": "started",
+            "provider": args.provider,
+        }
         prediction: dict[str, Any] | None = None
-        if args.provider == "mock-golden":
-            prediction = run_mock_golden_loop(case, toolbox)
-            predictions[case["id"]] = prediction
-            write_yaml(case_dir / "prediction.yaml", prediction)
-        elif args.provider == "openai-compatible":
-            try:
-                prediction = run_openai_compatible_loop(case, toolbox, prompt, system_prompt, model_settings or {}, args, case_dir)
-            except Exception as exc:
-                write_text(case_dir / "request_error.txt", format_request_error(exc))
-            if prediction:
+        try:
+            prompt = build_e2e_prompt(case, prompt_template, budget, tool_config)
+            write_text(case_dir / "task.md", prompt)
+            write_json(case_dir / "case_metadata.json", case_metadata_for_e2e_prompt(case))
+
+            if args.provider == "dry-run":
+                case_timing["status"] = "dry_run"
+            elif args.provider == "mock-golden":
+                prediction = run_mock_golden_loop(case, toolbox)
                 predictions[case["id"]] = prediction
                 write_yaml(case_dir / "prediction.yaml", prediction)
-
-        case_metrics = {"case_id": case["id"], **retrieval_metrics(case, toolbox)}
-        metrics_by_case.append(case_metrics)
-        write_json(case_dir / "tool_trace.json", {"case_id": case["id"], "trace": toolbox.trace})
-        write_json(case_dir / "retrieval_metrics.json", case_metrics)
+                case_timing["status"] = "predicted"
+            elif args.provider == "openai-compatible":
+                try:
+                    prediction = run_openai_compatible_loop(case, toolbox, prompt, system_prompt, model_settings or {}, args, case_dir)
+                except Exception as exc:
+                    case_timing["status"] = "request_error"
+                    write_text(case_dir / "request_error.txt", format_request_error(exc))
+                if prediction:
+                    predictions[case["id"]] = prediction
+                    write_yaml(case_dir / "prediction.yaml", prediction)
+                    case_timing["status"] = "predicted"
+                elif case_timing["status"] == "started":
+                    case_timing["status"] = "no_prediction"
+        finally:
+            case_timing["finished_at"] = utc_now_iso()
+            case_timing["duration_seconds"] = round(time.perf_counter() - case_started_perf, 3)
+            case_timings.append(case_timing)
+            case_metrics = {
+                "case_id": case["id"],
+                **retrieval_metrics(case, toolbox),
+                "duration_seconds": case_timing["duration_seconds"],
+            }
+            metrics_by_case.append(case_metrics)
+            write_json(case_dir / "tool_trace.json", {"case_id": case["id"], "trace": toolbox.trace})
+            write_json(case_dir / "retrieval_metrics.json", case_metrics)
+            write_json(case_dir / "timing.json", case_timing)
 
     e2e_report = {"summary": summarize_e2e_metrics(metrics_by_case), "cases": metrics_by_case}
     write_json(out_root / "e2e_metrics.json", e2e_report)
@@ -583,6 +646,23 @@ def main() -> int:
         )
     else:
         print(f"wrote E2E tasks for {len(cases)} cases to {out_root}")
+    run_finished_at = utc_now_iso()
+    run_duration_seconds = round(time.perf_counter() - run_started_perf, 3)
+    timing_report = {
+        "started_at": run_started_at,
+        "finished_at": run_finished_at,
+        "duration_seconds": run_duration_seconds,
+        "case_count": len(cases),
+        "cases": case_timings,
+    }
+    write_json(out_root / "timing.json", timing_report)
+    run_config["timing"] = {
+        "started_at": run_started_at,
+        "finished_at": run_finished_at,
+        "duration_seconds": run_duration_seconds,
+        "case_count": len(cases),
+    }
+    write_json(out_root / "run_config.json", run_config)
     return 0
 
 
@@ -595,6 +675,7 @@ def summarize_e2e_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
             "tool_calls": 0,
             "files_read": 0,
             "context_tokens_estimate": 0,
+            "duration_seconds": 0.0,
         }
     definition_values = [item["definition_accuracy"] for item in metrics if item["definition_accuracy"] is not None]
     recall_values = [item["retrieval_recall"] for item in metrics if item["retrieval_recall"] is not None]
@@ -605,6 +686,7 @@ def summarize_e2e_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
         "tool_calls": sum(int(item["tool_calls"]) for item in metrics),
         "files_read": sum(int(item["files_read"]) for item in metrics),
         "context_tokens_estimate": sum(int(item["context_tokens_estimate"]) for item in metrics),
+        "duration_seconds": round(sum(float(item.get("duration_seconds") or 0.0) for item in metrics), 3),
     }
 
 

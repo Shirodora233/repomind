@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：已建立 v0 版本化记录机制；scorer 已新增 v1 辅助指标版本。
+状态：已建立 v0 版本化记录机制；scorer 与 runner 已新增 v1 版本。
 
 ## 阶段目标
 
@@ -17,6 +17,7 @@
 - 新增 `scripts/versioning.py`，统一生成 file hash、git commit、git dirty 状态、case manifest、version manifest 和脱敏后的模型配置 snapshot。
 - 更新 `scripts/run_oracle_context.py` 和 `scripts/run_e2e_agent.py`，在每次 run 根目录写入版本化快照。
 - 新增 `call-chain-scorer-v1`，在 strict symbol-level 主分数之外记录 constructor-normalized 辅助指标；Oracle / E2E runner 默认 scorer version 已更新为 `call-chain-scorer-v1`。
+- 新增 `oracle-context-runner-v1` 和 `e2e-agent-runner-v1`，记录 structured wall-clock timing；Oracle / E2E runner 默认 runner version 已更新为 v1。
 
 ## 版本化输出约定
 
@@ -33,6 +34,13 @@
 - `system_prompt_snapshot.md`：E2E agent system prompt 快照。
 - `tool_config_snapshot.yaml`：E2E 工具接口配置快照。
 - `version_manifest.json` 中额外记录 `tool_implementation`，即 `scripts/e2e_tools.py` 的 sha256。
+- `model_trace.json` 中记录每步模型响应耗时；非 final 工具 action 记录工具执行耗时。
+
+每次 Oracle Context / E2E run 都应包含：
+
+- `timing.json`：run-level `started_at`、`finished_at`、`duration_seconds`、`case_count` 和逐 case timing。
+- `run_config.json` 中的 `timing_file` 与 `timing` summary。
+- 每个 case 子目录中的 `timing.json`。
 
 模型配置 snapshot 会保留 provider、model alias、routing、reasoning 等复现实验所需信息，但会对密钥、授权头、secret、password 等敏感字段脱敏。`.env` 不会被复制。
 
@@ -44,6 +52,7 @@
 - `git_dirty` 和 `git_status_short` 会进入 manifest。正式 baseline 应优先在 clean commit 上运行；如果必须在 dirty 状态运行，文件 hash 仍可作为复现锚点，但实验记录中要说明原因。
 - `mock-golden` 仍只用于验证 runner / scorer / manifest 链路，不作为真实模型效果。
 - `call-chain-scorer-v1` 不改变 strict 主分数，只额外记录 constructor-normalized 辅助指标；正式报告仍应优先展示 strict 指标，再用 normalized 指标解释 constructor canonical mismatch。
+- 旧 baseline v0 run 没有 structured wall-clock timing，不应为了补运行时间全量重跑；后续正式实验从 runner v1 起比较 runtime。
 
 ## 验证结果
 

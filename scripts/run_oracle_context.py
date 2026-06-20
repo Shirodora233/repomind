@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sys
+import time
 import traceback
 import urllib.error
 import urllib.request
@@ -26,6 +27,7 @@ from call_chain_common import (
     read_repo_file,
     repo_path_for_case,
     safe_name,
+    utc_now_iso,
     utc_timestamp,
     write_json,
     write_text,
@@ -417,7 +419,7 @@ def main() -> int:
     parser.add_argument("--reasoning-exclude", action="store_true", help="Set OpenRouter reasoning.exclude=true.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
     parser.add_argument("--line-tolerance", type=int, default=0)
-    parser.add_argument("--runner-version", default="oracle-context-runner-v0")
+    parser.add_argument("--runner-version", default="oracle-context-runner-v1")
     parser.add_argument("--prompt-version", default="oracle-context-v0")
     parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
     args = parser.parse_args()
@@ -439,6 +441,9 @@ def main() -> int:
     cases = filter_cases(all_cases, args.case_id)
     out_root = Path(args.out_dir)
     out_root.mkdir(parents=True, exist_ok=True)
+    run_started_at = utc_now_iso()
+    run_started_perf = time.perf_counter()
+    case_timings: list[dict[str, Any]] = []
 
     predictions: dict[str, dict[str, Any]] = {}
     model_settings: dict[str, Any] | None = None
@@ -494,42 +499,77 @@ def main() -> int:
         "reasoning_max_tokens": args.reasoning_max_tokens,
         "reasoning_exclude": args.reasoning_exclude,
         "timeout_seconds": args.timeout_seconds,
+        "timing_file": "timing.json",
+        "timing": {
+            "started_at": run_started_at,
+            "finished_at": None,
+            "duration_seconds": None,
+            "case_count": len(cases),
+        },
     }
     write_json(out_root / "run_config.json", run_config)
 
     for case in cases:
         case_dir = out_root / safe_name(case["id"])
         case_dir.mkdir(parents=True, exist_ok=True)
-        repo_path = repo_path_for_case(case, repos)
-        prompt = build_oracle_prompt(case, repo_path, prompt_template)
-        write_text(case_dir / "prompt.md", prompt)
-        write_json(case_dir / "case_metadata.json", case_metadata_for_prompt(case))
-
-        if args.provider == "dry-run":
-            continue
-
-        if args.provider == "mock-golden":
-            prediction = make_mock_golden_prediction(case)
-            write_yaml(case_dir / "prediction.yaml", prediction)
-            predictions[case["id"]] = prediction
-            continue
-
+        case_started_at = utc_now_iso()
+        case_started_perf = time.perf_counter()
+        case_timing: dict[str, Any] = {
+            "case_id": case["id"],
+            "started_at": case_started_at,
+            "finished_at": None,
+            "duration_seconds": None,
+            "status": "started",
+            "provider": args.provider,
+        }
         try:
-            raw_response = call_openai_compatible(prompt, model_settings or {}, args)
-        except Exception as exc:
-            write_text(case_dir / "request_error.txt", format_request_error(exc))
-            continue
-        write_json(case_dir / "raw_response.json", raw_response)
-        content = response_content(raw_response)
-        write_text(case_dir / "raw_response.txt", content)
-        try:
-            payload = extract_payload_from_text(content)
-            normalized = normalize_single_case_payload(payload, case["id"], source=f"{case['id']} raw_response")
-            prediction = normalized[case["id"]]
-            write_yaml(case_dir / "prediction.yaml", prediction)
-            predictions[case["id"]] = prediction
-        except Exception as exc:
-            write_text(case_dir / "parse_error.txt", str(exc))
+            repo_path = repo_path_for_case(case, repos)
+            prompt = build_oracle_prompt(case, repo_path, prompt_template)
+            write_text(case_dir / "prompt.md", prompt)
+            write_json(case_dir / "case_metadata.json", case_metadata_for_prompt(case))
+
+            if args.provider == "dry-run":
+                case_timing["status"] = "dry_run"
+                continue
+
+            if args.provider == "mock-golden":
+                prediction = make_mock_golden_prediction(case)
+                write_yaml(case_dir / "prediction.yaml", prediction)
+                predictions[case["id"]] = prediction
+                case_timing["status"] = "predicted"
+                continue
+
+            model_started_at = utc_now_iso()
+            model_started_perf = time.perf_counter()
+            case_timing["model_call_started_at"] = model_started_at
+            try:
+                raw_response = call_openai_compatible(prompt, model_settings or {}, args)
+            except Exception as exc:
+                case_timing["model_call_finished_at"] = utc_now_iso()
+                case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
+                case_timing["status"] = "request_error"
+                write_text(case_dir / "request_error.txt", format_request_error(exc))
+                continue
+            case_timing["model_call_finished_at"] = utc_now_iso()
+            case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
+            write_json(case_dir / "raw_response.json", raw_response)
+            content = response_content(raw_response)
+            write_text(case_dir / "raw_response.txt", content)
+            try:
+                payload = extract_payload_from_text(content)
+                normalized = normalize_single_case_payload(payload, case["id"], source=f"{case['id']} raw_response")
+                prediction = normalized[case["id"]]
+                write_yaml(case_dir / "prediction.yaml", prediction)
+                predictions[case["id"]] = prediction
+                case_timing["status"] = "predicted"
+            except Exception as exc:
+                case_timing["status"] = "parse_error"
+                write_text(case_dir / "parse_error.txt", str(exc))
+        finally:
+            case_timing["finished_at"] = utc_now_iso()
+            case_timing["duration_seconds"] = round(time.perf_counter() - case_started_perf, 3)
+            write_json(case_dir / "timing.json", case_timing)
+            case_timings.append(case_timing)
 
     if predictions:
         report = score_cases(cases, predictions, line_tolerance=args.line_tolerance)
@@ -542,6 +582,23 @@ def main() -> int:
         )
     else:
         print(f"wrote prompts for {len(cases)} cases to {out_root}")
+    run_finished_at = utc_now_iso()
+    run_duration_seconds = round(time.perf_counter() - run_started_perf, 3)
+    timing_report = {
+        "started_at": run_started_at,
+        "finished_at": run_finished_at,
+        "duration_seconds": run_duration_seconds,
+        "case_count": len(cases),
+        "cases": case_timings,
+    }
+    write_json(out_root / "timing.json", timing_report)
+    run_config["timing"] = {
+        "started_at": run_started_at,
+        "finished_at": run_finished_at,
+        "duration_seconds": run_duration_seconds,
+        "case_count": len(cases),
+    }
+    write_json(out_root / "run_config.json", run_config)
     return 0
 
 
