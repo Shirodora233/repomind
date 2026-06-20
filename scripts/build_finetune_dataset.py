@@ -13,6 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "experiments" / "finetune-data-v1.yaml"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "datasets" / "finetune-v1" / "smoke" / "synthetic-micro-smoke.jsonl"
 DATASET_VERSION = "finetune-data-v1"
+SYNTHETIC_PATTERN_COUNT = 25
 
 SYSTEM_MESSAGE = (
     "Return repo-local symbol-level call edges as strict JSON. "
@@ -176,7 +177,7 @@ def make_sample(
         "id": sample_id,
         "dataset_version": DATASET_VERSION,
         "source_type": "synthetic_micro",
-        "source_id": f"synthetic-micro-template-{(index - 1) % 10:02d}",
+        "source_id": f"synthetic-micro-plus-template-{(index - 1) % SYNTHETIC_PATTERN_COUNT:02d}",
         "source_refs": [
             {
                 "kind": "manual_note",
@@ -240,7 +241,7 @@ def synthetic_sample(index: int) -> dict[str, Any]:
     split = "dev" if index % 5 == 0 else "train"
     repo = f"repomind-synthetic/{split}-micro-{(index - 1) // 5:02d}"
     module = f"pkg{index:03d}"
-    pattern = (index - 1) % 10
+    pattern = (index - 1) % SYNTHETIC_PATTERN_COUNT
 
     if pattern == 0:
         required = [
@@ -268,7 +269,7 @@ def synthetic_sample(index: int) -> dict[str, Any]:
                     "content": "def handle_request(request):\n    payload = parse_payload(request.body)\n    return payload\n",
                 }
             ],
-            tags=["positive_call_edges", "callee_direction_cases", "direct_call"],
+            tags=["positive_call_edges", "callee_direction_cases", "direct_call", "evidence_output_cases"],
         )
 
     if pattern == 1:
@@ -487,7 +488,7 @@ def synthetic_sample(index: int) -> dict[str, Any]:
                     "content": "async def sync_one(item_id):\n    data = await fetch_remote(item_id)\n    return data\n",
                 }
             ],
-            tags=["positive_call_edges", "async"],
+            tags=["positive_call_edges", "async", "async_call_edges"],
         )
 
     if pattern == 8:
@@ -522,32 +523,549 @@ def synthetic_sample(index: int) -> dict[str, Any]:
             tags=["negative_non_call_cases", "import_or_string_not_call"],
         )
 
-    required = [
-        edge(
-            f"{module}.pipeline.stage.Stage.run",
-            f"{module}.pipeline.stage.Stage.prepare",
-            f"{module}/pipeline/stage.py",
-            31,
-            "self.prepare(context)",
+    if pattern == 9:
+        required = [
+            edge(
+                f"{module}.pipeline.stage.Stage.run",
+                f"{module}.pipeline.stage.Stage.prepare",
+                f"{module}/pipeline/stage.py",
+                31,
+                "self.prepare(context)",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.pipeline.stage.Stage.run",
+            target_type="method",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/pipeline/stage.py",
+                    "role": "target_definition",
+                    "content": "class Stage:\n    def run(self, context):\n        self.prepare(context)\n",
+                }
+            ],
+            tags=["positive_call_edges", "class_method", "callee_direction_cases", "object_method_calls"],
+        )
+
+    if pattern == 10:
+        required = [
+            edge(
+                f"{module}.models.admin.AdminSession.__init__",
+                f"{module}.models.session.BaseSession.__init__",
+                f"{module}/models/admin.py",
+                11,
+                "super().__init__(user_id)",
+                "static_confirmed",
+                "Explicit super().__init__ call uses the callee __init__ symbol.",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.models.admin.AdminSession.__init__",
+            target_type="constructor",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/models/admin.py",
+                    "role": "target_definition",
+                    "content": (
+                        "class AdminSession(BaseSession):\n"
+                        "    def __init__(self, user_id):\n"
+                        "        super().__init__(user_id)\n"
+                    ),
+                }
+            ],
+            tags=["positive_call_edges", "constructor_symbol_cases", "explicit_init_calls", "callee_direction_cases"],
+        )
+
+    if pattern == 11:
+        required = [
+            edge(
+                f"{module}.web.users.create_user",
+                f"{module}.audit.events.emit_event",
+                f"{module}/web/users.py",
+                18,
+                "emit_event('user.created', user.id)",
+            ),
+            edge(
+                f"{module}.web.users.delete_user",
+                f"{module}.audit.events.emit_event",
+                f"{module}/web/users.py",
+                44,
+                "emit_event('user.deleted', user_id)",
+            ),
+            edge(
+                f"{module}.jobs.reconcile.reconcile_user",
+                f"{module}.audit.events.emit_event",
+                f"{module}/jobs/reconcile.py",
+                27,
+                "emit_event('user.reconciled', user_id)",
+            ),
+            edge(
+                f"{module}.admin.bulk.bulk_disable",
+                f"{module}.audit.events.emit_event",
+                f"{module}/admin/bulk.py",
+                36,
+                "emit_event('user.disabled', user_id)",
+            ),
+            edge(
+                f"{module}.imports.csv.import_user",
+                f"{module}.audit.events.emit_event",
+                f"{module}/imports/csv.py",
+                52,
+                "emit_event('user.imported', row.email)",
+            ),
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.audit.events.emit_event",
+            target_type="function",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/audit/events.py",
+                    "role": "target_definition",
+                    "content": "def emit_event(name, payload):\n    sink.write(name, payload)\n",
+                },
+                {
+                    "path": f"{module}/web/users.py",
+                    "role": "caller_candidate",
+                    "content": "def create_user(user):\n    emit_event('user.created', user.id)\n\ndef delete_user(user_id):\n    emit_event('user.deleted', user_id)\n",
+                },
+            ],
+            tags=["positive_call_edges", "caller_direction_cases", "large_fan_in_cases", "evidence_output_cases"],
+        )
+
+    if pattern == 12:
+        excluded = [
+            excluded_edge(
+                f"{module}.tests.test_billing.test_refund_flow",
+                f"{module}.billing.refunds.issue_refund",
+                "The only observed call is in tests, and include_tests is false.",
+                f"{module}/tests/test_billing.py",
+                21,
+                "result = issue_refund(order_id)",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.billing.refunds.issue_refund",
+            target_type="function",
+            excluded_edges=excluded,
+            negative_type="tests_excluded",
+            negative_reason="Calls from test files are excluded by the task scope.",
+            context=[
+                {
+                    "path": f"{module}/tests/test_billing.py",
+                    "role": "distractor",
+                    "content": "def test_refund_flow():\n    result = issue_refund(order_id)\n    assert result.ok\n",
+                }
+            ],
+            tags=["negative_non_call_cases", "tests_excluded"],
+        )
+
+    if pattern == 13:
+        excluded = [
+            excluded_edge(
+                f"{module}.integrations.payments.charge_card",
+                "stripe.Charge.create",
+                "The call targets an external dependency, and external_deps is exclude.",
+                f"{module}/integrations/payments.py",
+                33,
+                "stripe.Charge.create(amount=amount, source=token)",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.integrations.payments.charge_card",
+            target_type="function",
+            excluded_edges=excluded,
+            negative_type="external_boundary",
+            negative_reason="External library calls are boundary notes, not repo-local required edges.",
+            context=[
+                {
+                    "path": f"{module}/integrations/payments.py",
+                    "role": "target_definition",
+                    "content": "def charge_card(amount, token):\n    return stripe.Charge.create(amount=amount, source=token)\n",
+                }
+            ],
+            tags=["negative_non_call_cases", "external_boundary"],
+        )
+
+    if pattern == 14:
+        optional = [
+            edge(
+                f"{module}.commands.registry.CommandRegistry.command",
+                f"{module}.commands.sync.sync_command",
+                f"{module}/commands/sync.py",
+                8,
+                "@registry.command('sync')",
+                "framework_inferred",
+                "Decorator registers the command handler; invocation happens through the command registry.",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.commands.sync.sync_command",
+            target_type="function",
+            optional_edges=optional,
+            dynamic_types=["callback_registration", "decorator_wrapper"],
+            context=[
+                {
+                    "path": f"{module}/commands/sync.py",
+                    "role": "registry",
+                    "content": "@registry.command('sync')\ndef sync_command(ctx):\n    return ctx.run_sync()\n",
+                }
+            ],
+            tags=["callback_registration_boundary", "decorator_registration", "dynamic_boundary"],
+            notes=["Decorator registration is kept as optional boundary evidence."],
+        )
+
+    if pattern == 15:
+        runtime = [
+            edge(
+                f"{module}.notifications.service.notify",
+                f"{module}.notifications.email.EmailSender.send",
+                f"{module}/notifications/service.py",
+                26,
+                "sender.send(message)",
+                "runtime_only",
+                "The concrete sender comes from a factory selected by runtime config.",
+            ),
+            edge(
+                f"{module}.notifications.service.notify",
+                f"{module}.notifications.sms.SmsSender.send",
+                f"{module}/notifications/service.py",
+                26,
+                "sender.send(message)",
+                "runtime_only",
+                "The same call site may dispatch to another repo-local implementation.",
+            ),
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.notifications.service.notify",
+            target_type="function",
+            runtime_only_edges=runtime,
+            dynamic_types=["factory_return", "polymorphism", "runtime_config"],
+            context=[
+                {
+                    "path": f"{module}/notifications/service.py",
+                    "role": "runtime_config",
+                    "content": "def notify(kind, message):\n    sender = build_sender(kind)\n    return sender.send(message)\n",
+                }
+            ],
+            tags=["runtime_only_boundary", "factory_return_cases", "polymorphism_cases", "dynamic_boundary"],
+            notes=["Factory return plus polymorphic dispatch is documented as runtime-only for smoke+."],
+        )
+
+    if pattern == 16:
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.cleanup.retention.prune_old_rows",
+            target_type="function",
+            negative_type="no_callers",
+            negative_reason="The target is defined, but no repo-local caller is present in scope.",
+            context=[
+                {
+                    "path": f"{module}/cleanup/retention.py",
+                    "role": "target_definition",
+                    "content": "def prune_old_rows(now):\n    return store.delete_before(now)\n",
+                }
+            ],
+            tags=["negative_non_call_cases", "no_callers"],
+        )
+
+    if pattern == 17:
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.config.flags.is_enabled",
+            target_type="function",
+            negative_type="no_callees",
+            negative_reason="The target computes from constants and does not call repo-local symbols.",
+            context=[
+                {
+                    "path": f"{module}/config/flags.py",
+                    "role": "target_definition",
+                    "content": "def is_enabled(name):\n    return name in ENABLED_FLAGS\n",
+                }
+            ],
+            tags=["negative_non_call_cases", "no_callees"],
+        )
+
+    if pattern == 18:
+        required = [
+            edge(
+                f"{module}.controllers.orders.archive_order",
+                f"{module}.models.order.Order.mark_archived",
+                f"{module}/controllers/orders.py",
+                39,
+                "order.mark_archived(actor_id)",
+                "static_confirmed",
+                "The object comes from the repo-local Order type.",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.controllers.orders.archive_order",
+            target_type="function",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/controllers/orders.py",
+                    "role": "target_definition",
+                    "content": "def archive_order(order: Order, actor_id):\n    order.mark_archived(actor_id)\n    return order\n",
+                }
+            ],
+            tags=["positive_call_edges", "object_method_calls", "callee_direction_cases"],
+        )
+
+    if pattern == 19:
+        required = [
+            edge(
+                f"{module}.jobs.queue.enqueue_daily_digest",
+                f"{module}.jobs.queue.JobEnvelope",
+                f"{module}/jobs/queue.py",
+                22,
+                "return JobEnvelope(name='daily_digest', payload=payload)",
+                "static_confirmed",
+                "Class construction is a repo-local constructor edge.",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.jobs.queue.enqueue_daily_digest",
+            target_type="function",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/jobs/queue.py",
+                    "role": "target_definition",
+                    "content": "def enqueue_daily_digest(payload):\n    return JobEnvelope(name='daily_digest', payload=payload)\n",
+                }
+            ],
+            tags=["positive_call_edges", "constructor_symbol_cases", "callee_direction_cases"],
+        )
+
+    if pattern == 20:
+        required = [
+            edge(
+                f"{module}.workers.daily.run_daily",
+                f"{module}.services.reports.ReportBuilder.build",
+                f"{module}/workers/daily.py",
+                17,
+                "report = builder.build(today)",
+                "static_confirmed",
+                "The builder instance is a repo-local ReportBuilder.",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.workers.daily.run_daily",
+            target_type="function",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/workers/daily.py",
+                    "role": "target_definition",
+                    "content": "def run_daily(builder: ReportBuilder, today):\n    report = builder.build(today)\n    return report\n",
+                }
+            ],
+            tags=["positive_call_edges", "object_method_calls", "callee_direction_cases"],
+        )
+
+    if pattern == 21:
+        required = [
+            edge(
+                f"{module}.api.tokens.rotate_token",
+                f"{module}.security.tokens.refresh_token",
+                f"{module}/api/tokens.py",
+                29,
+                "return refresh_token(account_id)",
+            )
+        ]
+        excluded = [
+            excluded_edge(
+                f"{module}.api.tokens.describe_token",
+                f"{module}.security.tokens.refresh_token",
+                "This function only mentions refresh_token in a help string.",
+                f"{module}/api/tokens.py",
+                44,
+                "return 'Use refresh_token to rotate credentials'",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.security.tokens.refresh_token",
+            target_type="function",
+            required_edges=required,
+            excluded_edges=excluded,
+            context=[
+                {
+                    "path": f"{module}/api/tokens.py",
+                    "role": "caller_candidate",
+                    "content": (
+                        "def rotate_token(account_id):\n"
+                        "    return refresh_token(account_id)\n\n"
+                        "def describe_token():\n"
+                        "    return 'Use refresh_token to rotate credentials'\n"
+                    ),
+                }
+            ],
+            tags=["positive_call_edges", "caller_direction_cases", "import_or_string_not_call"],
+        )
+
+    if pattern == 22:
+        optional = [
+            edge(
+                f"{module}.events.bus.EventBus.subscribe",
+                f"{module}.subscribers.audit.AuditSubscriber.handle",
+                f"{module}/subscribers/audit.py",
+                14,
+                "bus.subscribe('order.paid', subscriber.handle)",
+                "framework_inferred",
+                "Registration captures a bound object method callback.",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.subscribers.audit.AuditSubscriber.handle",
+            target_type="method",
+            optional_edges=optional,
+            dynamic_types=["callback_registration", "registry_lookup"],
+            context=[
+                {
+                    "path": f"{module}/subscribers/audit.py",
+                    "role": "registry",
+                    "content": "def wire(bus, subscriber: AuditSubscriber):\n    bus.subscribe('order.paid', subscriber.handle)\n",
+                }
+            ],
+            tags=["callback_registration_boundary", "object_method_calls", "dynamic_boundary"],
+            notes=["Bound method callback registration is optional, not a required static caller."],
+        )
+
+    if pattern == 23:
+        required = [
+            edge(
+                f"{module}.workers.ingest.ingest_batch",
+                f"{module}.workers.ingest.fetch_page",
+                f"{module}/workers/ingest.py",
+                12,
+                "page = await fetch_page(cursor)",
+            ),
+            edge(
+                f"{module}.workers.ingest.ingest_batch",
+                f"{module}.workers.ingest.persist_page",
+                f"{module}/workers/ingest.py",
+                13,
+                "await persist_page(page)",
+            ),
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.workers.ingest.ingest_batch",
+            target_type="function",
+            required_edges=required,
+            context=[
+                {
+                    "path": f"{module}/workers/ingest.py",
+                    "role": "target_definition",
+                    "content": "async def ingest_batch(cursor):\n    page = await fetch_page(cursor)\n    await persist_page(page)\n",
+                }
+            ],
+            tags=["positive_call_edges", "async", "async_call_edges", "callee_direction_cases"],
+        )
+
+    excluded = [
+        excluded_edge(
+            f"{module}.compat.legacy.LegacyAdapter.process",
+            f"{module}.services.processor.process",
+            "Same method name on an adapter is not a call to the target function.",
+            f"{module}/compat/legacy.py",
+            19,
+            "return self.process(payload)",
         )
     ]
     return make_sample(
         index=index,
         repo=repo,
         split=split,
-        task_type="find_callees",
-        direction="downstream",
-        target=f"{module}.pipeline.stage.Stage.run",
-        target_type="method",
-        required_edges=required,
+        task_type="find_callers",
+        direction="upstream",
+        target=f"{module}.services.processor.process",
+        target_type="function",
+        excluded_edges=excluded,
+        negative_type="same_name_distractor",
+        negative_reason="The observed self.process call resolves to a method on the adapter, not the target function.",
         context=[
             {
-                "path": f"{module}/pipeline/stage.py",
-                "role": "target_definition",
-                "content": "class Stage:\n    def run(self, context):\n        self.prepare(context)\n",
+                "path": f"{module}/compat/legacy.py",
+                "role": "distractor",
+                "content": "class LegacyAdapter:\n    def process(self, payload):\n        return self.process(payload)\n",
             }
         ],
-        tags=["positive_call_edges", "class_method", "callee_direction_cases"],
+        tags=["negative_non_call_cases", "same_name_distractors", "object_method_calls"],
     )
 
 
@@ -570,7 +1088,7 @@ def main() -> int:
         if isinstance(config.get("gates"), dict)
         else None
     )
-    count = args.count or int(configured_count or 20)
+    count = args.count or int(configured_count or 50)
     output_path = Path(args.out)
     if not output_path.is_absolute():
         output_path = PROJECT_ROOT / output_path

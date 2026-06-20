@@ -2,7 +2,7 @@
 
 This directory contains the versioned fine-tuning data format for the call-chain task.
 
-The current checked-in implementation is a smoke-ready skeleton. It can generate and validate a small synthetic micro JSONL dataset without using local Ollama, GPU inference, or any formal training job.
+The current checked-in implementation is a smoke+ skeleton. It can generate and validate a 50-sample synthetic micro JSONL dataset without using local Ollama, GPU inference, or any formal training job. This is still below the 500+ sample threshold required before formal fine-tuning.
 
 ## Layout
 
@@ -49,9 +49,9 @@ Current evaluation test repos are blocked from train/dev:
 
 If a future data build derives examples from evaluation test repos, those examples must not enter train/dev. The validator checks `repo`, `source_refs`, and `leakage.derived_from_test_repo`.
 
-## Smoke Data
+## Smoke+ Data
 
-The first builder target is a small synthetic micro set with `source_type=synthetic_micro`. It is intentionally tiny, deterministic, and GPU-free. It exists to validate:
+The current builder target is a 50-sample synthetic micro smoke+ set with `source_type=synthetic_micro`. It is deterministic and GPU-free. It exists to validate:
 
 - JSONL parsing.
 - Required fields and schema shape.
@@ -60,11 +60,14 @@ The first builder target is a small synthetic micro set with `source_type=synthe
 - Dynamic boundary labels.
 - Repo-level split isolation.
 - Test repo leakage checks.
+- Required sample type coverage from `configs/experiments/finetune-data-v1.yaml`.
+
+The 50-sample smoke+ set covers direct positive edges, object methods, constructor class symbols, explicit `__init__`, async calls, large fan-in, tests-excluded negatives, external dependency boundaries, decorator registration, callback registration, runtime-only boundaries, factory-return / polymorphism boundaries, same-name distractors, import/string non-calls, no-callers, and no-callees.
 
 Generate it with:
 
 ```powershell
-python scripts/build_finetune_dataset.py --count 20
+python scripts/build_finetune_dataset.py
 ```
 
 Validate it with:
@@ -88,4 +91,4 @@ Expansion should follow these rules:
 - Run the validator before any smoke training or formal training.
 - Record data version, git commit or dirty status, config, validation result, and resource status before training.
 
-Formal training, Ollama local inference, and GPU indexing are intentionally out of scope for this smoke skeleton.
+Formal training, Ollama local inference, and GPU indexing are intentionally out of scope for this smoke+ skeleton.

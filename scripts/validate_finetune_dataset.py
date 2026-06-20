@@ -276,11 +276,19 @@ def validate_samples(
     sample_ids: dict[str, str] = {}
     fingerprints: dict[str, str] = {}
     split_counts: dict[str, int] = {}
+    tag_counts: dict[str, int] = {}
 
     leakage_rules = config.get("leakage_rules", {}) if isinstance(config.get("leakage_rules"), dict) else {}
     split_by_repo = bool(leakage_rules.get("split_by_repo", True))
     excluded_test_repos = {normalized_repo(repo) for repo in leakage_rules.get("excluded_test_repos", [])}
     block_current_test_cases = bool(leakage_rules.get("current_call_chain_v1_test_cases_must_not_enter_training", True))
+    data_requirements = config.get("data_requirements", {}) if isinstance(config.get("data_requirements"), dict) else {}
+    raw_required_sample_types = data_requirements.get("required_sample_types", [])
+    required_sample_types = (
+        [str(item) for item in raw_required_sample_types if str(item).strip()]
+        if isinstance(raw_required_sample_types, list)
+        else []
+    )
 
     for path in files:
         samples, parse_errors = read_jsonl(path)
@@ -329,6 +337,9 @@ def validate_samples(
                 repo_splits.setdefault(repo, set()).add(split)
                 group_splits.setdefault(group, set()).add(split)
                 split_counts[split] = split_counts.get(split, 0) + 1
+                for tag in sample.get("tags", []):
+                    if isinstance(tag, str) and tag.strip():
+                        tag_counts[tag] = tag_counts.get(tag, 0) + 1
 
             all_errors.extend(errors)
             all_warnings.extend(warnings)
@@ -350,10 +361,17 @@ def validate_samples(
             if len(splits) > 1:
                 all_errors.append(f"split_by_repo_group isolation violation: {group!r} appears in {sorted(splits)}")
 
+    missing_required_sample_types = [tag for tag in required_sample_types if tag_counts.get(tag, 0) == 0]
+    for tag in missing_required_sample_types:
+        all_errors.append(f"required_sample_types coverage missing: {tag!r} is not present in any sample tags")
+
     return {
         "file_count": len(files),
         "sample_count": len(reports),
         "split_counts": split_counts,
+        "tag_counts": tag_counts,
+        "required_sample_types": required_sample_types,
+        "missing_required_sample_types": missing_required_sample_types,
         "error_count": len(all_errors),
         "warning_count": len(all_warnings),
         "errors": all_errors,
@@ -396,6 +414,9 @@ def main() -> int:
 
     print(f"validated {summary['sample_count']} samples from {summary['file_count']} JSONL files")
     print("split counts:", json.dumps(summary["split_counts"], sort_keys=True))
+    if summary["required_sample_types"]:
+        covered = len(summary["required_sample_types"]) - len(summary["missing_required_sample_types"])
+        print(f"required sample type coverage: {covered}/{len(summary['required_sample_types'])}")
     if summary["warnings"]:
         print("\nwarnings:")
         for warning in summary["warnings"]:

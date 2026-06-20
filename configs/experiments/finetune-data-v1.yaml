@@ -1,6 +1,6 @@
 version: finetune-data-v1
 stage: fine_tune_data_and_training
-status: smoke_schema_builder_validator_ready
+status: smoke_plus_schema_builder_validator_ready
 
 dataset:
   root: datasets/finetune-v1
@@ -29,7 +29,7 @@ target_model:
 
 data_requirements:
   minimum_examples: 500
-  smoke_examples_target: 20
+  smoke_examples_target: 50
   smoke_examples_allowed_range: [10, 50]
   format: jsonl
   required_sample_types:
@@ -40,9 +40,20 @@ data_requirements:
     - callback_registration_boundary
     - runtime_only_boundary
     - constructor_symbol_cases
+    - explicit_init_calls
     - caller_direction_cases
     - callee_direction_cases
     - evidence_output_cases
+    - object_method_calls
+    - async_call_edges
+    - large_fan_in_cases
+    - tests_excluded
+    - external_boundary
+    - decorator_registration
+    - factory_return_cases
+    - polymorphism_cases
+    - no_callers
+    - no_callees
   full_dataset_expansion_rules:
     min_train_repos: 3
     min_dev_repos: 1
@@ -66,7 +77,7 @@ leakage_rules:
   current_call_chain_v1_test_cases_must_not_enter_training: true
 
 gates:
-  smoke_dataset_examples: 20
+  smoke_dataset_examples: 50
   full_dataset_examples: 500
   validate_before_training: true
   smoke_train_before_formal_train: true
