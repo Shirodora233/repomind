@@ -2,13 +2,13 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：已完成（历史阶段）
 
 ## 阶段目标
 
 建立项目早期的文档结构和协作规范，明确调用链 baseline 的总体计划、评测协议、agent 协作要求和阶段记录方式，为后续构建测试样例、跑 Oracle Context 测试、实现 RAG / Agentic Retrieval 和消融实验打基础。
 
-## 当前产出
+## 阶段产出
 
 - 已形成调用链 baseline 总体计划。
 - 已形成独立的调用链评测协议文档。
@@ -65,7 +65,8 @@
 - `records/template.md`
 - `records/technical-issues-and-solutions.md`
 
-## 下一步
+## 当前交接
 
-- 进入构建测试样例阶段，开始选择项目、固定 commit、定义 case schema 和标注首批 golden answer。
-- 为测试样例阶段持续更新 `records/02-test-case-construction.md`。
+- 本阶段已完成项目文档、协作规则和记录结构初始化。
+- 后续 agent 不需要在本文件继续追加常规进展；只有项目记录规则或文档边界发生根本变化时才更新。
+- 当前项目状态以 `records/development-progress-summary.md` 为准。

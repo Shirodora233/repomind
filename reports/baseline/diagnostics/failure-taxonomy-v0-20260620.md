@@ -6,8 +6,8 @@
 
 参考报告：
 
-- `reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`
-- `reports/baseline/new-10-case-model-comparison-v0-20260620.md`
+- `reports/baseline/model-comparisons/base-10-case-comprehensive-analysis-v0-20260620.md`
+- `reports/baseline/batches/new-10-case-model-comparison-v0-20260620.md`
 
 ## 结论摘要
 

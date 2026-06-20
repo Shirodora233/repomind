@@ -14,6 +14,15 @@
 
 实施记录按阶段维护，不要求每轮对话或每次小修改都新增文件。阶段内的小进展、问题和验证结果应追加到对应阶段文件中。
 
+阶段状态统一使用：
+
+- `未开始（占位阶段）`：只记录阶段目标和启动条件，不写伪进展。
+- `进行中`：当前仍在持续追加实验或实现过程。
+- `已完成（历史阶段）`：阶段目标已经完成，后续只做必要勘误，不再追加常规进展。
+- `已完成（机制可用，后续滚动维护）`：基础机制已可用，但后续版本迭代时需要同步更新。
+
+已完成阶段如果出现过时的“下一步”，应改成“当前交接”或“历史说明”，避免后续 agent 把已完成待办当成当前任务。
+
 建议阶段包括：
 
 - `01-project-initialization-and-documentation.md`：项目初始化与文档确立阶段。
@@ -21,6 +30,9 @@
 - `03-oracle-context-evaluation.md`：Oracle Context 测试阶段。
 - `04-rag-agentic-retrieval.md`：RAG / Agentic Retrieval 阶段。
 - `05-fine-tune-and-ablation.md`：Fine-tune 与消融实验阶段。
+- `06-experiment-versioning-and-reproducibility.md`：实验版本化与复现机制。
+- `07-cross-repo-baseline-analysis.md`：跨仓库 baseline 分析与 50-case 汇总阶段。
+- `08-documentation-and-report-organization.md`：正式文档与报告目录整理阶段。
 
 ## 什么时候需要更新记录
 

@@ -24,6 +24,18 @@
 
 ## 已知问题
 
+## Windows 本地微调环境 PyTorch CUDA wheel 单连接下载过慢
+
+- 首次发现阶段：Fine-tune 与消融实验阶段
+- 状态：resolved
+- 最后复核：2026-06-20
+- 现象：为 Gemma4 E2B QLoRA 环境安装 PyTorch 时，`pip install torch --index-url https://download.pytorch.org/whl/cu128` 能解析到 `torch-2.11.0+cu128`，但 2.56GB wheel 单连接下载长时间无有效落盘。改用默认 PyPI 安装依赖时会解析到 `torch 2.12.1+cpu`，`pip check` 通过但 `torch.cuda.is_available()` 为 `False`。
+- 影响：环境表面上依赖完整，但实际不能使用 GPU 训练；如果只看 `pip check` 或包名，容易误以为 QLoRA 环境已经可用。
+- 原因：PyTorch CUDA wheel 体积很大，单连接下载在当前网络下不稳定且 pip 进度不透明；默认 PyPI wheel 是 CPU build，满足 Python 依赖但不包含 CUDA。
+- 解决方式：先安装通用微调栈，再单独替换 CUDA 版 torch。使用 `pip index versions torch --index-url https://download.pytorch.org/whl/cu128` 查询可用 CUDA 版本；选择较小的 `torch-2.11.0+cu128`；用 `curl.exe -I` 确认 `Content-Length: 2753148611`；用 `curl.exe -r` 将 wheel 分 8 段下载到 `E:\AI\repomind-ft\models\torch_parts\`，校验每段字节数后用 PowerShell `System.IO.FileStream` 二进制合并，再执行 `python -m pip install --force-reinstall --no-deps E:\AI\repomind-ft\models\torch-2.11.0+cu128-cp311-cp311-win_amd64.whl`。
+- 后续注意：不要只依赖 `pip check` 判断训练环境；必须验证 `torch.__version__` 带 `+cu128`、`torch.version.cuda`、`torch.cuda.is_available()`、GPU tensor 运算和 bitsandbytes 4-bit CUDA smoke。大 wheel、cache、临时文件应放在 E 盘，避免挤占 C 盘。
+- 相关文件：`records/05-fine-tune-and-ablation.md`、`E:\AI\repomind-ft\activate-gemma4-e2b-ft.ps1`
+
 ## Python Path.glob 不支持绝对 glob pattern
 
 - 首次发现阶段：Oracle Context 测试阶段

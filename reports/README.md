@@ -9,11 +9,17 @@
 ```text
 reports/
   baseline/
-    oracle-context-<model>-v0-<date>.md
-    e2e-agent-<model>-v0-<date>.md
+    README.md
+    summary/
+    batches/
+    model-comparisons/
+    diagnostics/
+    early-smoke/
   ablation/
   comparisons/
 ```
+
+`baseline/` 的具体分类和推荐阅读顺序见 `reports/baseline/README.md`。当前 baseline 主结论优先看 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`；早期 smoke、批次扩展和单模型对比报告只作为追溯材料。
 
 每份报告建议包含：
 

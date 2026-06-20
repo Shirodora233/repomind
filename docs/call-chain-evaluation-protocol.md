@@ -2,6 +2,8 @@
 
 本文档记录调用链 baseline 的评测约束、Oracle / E2E 评测要求、实验记录要求和数据隔离规则。它是 `docs/call-chain-baseline-plan.md` 的配套协议文档，后续修改评测 case、评分脚本、agent loop 或实验矩阵时，应同步检查本文档是否需要更新。
 
+当前 runner 用法见 `docs/evaluation/oracle-context-and-e2e-v1.md`；当前 scorer 细则见 `docs/evaluation/scoring-v1.md`。
+
 ## 1. 调用链评测约束
 
 评测默认遵守以下约束：

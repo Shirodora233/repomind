@@ -2,13 +2,13 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：已完成（baseline 阶段；后续 Oracle 优化另开记录）
 
 ## 阶段目标
 
 在人工给足相关文件的条件下测试模型调用链推理上限，区分模型推理能力问题和检索问题。
 
-## 当前产出
+## 阶段产出
 
 - 已新增 case validator，能够校验 YAML schema、repo commit、oracle 文件路径和 golden evidence 行。
 - 已新增 scorer，能够按 case 和预测输出计算 Edge Precision、Edge Recall、Evidence Accuracy，并统计 optional/runtime/excluded/unmatched 边。
@@ -18,7 +18,9 @@
 - 已支持 OpenRouter provider routing，用于限制 DeepSeek 等模型的实际供应商，控制运行成本。
 - 已将实验输出目录 `runs/` 加入 `.gitignore`。
 - 已完成 DeepSeek direct、OpenAI GPT-5.5、Tencent HY3、本地 Qwen3.5 2B、本地 Gemma4 E2B 的 10-case Oracle Context baseline。
-- 已生成多模型 Oracle / E2E 综合分析报告，用于指导后续扩展到 50+ case。
+- 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 50-case Oracle Context baseline 汇总。
+- 当前 Oracle Context runner 默认版本为 `oracle-context-runner-v1`，scorer 默认版本为 `call-chain-scorer-v1`。
+- 当前主报告见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
 
 ## 阶段进展记录
 
@@ -98,15 +100,12 @@
 - `prompts/oracle-context-v0.md`
 - `records/03-oracle-context-evaluation.md`
 
-## 下一步
+## 当前交接
 
-- 在本地 `.env` 和 `configs/model-providers.local.yaml` 中填入首批真实模型配置。
-- 人工检查 `prompts/oracle-context-v0.md` 的输出约束是否足够清晰。
-- 后续 DeepSeek 评测改用 `--model-provider openrouter --model-alias deepseek-v4-pro-direct`，不要直接使用裸 `--model "deepseek/deepseek-v4-pro"`。
-- 使用 `--max-tokens` 和 `deepseek-v4-pro-direct` 重新跑 DeepSeek hard subset。
-- 观察 case-level request error 记录是否足够诊断全量运行问题。
-- 使用 OpenRouter 或 Ollama 继续跑少量 easy + medium case，并逐步扩展到 hard case。
-- 保存真实模型 raw response、parsed prediction 和 score，分析格式错误、漏边、误报和证据错误。
+- Oracle Context baseline 已从 10-case 扩展到 50-case，旧“逐步扩展到 hard case”的待办已完成。
+- 后续 Oracle 相关优化应围绕 PE v1、输出 schema、symbol canonicalization 和 excluded edge 约束展开，并在新阶段记录中维护。
+- DeepSeek 成本敏感实验继续使用 `--model-provider openrouter --model-alias deepseek-v4-pro-direct-no-reasoning` 或等价 direct/no-reasoning alias。
+- 当前 Oracle / E2E 关系说明以 `docs/evaluation/oracle-context-and-e2e-v1.md` 为准。
 
 ## 2026-06-19 hard case 重测记录
 
@@ -133,7 +132,7 @@
 ## 2026-06-19 DeepSeek direct-no-reasoning 10-case Oracle baseline v0
 
 - 已完成 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-deepseek-direct-no-reasoning-20260619`。
-- 正式报告见 `reports/baseline/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`。
+- 正式报告见 `reports/baseline/early-smoke/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`。
 - 关键结果：Edge Precision 0.828571，Edge Recall 0.8125，Evidence Accuracy 1.0；10 case 全部完成，无 request / parse error；provider 全部命中 DeepSeek，reasoning_tokens=0，总成本约 0.077030206。
 
 ## 2026-06-20 本地 Ollama 小模型 10-case Oracle baseline v0
@@ -144,7 +143,7 @@
 - Qwen3.5 2B 关键结果：Edge Precision 0.210526，Edge Recall 0.125，Evidence Accuracy 0.5；2 个 case 出现长 fenced YAML 截断导致 parse error。
 - 已完成 Gemma4 E2B 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-gemma4-e2b-native-20260620`。
 - Gemma4 E2B 关键结果：Edge Precision 0.333333，Edge Recall 0.46875，Evidence Accuracy 0.6；无 parse error。
-- 正式对比报告见 `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
+- 正式对比报告见 `reports/baseline/model-comparisons/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
 - 初步判断：Gemma4 E2B 明显优于 Qwen3.5 2B，但两者都显著低于 DeepSeek；Oracle 结果能拉开本地小模型差距，适合继续作为本地候选筛选依据。
 
 ## 2026-06-20 OpenAI / Tencent 10-case Oracle baseline v0
@@ -154,8 +153,8 @@
 - OpenAI 关键结果：Edge Precision 1.0，Edge Recall 0.9375，Evidence Accuracy 1.0；10 case 全部完成，无 request / parse error；总成本约 1.09657。
 - 已完成 `tencent/hy3-preview` 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-tencent-hy3-preview-no-reasoning-20260620`。
 - Tencent 关键结果：Edge Precision 0.641509，Edge Recall 0.96875，Evidence Accuracy 1.0；Recall 最高，但在 `astrbot-agent-002` 和 `astrbot-provider-001` 过报明显；总成本约 0.014841218。
-- 正式报告见 `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`。
-- 已生成 base 10 多模型综合分析报告：`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`。
+- 正式报告见 `reports/baseline/model-comparisons/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/model-comparisons/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`。
+- 已生成 base 10 多模型综合分析报告：`reports/baseline/model-comparisons/base-10-case-comprehensive-analysis-v0-20260620.md`。
 - 初步判断：Oracle Context 已能稳定拉开强在线模型、中等在线模型和本地小模型差距；OpenAI 适合作为高成本上限标杆，Tencent 适合作为高 recall / 低成本但易过报的对照模型。
 
 ## 2026-06-20 新增 10-case Oracle 复测
@@ -165,4 +164,4 @@
 - Tencent HY3 no-reasoning 原始输出目录：`runs/oracle/new-10-tencent-hy3-preview-no-reasoning-20260620`。结果：Edge Precision 1.000000，Edge Recall 0.931034，Evidence Accuracy 1.000000；OpenRouter cost 约 0.018256776。
 - Gemma4 E2B 本地原始输出目录：`runs/oracle/new-10-gemma4-e2b-20260620`。结果：Edge Precision 0.166667，Edge Recall 0.103448，Evidence Accuracy 0.666667。
 - 初步判断：新增 case 在 Oracle Context 轨道能继续拉开在线模型与本地小模型差距。Tencent HY3 当前最稳；DeepSeek 主要受 canonical symbol 拼写错误影响；Gemma4 E2B 零样本仍不适合直接做精确 golden 标注。
-- 正式报告见 `reports/baseline/new-10-case-model-comparison-v0-20260620.md`。
+- 正式报告见 `reports/baseline/batches/new-10-case-model-comparison-v0-20260620.md`。

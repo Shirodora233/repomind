@@ -2,13 +2,13 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：已完成（baseline 阶段；后续 RAG / agent 优化另开记录）
 
 ## 阶段目标
 
 构建让模型自主检索仓库、读取文件、扩展上下文并输出调用链答案的 E2E 流程，评估真实产品场景下的检索与推理能力。
 
-## 当前产出
+## 阶段产出
 
 - 已实现最小 E2E Agentic Retrieval runner，支持 dry-run、mock-golden 和真实模型 openai-compatible/native 调用。
 - 已实现 repo-only 工具循环：`list_files`、`search_text`、`read_file`。
@@ -16,6 +16,8 @@
 - 已完成 DeepSeek direct-no-reasoning 10-case E2E baseline。
 - 已完成本地 Ollama Qwen3.5 2B 与 Gemma4 E2B 10-case E2E baseline。
 - 已完成 OpenAI GPT-5.5 与 Tencent HY3 的 10-case E2E baseline。
+- 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 50-case E2E baseline 汇总。
+- 当前 E2E runner 默认版本为 `e2e-agent-runner-v1`，scorer 默认版本为 `call-chain-scorer-v1`。
 - 已记录 OpenAI E2E 文本 action 协议适配问题，避免将协议失败误判为模型能力失败。
 
 ## 阶段进展记录
@@ -48,16 +50,14 @@
 - `prompts/e2e-agent-system-v0.md`
 - `configs/e2e-tools-v0.yaml`
 - `configs/model-providers.example.yaml`
-- `reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`
-- `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`
+- `reports/baseline/early-smoke/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`
+- `reports/baseline/model-comparisons/local-ollama-qwen-gemma-baseline-v0-20260620.md`
 
-## 下一步
+## 当前交接
 
-- 扩展更多模型的 Oracle Context 与 E2E baseline，优先覆盖代表性在线模型和后续可本地微调的小模型。
-- 形成多模型 baseline 对比报告，按 case、难度、任务方向、失败类型、成本和 token 做横向分析。
-- 基于多模型结果复核 pilot case 质量，识别稳定区分 case、过易 case、边界含糊 case 和可能需要修正 golden 的 case。
-- 在开始优化前，将测试集扩展到 50+ case，覆盖更多 repo、调用方向、难度层级和动态调用模式。
-- 待 50+ case 测试集与多模型 baseline 稳定后，再进入 Prompt Engineering、RAG、tool strategy 和 Fine-tune 消融实验。
+- E2E baseline 已扩展到 50-case，旧“扩展更多模型 / 扩展到 50+ case”的待办已完成。
+- 后续 RAG / agent 优化应重点处理检索命中后的 final edge 收敛、fully-qualified symbol canonicalization、多 action 文本协议和对象方法边界。
+- 新的 RAG / agent 优化实验应新建阶段记录或在后续优化阶段维护，不继续追加到本 baseline 阶段文件。
 
 ## 2026-06-19 E2E 最小框架初始化
 
@@ -76,7 +76,7 @@
 - 验证：`python scripts\run_e2e_agent.py --provider mock-golden --case-id astrbot-platform-001 --out-dir tmp\e2e-mock-golden-smoke` 通过，Precision 1.0，Recall 1.0，Evidence Accuracy 1.0，tool_calls=3，files_read=1。
 - 验证：`python scripts\run_e2e_agent.py --provider mock-golden --case-id astrbot-agent-001 --out-dir tmp\e2e-mock-golden-hard-smoke` 通过，Precision 1.0，Recall 1.0，Evidence Accuracy 1.0，tool_calls=3，files_read=1。
 - 验证：`python scripts\run_e2e_agent.py --provider mock-golden --out-dir tmp\e2e-mock-golden-all` 跑通 10 个 case，Precision 1.0，Recall 1.0，Evidence Accuracy 1.0；总 tool_calls=36，总 files_read=16，平均 Definition Accuracy 1.0，平均 Retrieval Recall 1.0。
-- 已知边界：当前尚未接入真实 LLM tool-calling loop；`mock-golden` 会利用 golden 选择 evidence 文件，只能证明框架链路正确。下一步应实现 OpenAI-compatible agent loop，让模型根据工具结果自主决定下一步调用和最终 YAML 输出。
+- 当时边界：该阶段刚初始化时尚未接入真实 LLM tool-calling loop；`mock-golden` 会利用 golden 选择 evidence 文件，只能证明框架链路正确。后续已实现 OpenAI-compatible agent loop，本条保留为历史说明。
 
 ## 2026-06-19 DeepSeek E2E hard smoke
 
@@ -93,9 +93,9 @@
 ## 2026-06-19 DeepSeek direct-no-reasoning 10-case E2E baseline v0
 
 - 已完成 10-case E2E Agentic Retrieval baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-deepseek-direct-no-reasoning-20260619`。
-- 正式报告见 `reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`。
+- 正式报告见 `reports/baseline/early-smoke/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`。
 - 关键结果：Edge Precision 0.446154，Edge Recall 0.84375，Evidence Accuracy 1.0；Definition Accuracy 1.0，Retrieval Recall 1.0，tool_calls=69，files_read=17；provider 全部命中 DeepSeek，reasoning_tokens=0，总成本约 0.042644065。
-- 初步判断：当前 E2E 主要瓶颈不是检索失败，而是检索成功后过度返回 helper / constructor / utility 边，以及 repo 内对象方法和动态 sub-stage 边界判断不稳定。但该结论只来自单模型 10-case baseline，下一步应先扩展多模型测试，并用多模型结果指导测试集扩展到 50+，暂不进入优化阶段。
+- 当时判断：10-case DeepSeek baseline 显示 E2E 主要瓶颈不是检索失败，而是检索成功后过度返回 helper / constructor / utility 边，以及 repo 内对象方法和动态 sub-stage 边界判断不稳定。后续已完成多模型与 50-case 扩展，本条保留为早期判断来源。
 
 ## 2026-06-20 本地 Ollama 小模型 10-case E2E baseline v0
 
@@ -106,7 +106,7 @@
 - Qwen3.5 2B 关键结果：Edge Precision 0.0，Edge Recall 0.0，Evidence Accuracy n/a；Definition Accuracy 1.0，Retrieval Recall 0.888889，tool_calls=110，files_read=23。
 - 已完成 Gemma4 E2B 10-case E2E baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-gemma4-e2b-native-20260620`。
 - Gemma4 E2B 关键结果：Edge Precision 0.0，Edge Recall 0.0，Evidence Accuracy n/a；Definition Accuracy 1.0，Retrieval Recall 0.851852，tool_calls=37，files_read=17。
-- 正式对比报告见 `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
+- 正式对比报告见 `reports/baseline/model-comparisons/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
 - 初步判断：两个本地小模型都能执行工具循环并读到不少相关文件，但最终输出多为短 symbol、类型级边或非 canonical edge，无法匹配 golden。后续本地模型微调数据应重点覆盖 fully-qualified symbol 输出和 final schema。
 
 ## 2026-06-20 OpenAI / Tencent 10-case E2E baseline v0
@@ -117,7 +117,7 @@
 - 已完成 `tencent/hy3-preview` 10-case E2E Agentic Retrieval baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-tencent-hy3-preview-no-reasoning-20260620`。
 - Tencent 关键结果：Edge Precision 0.40625，Edge Recall 0.75，Evidence Accuracy 1.0；Definition Accuracy 1.0，Retrieval Recall 1.0，tool_calls=83，files_read=28，总成本约 0.028067828。
 - Tencent E2E 说明：检索指标满分，主要失败来自过报、canonical symbol 不稳定，以及对象方法 / callback / dynamic sub-stage 边界判断。
-- 正式报告见 `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`。
+- 正式报告见 `reports/baseline/model-comparisons/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/model-comparisons/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/model-comparisons/base-10-case-comprehensive-analysis-v0-20260620.md`。
 - 初步判断：E2E 轨道已经能区分“检索失败 / 协议失败”和“检索成功后的边界判断失败”。在优化前仍应继续扩展 case，而不是直接围绕当前 10 case 调 prompt。
 
 ## 2026-06-20 新增 10-case E2E 复测
@@ -127,4 +127,4 @@
 - Tencent HY3 no-reasoning 原始输出目录：`runs/e2e/new-10-tencent-hy3-preview-no-reasoning-20260620`。结果：Edge Precision 0.812500，Edge Recall 0.862069，Evidence Accuracy 0.960000；Definition Accuracy 1.000000，Retrieval Recall 1.000000，tool_calls=79，files_read=20；OpenRouter cost 约 0.024229704。
 - Gemma4 E2B 本地原始输出目录：`runs/e2e/new-10-gemma4-e2b-20260620`。结果：Edge Precision 0.000000，Edge Recall 0.000000，Evidence Accuracy n/a；Definition Accuracy 0.600000，Retrieval Recall 0.600000，tool_calls=48，files_read=28。
 - 初步判断：新增 case 对 E2E 很有区分度。DeepSeek 与 Tencent 的检索指标均为满分，但最终 edge recall 差异明显，说明失败点主要在检索后的边界判断、canonical symbol 对齐和 final 输出稳定性。Gemma4 E2B 能调用工具，但检索命中和最终 symbol-level edge 输出都不稳定。
-- 正式报告见 `reports/baseline/new-10-case-model-comparison-v0-20260620.md`。
+- 正式报告见 `reports/baseline/batches/new-10-case-model-comparison-v0-20260620.md`。

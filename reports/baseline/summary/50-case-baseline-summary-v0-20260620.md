@@ -24,7 +24,43 @@
 | `find_callers` | 7 | 8 | 12 |
 | `find_callees` | 43 | 125 | 60 |
 
-当前 50-case 集合已经达到第一阶段 baseline 的最低规模要求，但任务类型明显偏向 `find_callees`。下一轮扩展或修订时，应提高 `find_callers`、negative/no-caller、runtime-only/protocol 和多仓库覆盖比例。
+当前 50-case 集合已经达到第一阶段 baseline 的最低规模要求：case 全部来自真实项目固定 commit，golden answer 以 symbol-level call edge 标注，并覆盖 easy / medium / hard、upstream / downstream、negative、callback、registry、constructor、dynamic loading 和 protocol boundary。当前不足是任务类型明显偏向 `find_callees`。下一轮扩展或修订时，应提高 `find_callers`、negative/no-caller、runtime-only/protocol 和多仓库覆盖比例。
+
+## 瓶颈诊断质量摘要
+
+本 baseline 的目标不是只给出模型排行榜，而是形成可复用的瓶颈诊断基准。按当前评测标准，结论如下。
+
+### 评测用例质量
+
+| 质量维度 | 当前状态 | 证据 |
+| --- | --- | --- |
+| 真实项目来源 | 满足 | 50 个 case 来自 AstrBot 与 Scrapy 两个真实 Python 仓库；AstrBot 覆盖动态应用、插件、provider、platform adapter，Scrapy 覆盖 crawler/engine lifecycle、middleware、signal、feed export、protocol dispatch |
+| 明确正确答案 | 满足 | 每个 case 均有 YAML golden，使用 `required_edges` / `optional_edges` / `excluded_edges` / `runtime_only_edges` 分层；当前共有 133 条 required edge 与 72 条 excluded edge |
+| 难度覆盖 | 基本满足 | easy 6、medium 24、hard 20；hard case 覆盖 registry、callback、dynamic import、factory、polymorphism，medium case 中也包含 constructor 和 registration 边界 |
+| 评测轨道覆盖 | 满足 | 同一 golden 同时用于 Oracle Context 与 Agentic Retrieval / E2E，能区分“模型推理上限”和“真实检索流程效果” |
+| 当前不足 | 需要后续修正 | `find_callees` 43 个、`find_callers` 7 个，upstream 与 negative/no-caller 压力仍偏少；仓库数目前为 2，后续策略选择前可继续补第三仓库或 micro diagnostic case |
+
+### 瓶颈识别准确性
+
+当前低分场景不是泛泛的“模型不理解代码”，而是集中在五类可定位问题：
+
+| 瓶颈类型 | 精确现象 | 数据证据 | 代表 case |
+| --- | --- | --- | --- |
+| 检索命中后 final edge 收敛不足 | 读到相关文件后仍漏边或多报边 | DeepSeek / HY3 的 E2E Retrieval Recall 均为 1.0，但 E2E Recall 只有 0.759398 / 0.834586，明显低于 Oracle 0.902256 / 0.947368 | `astrbot-agent-001`、`astrbot-chat-003`、`astrbot-pipeline-002` |
+| symbol canonicalization 不稳定 | 语义接近但输出 symbol 与 golden canonical 不一致 | constructor-normalized 后在线模型 E2E Recall 最高提升 +0.037594，但 strict 主分数仍明显低于 Oracle | `scrapy-feed-001`、`scrapy-signal-001`、`astrbot-webhook-002` |
+| over-depth / callback continuation | 返回超过 `max_depth=1` 的 continuation 或 registration 后续调用 | precision boundary 共有 7 个 case，集中在 callback、route wrapper、signal 和 registry 边界 | `scrapy-engine-004`、`scrapy-signal-002`、`astrbot-star-001` |
+| repo 内对象方法 / receiver 类型推断不足 | 对 `event.get_extra`、receiver method、protocol method 是否属于 repo 内调用判断不稳 | Oracle 满分但 E2E gap 明显的 case 中包含对象方法和 receiver 边界；`astrbot-pipeline-002` E2E 平均 Recall 0.5 | `astrbot-pipeline-002`、`astrbot-provider-002`、`scrapy-download-001` |
+| 小模型结构化输出能力不足 | 能检索部分文件，但无法稳定输出 fully-qualified symbol-level edge | Gemma4 E2E Definition Accuracy 0.8、Retrieval Recall 0.723404，但 Edge Recall 仅 0.015038 | Gemma4 在多数 AstrBot / Scrapy E2E case 中输出短 symbol、类型级边或方向错误 |
+
+### 数据支撑
+
+本报告中的诊断结论由三层数据支撑：
+
+- 总体指标：30 个正式 run 聚合，覆盖 3 个模型、2 条轨道、50 个 case、133 条 required edge。
+- 分桶指标：按仓库、难度、批次、case 质量分层分别统计，避免只用总分解释所有现象。
+- 错误样本：将低分 case 归入 `E2E gap`、`precision boundary`、`reasoning or golden review`、`negative` 等桶，并列出具体 case 与失败机制。
+
+因此，当前 baseline 已能支持下一阶段 PE / RAG 的定向优化：RAG / agent 优化应优先缩小 Oracle-E2E gap，Prompt Engineering 应优先约束 symbol canonicalization、callback/registration 边界和 excluded edge 过滤，Fine-tune 数据应优先覆盖 fully-qualified edge 输出、negative filtering 与动态边界示例。
 
 ## 模型与版本
 
@@ -164,27 +200,29 @@ Scrapy 对在线模型整体更友好，但它暴露的错误更集中在 framew
 
 ## 共同失败模式
 
-1. 检索不是当前在线模型主瓶颈。DeepSeek / HY3 的 E2E Retrieval Recall 均为 1.0，但 Edge Recall 分别只有 0.759398 / 0.834586。
-2. constructor canonical symbol 是最稳定的跨模型误差来源，典型 case 是 `scrapy-feed-001`、`scrapy-signal-001`、`astrbot-webhook-002`。
-3. callback / continuation / registration 容易突破 `max_depth=1`，典型 case 是 `scrapy-engine-004`、`scrapy-signal-002`、`astrbot-webhook-004`。
-4. repo 内对象方法和 receiver 类型推断仍不足，典型 case 是 `astrbot-pipeline-002`、`astrbot-provider-002`、`scrapy-download-001`。
-5. local 小模型的失败不是单纯长上下文问题。Gemma4 E2B 能读到部分文件，但 final edge 的方向、fully-qualified symbol 和 schema 约束不足。
+| 失败模式 | 不是泛泛描述的原因 | 数据支撑 | 代表错误样本 | 优化指向 |
+| --- | --- | --- | --- | --- |
+| 检索命中后 answer synthesis 失败 | 不是“找不到文件”，而是读到文件后 final edge 选择、裁剪和归一失败 | DeepSeek / HY3 E2E Retrieval Recall 均为 1.0，但 E2E Recall 分别只有 0.759398 / 0.834586；Oracle Recall 分别为 0.902256 / 0.947368 | `astrbot-agent-001`、`astrbot-chat-003`、`astrbot-pipeline-002` | RAG / agent finalization、候选边压缩、answer schema 约束 |
+| constructor canonical symbol mismatch | 错误集中在 `Class` 与 `Class.__init__` 表达差异，不是任意 symbol 模糊匹配 | constructor-normalized 后 DeepSeek E2E Recall +0.030076，HY3 E2E Recall +0.037594；13 个 alias match 集中在 5 个 case | `scrapy-feed-001`、`scrapy-signal-001`、`astrbot-webhook-002`、`astrbot-star-003` | Prompt 明确 constructor canonical；scorer 保留 strict 主分数并报告辅助指标 |
+| callback / registration / continuation over-report | 错误常发生在“注册 callback”与“调用 callback”之间，或越过 `max_depth=1` 返回后续调用 | 7 个 precision boundary case 集中在 callback、route wrapper、registry 和 signal；`astrbot-webhook-004` 暴露 registration-only 误报 | `scrapy-engine-004`、`scrapy-signal-002`、`astrbot-star-001`、`astrbot-webhook-004` | Prompt 增加 registration-only 排除规则；E2E final 阶段强制引用 callsite evidence |
+| repo 内对象方法 / receiver 类型判断不稳 | 模型能看到调用表达式，但不稳定判断 receiver 是否对应 repo 内 symbol | `astrbot-pipeline-002` Oracle 满分但 E2E Recall 0.5；同类问题也出现在 provider / protocol case | `astrbot-pipeline-002`、`astrbot-provider-002`、`scrapy-download-001` | 增加 symbol index / type hint 辅助；PE 中明确对象方法判定规则 |
+| 本地小模型不是单纯检索失败 | Gemma4 能读取部分相关文件，但最终边方向、schema 和 fully-qualified symbol 输出失败 | Gemma4 E2E Definition Accuracy 0.8、Retrieval Recall 0.723404，但 Edge Recall 0.015038，Evidence Accuracy 0 | 多数 Gemma4 E2E 输出短 symbol 或类型级边 | Fine-tune 数据优先覆盖 schema、方向、canonical symbol、negative filtering |
 
 ## 策略结论
 
-在开始 PE / RAG / Fine-tune 优化前，当前 50-case baseline 已经足够作为第一版评测基准。它能区分：
+当前 50-case baseline 已经足够作为第一版优化基准，原因是它同时满足三点：
 
-- Oracle 推理上限：HY3 / DeepSeek 明显高于 Gemma4。
-- E2E 检索后推理：在线模型检索命中后仍有 final edge 收敛损失。
-- 成本差异：HY3 50-case 在线成本低于 DeepSeek，但 provider routing 不固定，需要继续记录。
-- 本地微调必要性：Gemma4 E2B 当前 E2E 几乎不可用，后续 fine-tune 数据应优先覆盖 schema、方向、canonical symbol、negative filtering 和动态边界。
+- 用例质量可用：来自真实项目、固定 commit、明确 golden answer，并且覆盖不同难度和多类动态边界。
+- 瓶颈定位清晰：低分不是均匀分布，而是集中在 E2E final edge 收敛、symbol canonicalization、callback/registration 边界、receiver 类型判断和小模型结构化输出。
+- 数据支撑充分：每个结论都能回到总体指标、分桶指标和具体错误样本，而不是只依赖主观观察。
 
-建议下一阶段不要马上扩大模型池，而是先完成：
+下一阶段不建议单纯扩大模型池。更合理的优化顺序是：
 
-1. 人工复核 `scrapy-feed-001`、`scrapy-signal-001` 的 constructor canonical 边界。
-2. 给 runner 增加 structured wall-clock timing。
-3. 设计 PE / RAG v1 优化，优先针对 `E2E gap` 和 `precision boundary` case。
-4. 将 case 分类写入后续数据集说明，方便报告总分时按权重或分桶解释。
+1. **PE v1**：优先针对 `precision boundary` 和 constructor / callback / registration case，明确 canonical symbol、`max_depth`、registration-only、excluded edge 和 evidence 约束。
+2. **RAG / Agent v1**：优先针对 `E2E gap` case，缩小 Oracle-E2E 差距；重点不是再读更多文件，而是让 final answer 从已读 evidence 中稳定收敛到正确 required edge。
+3. **Fine-tune 数据准备**：以 Gemma4 E2B 的失败为下限信号，构造 fully-qualified symbol、方向判断、negative filtering、constructor canonical 和动态边界样例。
+4. **Case 复核**：人工复核 `scrapy-feed-001`、`scrapy-signal-001` 等 constructor / signal 边界 case，确保 strict 主分数与 constructor-normalized 辅助指标的解释一致。
+5. **后续实验记录**：从 runner v1 开始记录 structured wall-clock timing；旧 runner v0 baseline 不回填运行时间，只作为效果 baseline 使用。
 
 ## Run 路径
 

@@ -1,80 +1,56 @@
 # 开发进度摘要
 
-本文件用于快速汇总项目推进到哪里，以及关键产出对应的 Git commit。它不替代各阶段详细记录；细节、问题、验证结果仍以对应阶段文件为准。
+本文件只保留项目当前状态、关键里程碑和近期待办。阶段细节、实验过程和失败分析以对应 `records/` 阶段文件、`reports/` 正式报告和 `docs/` 正式说明为准。
 
-## 当前摘要
+## 当前状态
 
-| 日期 | 阶段 | 主要产出 | 关联 commit | 详细记录 |
-| --- | --- | --- | --- | --- |
-| 2026-06-19 | 项目初始化与文档确立 | 建立调用链 baseline 总体计划、评测协议、`AGENTS.md`、`records/` 阶段记录结构和技术问题记录文件。 | `418ddf3 chore: initialize project documentation` | `records/01-project-initialization-and-documentation.md` |
-| 2026-06-19 | 测试样例数据集脚手架 | 拉取 AstrBot 目标仓库到 `repos/AstrBot`，固定 commit；定义 `datasets/call-chain-v1/` 目录结构、`repos.yaml`、case JSON Schema、AstrBot / micro case 目录，并新增 v1 数据集说明。 | `84140da chore(dataset): add call-chain v1 scaffold and docs` | `records/02-test-case-construction.md` |
-| 2026-06-19 | AstrBot pilot golden 标注 | 将 10 个 AstrBot 候选转成正式 YAML case，并完成首版 golden 标注；覆盖 easy / medium / hard、`find_callees` / `find_callers`、negative no-caller、event bus、async generator、动态分派、registry、dynamic import 和 dashboard route。 | `51a2934 chore(dataset): add AstrBot pilot golden cases` | `records/02-test-case-construction.md` |
-| 2026-06-19 | Oracle Context 评测基座 | 搭建 case validator、scorer、Oracle Context runner 和 `oracle-context-v0` prompt；支持 dry-run、mock-golden 自测、OpenAI-compatible API 入口、`.env` 本地配置和多服务商/多模型别名配置。 | `7970c74 feat(evaluation): add oracle evaluation harness` | `records/03-oracle-context-evaluation.md` |
-| 2026-06-19 | Oracle runner 加固与成本控制 | 增加 YAML parser repair、OpenRouter provider routing、reasoning 控制、case-level request error、`--max-tokens`；确认 DeepSeek direct routing 与 no-reasoning 配置可用。 | `7ab2791 fix(evaluation): harden oracle runner parsing and routing`、`f80d16c feat(evaluation): support reasoning controls for oracle runs`、`c69a355 chore(evaluation): record deepseek direct retest` | `records/03-oracle-context-evaluation.md`、`records/technical-issues-and-solutions.md` |
-| 2026-06-19 | E2E Agentic Retrieval 基座 | 搭建最小 E2E runner、repo-only 工具循环、dry-run / mock-golden、真实模型 JSON action loop、model trace、messages、finalization 和版本化实验快照。 | `1f06883 feat(e2e): add minimal agentic retrieval runner`、`5a3214c feat(e2e): add openai-compatible agent loop`、`1c79312 feat(evaluation): add versioned experiment snapshots` | `records/04-rag-agentic-retrieval.md` |
-| 2026-06-19 | DeepSeek 10-case baseline | 完成 DeepSeek direct no-reasoning 的 10-case Oracle Context 与 E2E baseline，并生成正式中文报告；Oracle Precision 0.828571 / Recall 0.8125，E2E Precision 0.446154 / Recall 0.84375。 | `5a8a450 docs(reports): add oracle baseline report`、`cc9af22 docs(reports): add e2e baseline report` | `reports/baseline/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`、`reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md` |
-| 2026-06-20 | 本地 Ollama 小模型 baseline | 新增 `ollama-native` provider，确认 `/api/chat` + `num_ctx=65536` + `think=false` 可支持本地长上下文；完成 `qwen3.5:2b` 与 `gemma4:e2b` 的 10-case Oracle / E2E 对照报告。决定后续本地模型优先使用 `gemma4:e2b`。 | `61fa190 feat(evaluation): add local ollama baseline support` | `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
-| 2026-06-20 | 在线模型 baseline 扩展与 base 10 复核 | 新增 OpenAI GPT-5.5 no-reasoning alias；完成 `openai/gpt-5.5` 与 `tencent/hy3-preview` 的 10-case Oracle / E2E baseline；生成 base 10 多模型综合分析报告。 | `adc7964 docs(reports): add online baseline analysis` | `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md` |
-| 2026-06-20 | AstrBot case 第二批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 10 扩到 20；覆盖 chat route/service、session callback、conversation 对象方法、provider 状态切换、Telegram registry、optional dynamic caller。 | `d1d577b chore(dataset): expand AstrBot call-chain cases` | `records/02-test-case-construction.md` |
-| 2026-06-20 | 新增 10-case 三模型复测 | 仅对第二批新增 10 个 case 运行 DeepSeek、Tencent HY3、Gemma4 的 Oracle 与 E2E；确认新增 case 能继续拉开模型差距，并暴露 E2E 检索后边界判断问题。 | 未提交 | `reports/baseline/new-10-case-model-comparison-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
-| 2026-06-20 | 共同缺陷分类与第三批候选 | 基于当前 20 case 多模型结果整理 failure taxonomy，并继续在 AstrBot 中筛选第三批候选；候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller。 | 未提交 | `reports/baseline/failure-taxonomy-v0-20260620.md`、`records/02-test-case-construction.md` |
-| 2026-06-20 | AstrBot case 第三批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 20 扩到 30；覆盖 plugin hook、handler registry、webhook callback、queue listener、platform dynamic import、ASGI route wrapper、no-caller negative 和 function tool registry，并通过 validator / mock-golden Oracle / mock-golden E2E。 | 未提交 | `datasets/call-chain-v1/cases/astrbot/`、`records/02-test-case-construction.md` |
-| 2026-06-20 | Scrapy case 第四批扩展 | 拉取第二真实仓库 Scrapy 到 `repos/Scrapy`，固定 commit；新增 10 个 Scrapy YAML golden case，case 总数从 30 扩展到 40，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。 | `b3b5157 chore(dataset): add Scrapy call-chain cases` | `records/02-scrapy-case-expansion.md` |
-| 2026-06-20 | Scrapy 10-case 三模型复测 | 对 Scrapy 第四批 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认在线模型区分度明显，主要失败集中在 signal callback registration、upstream over-report 和 protocol canonical symbol。 | 本次报告提交 | `reports/baseline/scrapy-10-case-model-comparison-v0-20260620.md`、`records/02-scrapy-case-expansion.md` |
-| 2026-06-20 | 第五批 10-case 三模型复测 | 对扩展到 50-case 后的第五批新增 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认新增 case 能覆盖构造器 canonical symbol、Deferred callback depth、registration-only negative 和注册表 symbol 边界。 | 本次报告提交 | `reports/baseline/fifth-10-case-model-comparison-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
-| 2026-06-20 | 50-case baseline 汇总 | 聚合 50 个 case 的三模型 Oracle / E2E 主线结果，形成整体指标、成本、分仓库/难度表现和 case 质量分层；修订 `astrbot-pipeline-003` 动态 sub-stage golden，并补齐 `scrapy-signal-001` registration callback excluded edges。 | 未提交 | `reports/baseline/50-case-baseline-summary-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
-| 2026-06-20 | scorer v1 辅助指标 | 实现 constructor-normalized scorer 辅助指标，保留 strict 主分数，同时受控等价匹配 constructor edge 的 `ClassName` / `ClassName.__init__` 表达；更新评测协议和 scorer 版本。 | 未提交 | `scripts/score_predictions.py`、`docs/call-chain-evaluation-protocol.md`、`records/07-cross-repo-baseline-analysis.md` |
-| 2026-06-20 | constructor-normalized 50-case 对比 | 基于 scorer v1 对 30 个正式 run 重新评分，生成 50-case strict vs constructor-normalized 对比报告，确认该辅助指标只解释少量 constructor symbol 表达差异，不改变主要瓶颈判断。 | 未提交 | `reports/baseline/50-case-constructor-normalized-comparison-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
-| 2026-06-20 | runner structured timing | 新增 `oracle-context-runner-v1` 与 `e2e-agent-runner-v1`，结构化记录 run-level、case-level wall-clock timing；E2E 额外记录模型 step 与工具 action 耗时。 | 本次提交 | `scripts/run_oracle_context.py`、`scripts/run_e2e_agent.py`、`docs/call-chain-evaluation-protocol.md`、`records/06-experiment-versioning-and-reproducibility.md`、`records/07-cross-repo-baseline-analysis.md` |
+| 项目 | 当前状态 |
+| --- | --- |
+| 数据集 | `call-chain-v1`，50 个 YAML case；AstrBot 34 个，Scrapy 16 个 |
+| 主要任务 | `find_callees` 43 个，`find_callers` 7 个 |
+| 难度分布 | easy 6 个，medium 24 个，hard 20 个 |
+| Golden edges | required 133 条，optional 10 条，excluded 72 条，runtime-only 3 条 |
+| 主评测轨道 | Oracle Context 与 Agentic Retrieval / E2E |
+| 主 baseline 模型 | DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local |
+| 当前 scorer | `call-chain-scorer-v1`，strict 主分数 + constructor-normalized 辅助指标 |
+| 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
+| 主报告 | `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md` |
+| 辅助评分报告 | `reports/baseline/summary/50-case-constructor-normalized-comparison-v0-20260620.md` |
+| 失败诊断报告 | `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md` |
+| 数据集正式说明 | `docs/datasets/call-chain-v1.md` |
+| 评测正式说明 | `docs/evaluation/oracle-context-and-e2e-v1.md`、`docs/evaluation/scoring-v1.md` |
 
-## 最近完成
+## 关键里程碑
 
-- 已建立项目文档、评测协议、agent 协作要求和阶段记录规则。
-- 已初始化 Git 仓库并完成前三个基础提交。
-- 已拉取 AstrBot 到本地 `repos/AstrBot`，该目录被 Git 忽略，不纳入项目提交。
-- 已定义 call-chain v1 数据集目录、repo 清单和 case schema。
-- 已完成 10 个 AstrBot pilot YAML case 的首版 golden 标注。
-- 已验证 10 个 YAML case 通过 schema 校验，且 oracle 文件、golden evidence 文件路径、行号和证据能在 AstrBot pinned commit 中定位。
-- 已搭建 Oracle Context 第一版评测基座，并用 mock-golden / dry-run 跑通 validator、runner 和 scorer。
-- 已加入 `.env` / `.env.example` 和 model provider config，支持 OpenRouter 多模型与 Ollama 本地模型配置。
-- 已用 OpenRouter 跑 3 个模型的 5-case Oracle Context smoke：DeepSeek / Tencent 在 callback edge 上漏报，GPT-5.5 recall 满但多报 FastAPI dependency edge。
-- 已为 OpenRouter DeepSeek 增加 provider routing alias，避免不指定 DeepSeek provider 导致成本偏高。
-- 已修复模型 YAML 输出解析问题，并给 Oracle runner 增加 `--max-tokens` 和 case-level request error 记录。
-- 已完成 DeepSeek direct no-reasoning 的 10-case Oracle Context 与 E2E baseline，并形成正式 baseline 报告。
-- 已完成本地 Ollama `qwen3.5:2b` 与 `gemma4:e2b` 的 10-case Oracle / E2E 对照测试。
-- 已确认本地 Ollama 长上下文应使用 `ollama-native` provider；`/v1/chat/completions` 在本机未正确应用 `num_ctx`。
-- 已决定后续本地模型优先使用 `gemma4:e2b`：它在 Oracle Context 上明显优于 `qwen3.5:2b`，且 E2E 工具调用更克制。
-- 已完成 `openai/gpt-5.5` 与 `tencent/hy3-preview` 禁用 reasoning 的 10-case Oracle / E2E baseline。
-- 已生成 base 10 多模型综合分析报告，确认当前 10 个 pilot case 能拉开模型差距，但不足以支持最终策略选择。
-- 已记录 OpenAI E2E 文本 action 协议适配问题，避免将其误判为模型能力失败。
-- 已完成第二批 AstrBot case 扩展，当前共有 20 个正式 YAML case，并已通过 schema、mock-golden Oracle 和 mock-golden E2E 验证。
-- 已提交第二批 case 扩展：`d1d577b chore(dataset): expand AstrBot call-chain cases`。
-- 已完成新增 10-case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式报告。
-- 已整理调用链 baseline 共同缺陷分类，并筛选第三批 AstrBot 候选池，暂不引入第二真实仓库。
-- 已完成第三批 AstrBot case 扩展，当前共有 30 个正式 YAML case，并已通过 schema、mock-golden Oracle 和 mock-golden E2E 验证。
+| 日期 | 里程碑 | 关键 commit | 主要产出 |
+| --- | --- | --- | --- |
+| 2026-06-19 | 项目初始化与协作规则 | `418ddf3` | baseline 计划、评测协议、`AGENTS.md`、`records/` 结构 |
+| 2026-06-19 | 数据集脚手架 | `84140da` | `datasets/call-chain-v1/`、repo 清单、case schema、数据集说明 |
+| 2026-06-19 | AstrBot pilot cases | `51a2934` | 10 个 AstrBot golden YAML case |
+| 2026-06-19 | Oracle Context harness | `7970c74` | case validator、scorer、Oracle runner、mock-golden / dry-run |
+| 2026-06-19 | Oracle runner 加固 | `7ab2791`、`f80d16c`、`c69a355` | parser repair、provider routing、reasoning 控制、DeepSeek direct retest |
+| 2026-06-19 | E2E Agentic Retrieval harness | `1f06883`、`5a3214c`、`1c79312` | E2E runner、repo-only 工具循环、model trace、版本化快照 |
+| 2026-06-20 | 本地 Ollama baseline 支持 | `61fa190` | `ollama-native` provider，确定后续本地小模型优先使用 `gemma4:e2b` |
+| 2026-06-20 | 在线 base 10 baseline | `adc7964` | GPT-5.5 / Tencent HY3 10-case baseline 与 base 10 综合分析 |
+| 2026-06-20 | AstrBot case 扩展到 20 | `d1d577b` | 第二批 AstrBot golden cases |
+| 2026-06-20 | AstrBot case 扩展到 30 | `31e45cf`、`4fe7d6a` | 第三批 AstrBot cases 与复测报告 |
+| 2026-06-20 | 引入 Scrapy 真实仓库 | `b3b5157`、`7e1dd9c` | Scrapy cases 与 10-case 三模型复测报告 |
+| 2026-06-20 | 数据集扩展到 50 cases | `f521d4b`、`b68683b` | 第五批 cases 与第五批三模型复测报告 |
+| 2026-06-20 | Golden 边界修订 | `97321a8` | 修订 `astrbot-pipeline-003` 与 `scrapy-signal-001` 边界 |
+| 2026-06-20 | Scorer v1 | `faf9f73` | constructor-normalized 辅助指标与 50-case 对比报告 |
+| 2026-06-20 | Runner timing v1 | `a358ef1` | Oracle / E2E structured wall-clock timing |
 
-- 已拉取第二真实仓库 Scrapy 到本地 `repos/Scrapy`，并在 `repos.yaml` 固定 commit。
-- 已完成 Scrapy 第四批 10 个正式 YAML case，当前 `call-chain-v1` 共 40 个 case。
-- 已完成 Scrapy 第四批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
-- 已完成 AstrBot 第三批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 正式复测，并生成正式中文报告。
-- 已基于跨仓库失败模式新增第五批 10 个 YAML case，当前 `call-chain-v1` 共 50 个 case，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。
-- 已完成第五批新增 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
-- 已完成 50-case baseline 汇总报告，聚合 DeepSeek / Tencent HY3 / Gemma4 的 Oracle 与 E2E 主线结果，并标记 over-easy、E2E gap、precision boundary 和需复核 case。
-- 已修订 `astrbot-pipeline-003` golden：运行时配置可选择的两个 concrete sub-stage `process` 边均作为 required edge，原合成属性边不再作为 required edge，并已基于既有预测重新评分。
-- 已补齐 `scrapy-signal-001` golden 中 `CoreStats.item_dropped` 与 `CoreStats.response_received` 两个 signal receiver registration 的 excluded edge，用于更准确标记 callback registration 误报。
-- 已实现 `call-chain-scorer-v1` constructor-normalized 辅助指标，并将 Oracle / E2E runner 默认 scorer version 更新为 v1；strict 主分数保持不变。
-- 已生成 50-case constructor-normalized 对比报告；在线模型 strict recall 有小幅提升，Gemma4 E2B 无变化，说明 constructor 表达差异只是局部边界问题。
-- 已实现 `oracle-context-runner-v1` 与 `e2e-agent-runner-v1` structured timing：run 根目录、case 子目录和 `run_config.json` 均记录 wall-clock timing；E2E trace 记录模型响应与工具执行耗时。
+## 当前待办
 
-## 待推进
-
-- 人工复核代表性低分 / 边界 case，例如 `scrapy-feed-001`、`astrbot-chat-003`、`astrbot-star-001`，确认 max_depth 和 dynamic boundary 是否需要更新说明或 golden。
-- 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。
-- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50-case 代表性边界复核，并确定 PE / RAG v1 的优化目标 case 集。
-- 本地模型后续以 `gemma4:e2b` 作为主要小模型候选；`qwen3.5:2b` 保留为低成本下限或格式/指令跟随诊断模型。
+- 复核 50-case 中的代表性低分 / 边界 case，例如 `scrapy-feed-001`、`astrbot-chat-003`、`astrbot-star-001`，确定是否需要更新说明或 golden。
+- 基于 50-case strict 与 constructor-normalized 双指标，确定 PE / RAG v1 的优化目标 case 集。
+- 设计 Prompt Engineering v1：明确对象方法、动态注册、callback、constructor symbol 和 excluded edge 的输出约束。
+- 设计 RAG / E2E v1：优先解决检索后 final edge 收敛、symbol canonicalization 和多 action 文本协议问题。
+- 后续正式实验从 runner v1 开始比较 wall-clock runtime；旧 runner v0 baseline 不回填运行时间。
 
 ## 维护规则
 
-- 新增阶段性产出或提交后，及时追加到“当前摘要”。
-- 如果某条摘要被后续实现替代，应更新状态或改写，不要留下会误导后续工作的旧描述。
-- 过程细节继续写入对应阶段记录；本文件只保留高层摘要和 commit 对照。
+- 本文件只保留当前高层状态和关键里程碑，不再记录每轮实验流水账。
+- 新增正式报告时，优先更新 `reports/baseline/README.md` 或对应阶段报告索引。
+- 新增稳定方法、数据集、评分或评测说明时，更新 `docs/`。
+- 新增过程细节、技术问题或阶段性决策时，更新对应 `records/` 阶段文件。

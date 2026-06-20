@@ -2,13 +2,13 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：已完成（历史阶段，后续 case 扩展可新开记录）
 
 ## 阶段目标
 
-构建第一批调用链 baseline case，覆盖 easy / medium / hard 难度、upstream / downstream 方向、negative cases、真实项目和 micro cases，并为每个 case 准备结构化 golden answer。
+构建 `call-chain-v1` 调用链 baseline case，覆盖 easy / medium / hard 难度、upstream / downstream 方向、negative cases 和真实项目，并为每个 case 准备结构化 golden answer。
 
-## 当前产出
+## 阶段产出
 
 - 已建立 `datasets/call-chain-v1/` 数据集目录结构。
 - 已建立 call-chain case JSON Schema。
@@ -21,6 +21,7 @@
 - 已完成第二批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 20 个正式 YAML case。
 - 已基于前 20 个 case 的失败模式形成第三批 AstrBot 候选池，候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller 等共同缺陷。
 - 已完成第五批 AstrBot 补样，当前 `datasets/call-chain-v1/cases/astrbot/` 共 34 个正式 YAML case；`call-chain-v1` 全量共 50 个正式 YAML case。
+- 当前 50-case 数据集的正式分布、测评方式和评分说明见 `docs/datasets/call-chain-v1.md`、`docs/evaluation/oracle-context-and-e2e-v1.md` 和 `docs/evaluation/scoring-v1.md`。
 
 ## 阶段进展记录
 
@@ -61,7 +62,7 @@
 ### 2026-06-20 第三批候选筛选
 
 - 决策：第三批暂时继续使用 AstrBot，保持与前两批 case 的可比性；第二真实仓库延后到 AstrBot 诊断覆盖更稳定之后。
-- 依据：参考 `reports/baseline/failure-taxonomy-v0-20260620.md`，第三批候选优先覆盖前 20 case 暴露的共同缺陷，而不是随机增加数量。
+- 依据：参考 `reports/baseline/diagnostics/failure-taxonomy-v0-20260620.md`，第三批候选优先覆盖前 20 case 暴露的共同缺陷，而不是随机增加数量。
 - 候选：筛选出 14 个 AstrBot 候选，其中 10 个建议优先进入 YAML golden 标注，4 个作为备选或 challenge。
 
 | 候选 ID | 目标 symbol | 任务 | 难度 | 主要文件 | 覆盖缺陷 | 选择理由 |
@@ -95,9 +96,9 @@
 - 验证：执行 `python scripts\run_oracle_context.py --provider mock-golden --case-id astrbot-star-001 --case-id astrbot-star-003 --case-id astrbot-webhook-001 --case-id astrbot-webhook-002 --case-id astrbot-webchat-001 --case-id astrbot-platform-002 --case-id astrbot-platform-003 --case-id astrbot-asgi-001 --case-id astrbot-negative-001 --case-id astrbot-tools-001 --out-dir tmp\oracle-mock-third-batch`，第三批 mock-golden Oracle 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0。
 - 验证：执行 `python scripts\run_e2e_agent.py --provider mock-golden --case-id astrbot-star-001 --case-id astrbot-star-003 --case-id astrbot-webhook-001 --case-id astrbot-webhook-002 --case-id astrbot-webchat-001 --case-id astrbot-platform-002 --case-id astrbot-platform-003 --case-id astrbot-asgi-001 --case-id astrbot-negative-001 --case-id astrbot-tools-001 --out-dir tmp\e2e-mock-third-batch`，第三批 mock-golden E2E 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0；工具指标为 tool_calls=33、files_read=13。
 
-## Pilot case 候选
+## 历史 Pilot case 候选
 
-以下候选只表示“适合进入首批标注池”，不代表 golden answer 已经完成。正式 case 需要继续补充 `oracle_context.files`、`required_edges`、`optional_edges`、`excluded_edges` 和精确 evidence。
+以下内容是 2026-06-19 首批标注前的历史候选池，用于追溯为什么选择 AstrBot pilot case。当前正式 case 集以 `datasets/call-chain-v1/cases/` 和 `docs/datasets/call-chain-v1.md` 为准。
 
 | 候选 ID | 目标 symbol | 任务 | 难度 | 主要文件 | 选择理由 |
 | --- | --- | --- | --- | --- | --- |
@@ -139,8 +140,9 @@
 
 - 已确认 `repos/AstrBot` 存在且 HEAD commit 可读取。
 - 已确认 `datasets/call-chain-v1/` 目录结构已创建。
-- 已确认 schema 文件为 JSON 格式，后续需要接入自动校验脚本。
-- 已确认 30 个 AstrBot YAML case 全部通过 schema 校验。
+- 已确认 schema 文件为 JSON 格式，并已接入 `scripts/validate_cases.py` 自动校验。
+- 已确认 34 个 AstrBot YAML case 全部通过 schema 校验。
+- 已确认 `call-chain-v1` 全量 50 个 YAML case 通过 schema、oracle file 和 golden evidence 校验。
 - 已确认新增 case 可通过 mock-golden Oracle / E2E runner 进入评分流程，说明 golden answer 结构与 scorer 兼容。
 
 ### 2026-06-20 第五批 AstrBot 补样
@@ -192,8 +194,8 @@
 - `docs/datasets/call-chain-v1.md`
 - `records/02-test-case-construction.md`
 
-## 下一步
+## 当前交接
 
-- 第三批 AstrBot 10 个 case 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 Oracle / E2E 正式复测。
-- `call-chain-v1` 已扩展到 50 个 case；下一步应对第五批新增 10 个 case 运行 DeepSeek / Tencent HY3 / Gemma4 的 Oracle / E2E 正式复测，并整理新的模型对比报告。
-- 50-case baseline 完成后，再进入 Prompt Engineering / RAG / Fine-tune 优化实验，避免在测试集仍快速变化时过早调参。
+- 第三批 AstrBot 10 个 case、Scrapy 10 个 case 和第五批 10 个 case 均已完成 DeepSeek / Tencent HY3 / Gemma4 的 Oracle / E2E 正式复测。
+- 50-case baseline 汇总报告已生成，见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- 本阶段不再维护“下一步”流水待办；当前待办统一维护在 `records/development-progress-summary.md`。

@@ -29,7 +29,7 @@ datasets/call-chain-v1/
 
 - `repos.yaml`：记录测试集使用的源仓库、固定 commit、本地路径和用途。
 - `schemas/call-chain-case.schema.json`：定义调用链 case 的结构化字段。
-- `cases/astrbot/`：后续存放来自 AstrBot 的真实项目 case。
+- `cases/astrbot/`：存放来自 AstrBot 的真实项目 case。
 - `cases/scrapy/`：存放来自 Scrapy 的真实项目 case。
 - `cases/micro/`：后续存放 synthetic / micro case，用于精确诊断特定能力。
 
@@ -72,9 +72,71 @@ Scrapy 在 v1 中的定位：
 - 主要用于 medium / hard 难度框架机制样例。
 - 适合覆盖 crawler/engine lifecycle、middleware manager、signal dispatch、feed export、scheduler、download handler、protocol/callback 边界等调用链场景。
 
-## 3. 测试集分层设计
+## 3. 当前内容概览
 
-v1 计划按难度分层：
+`call-chain-v1` 当前包含 50 个 YAML case，全部为 Python、`repo_only` scope，默认不计入测试代码。
+
+### 仓库分布
+
+| 来源 | 数量 | 覆盖重点 |
+| --- | ---: | --- |
+| AstrBot | 34 | 动态 Python 应用、插件 hook、平台适配器、provider、route wrapper、callback、negative case |
+| Scrapy | 16 | 框架调度、crawler/engine 生命周期、middleware、signal、feed export、dynamic loading、protocol/callback 边界 |
+| Micro | 0 | 预留给后续 synthetic diagnostic case |
+
+### 难度分布
+
+| 难度 | 数量 | 说明 |
+| --- | ---: | --- |
+| Easy | 6 | 基础跨文件定位、直接调用、简单类方法调用 |
+| Medium | 24 | async、跨模块 service/provider/manager、框架常见一跳调用 |
+| Hard | 20 | plugin、registry、event/callback、factory、多态、动态 import、协议边界 |
+
+### 任务分布
+
+| 任务类型 | direction | 数量 |
+| --- | --- | ---: |
+| `find_callees` | `downstream` | 43 |
+| `find_callers` | `upstream` | 7 |
+
+### 深度分布
+
+| max_depth | 数量 |
+| ---: | ---: |
+| 1 | 49 |
+| 2 | 1 |
+
+### Golden edge 分布
+
+| edge 类别 | 数量 | 评分角色 |
+| --- | ---: | --- |
+| `required_edges` | 133 | 主 recall 目标 |
+| `optional_edges` | 10 | 可推断动态边，找到加分或辅助分析 |
+| `excluded_edges` | 72 | 明确误报边，返回则扣 precision |
+| `runtime_only_edges` | 3 | 依赖运行时配置、插件状态或环境变量才能确认 |
+
+### 主要特征标签
+
+| feature | 数量 |
+| --- | ---: |
+| `class_method` | 38 |
+| `direct_call` | 35 |
+| `async` | 29 |
+| `cross_file` | 22 |
+| `callback` | 20 |
+| `registry` | 12 |
+| `event_bus` | 6 |
+| `polymorphism` | 6 |
+| `factory` | 6 |
+| `plugin` | 5 |
+| `route_handler` | 5 |
+| `constructor` | 5 |
+| `dynamic_import` | 5 |
+| `dependency_injection` | 4 |
+| `negative_case` | 3 |
+| `same_name_distractor` | 3 |
+
+## 4. 分层设计
 
 | 层级 | 目标 | 计划覆盖 |
 | --- | --- | --- |
@@ -83,7 +145,7 @@ v1 计划按难度分层：
 | Hard | 覆盖动态和框架机制 | plugin、registry、event/callback、factory、多态、动态 import |
 | Negative | 检验误报控制 | 同名函数、同名方法、import 但未调用、字符串/注释命中、外部库同名 API |
 
-v1 计划按任务类型分层：
+v1 按任务类型分层：
 
 | 任务类型 | 说明 |
 | --- | --- |
@@ -92,9 +154,9 @@ v1 计划按任务类型分层：
 | `trace_path` | 判断入口 A 到目标 B 是否存在调用路径 |
 | `impact_analysis` | 分析修改目标 symbol 可能影响哪些入口或功能 |
 
-`call-chain-v1` 优先覆盖 `find_callers` 和 `find_callees` case。
+`call-chain-v1` 当前只将 `find_callers` 和 `find_callees` 纳入正式评分；`trace_path` 与 `impact_analysis` 保留为后续扩展方向。
 
-## 4. Case 基本格式
+## 5. Case 基本格式
 
 每个 case 使用 YAML 文件保存，并遵循：
 
@@ -132,9 +194,9 @@ caller_symbol -> callee_symbol
 - `excluded_edges`
 - `runtime_only_edges`
 
-## 5. 测评方式
+## 6. 测评方式
 
-v1 测试集计划同时支持两种测评方式。
+v1 测试集同时支持两种测评方式。
 
 ### Oracle Context
 
@@ -146,14 +208,4 @@ v1 测试集计划同时支持两种测评方式。
 
 两种方式使用同一份 golden answer。
 
-## 6. 当前内容概览
-
-`call-chain-v1` 当前包含 50 个 YAML case。
-
-| 来源 | 数量 | 覆盖重点 |
-| --- | ---: | --- |
-| AstrBot | 34 | 动态 Python 应用、插件 hook、平台适配器、provider、route wrapper、callback、negative case |
-| Scrapy | 16 | 框架调度、crawler/engine 生命周期、middleware、signal、feed export、dynamic loading、protocol/callback 边界 |
-| Micro | 0 | 预留给后续 synthetic diagnostic case |
-
-当前 50 个 case 仍以 `find_callers` 和 `find_callees` 为主，并同时支持 Oracle Context 与 Agentic Retrieval / E2E 两套评测。
+详细评测协议见 `docs/call-chain-evaluation-protocol.md`，Oracle Context / E2E runner 用法见 `docs/evaluation/oracle-context-and-e2e-v1.md`。

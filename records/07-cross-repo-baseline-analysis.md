@@ -1,15 +1,26 @@
 # 跨仓库 baseline 分析阶段记录
 
+## 阶段状态
+
+状态：已完成（baseline 汇总阶段；后续优化另开记录）
+
 ## 阶段目标
 
-基于已完成正式复测的 AstrBot 与 Scrapy case，整理跨仓库共同失败模式，判断当前测试集是否能支持继续扩展到 50+ case，并为下一批 case 选择提供依据。
+基于已完成正式复测的 AstrBot 与 Scrapy case，整理跨仓库共同失败模式，记录从 30/40 case 扩展到 50 case 的判断依据，并形成 baseline 汇总结论。
+
+## 当前交接
+
+- 50-case baseline 主报告见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- constructor-normalized 辅助评分报告见 `reports/baseline/summary/50-case-constructor-normalized-comparison-v0-20260620.md`。
+- 跨仓库失败诊断见 `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md`。
+- 后续应基于 strict / constructor-normalized 双指标确定 PE / RAG v1 目标 case 集；不在本文件继续追加优化过程。
 
 ## 阶段进展记录
 
 ### 2026-06-20：整理 30 个已测 case 的跨仓库失败模式
 
 - 分析范围：AstrBot base 10、AstrBot 第二批 10、Scrapy 10，共 30 个已跑三模型正式复测的 case。
-- 当前数据集总量：40 个 case，其中 AstrBot 第三批 10 个 case 尚未纳入 DeepSeek / Tencent HY3 / Gemma4 正式统计。
+- 当时数据集总量：40 个 case，其中 AstrBot 第三批 10 个 case 尚未纳入 DeepSeek / Tencent HY3 / Gemma4 正式统计。
 - 参考 run：
   - `runs/oracle-context/baseline-v0-deepseek-direct-no-reasoning-20260619`
   - `runs/oracle-context/baseline-v0-tencent-hy3-preview-no-reasoning-20260620`
@@ -29,13 +40,13 @@
   - `runs/e2e/scrapy-10-deepseek-v4-pro-direct-no-reasoning-20260620`
   - `runs/e2e/scrapy-10-tencent-hy3-preview-no-reasoning-20260620`
   - `runs/e2e/scrapy-10-gemma4-e2b-20260620`
-- 正式报告：`reports/baseline/cross-repo-failure-analysis-v0-20260620.md`。
+- 正式报告：`reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md`。
 - 主要结论：
   - 强模型的主要瓶颈不只是检索，很多低分发生在证据文件已命中之后的 edge 收敛、symbol 规范化、depth 裁剪和动态边界判断。
   - Scrapy 能补足 AstrBot 之外的 signal、protocol、factory、middleware、caller 边界压力，是有效的第二真实仓库。
   - Gemma4 E2B 继续作为本地小模型和后续 fine-tune 候选，但未微调时不能作为可靠 golden 标注辅助。
   - 第五批 case 应优先补 `find_callers`、negative/no-caller、callback/registration、registry/factory/dynamic loading、runtime-only/protocol 场景。
-- 建议下一步：
+- 当时建议：
   - 先补跑 AstrBot 第三批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E，使当前 40 个 case 都有正式结果。
   - 再按定向分布新增第五批 10 个 case，将数据集扩展到 50 个。
 
@@ -49,7 +60,7 @@
 - 目标：补齐当前 40-case 数据集中尚未正式复测的 AstrBot 第三批 10 个 case。
 - Case IDs：`astrbot-star-001`、`astrbot-star-003`、`astrbot-webhook-001`、`astrbot-webhook-002`、`astrbot-webchat-001`、`astrbot-platform-002`、`astrbot-platform-003`、`astrbot-asgi-001`、`astrbot-negative-001`、`astrbot-tools-001`。
 - 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B 的 Oracle Context 与 E2E 正式运行。
-- 正式报告：`reports/baseline/astrbot-third-10-case-model-comparison-v0-20260620.md`。
+- 正式报告：`reports/baseline/batches/astrbot-third-10-case-model-comparison-v0-20260620.md`。
 - 主要结论：
   - 当前 40 个 case 已全部具备正式 baseline 结果。
   - 强模型在第三批 E2E 中 Definition Accuracy / Retrieval Recall 均为 1.0，但 Edge Recall 仍低于 Oracle，继续说明检索命中后的 edge 收敛、symbol 规范化和动态边界判断是主要瓶颈。
@@ -68,7 +79,7 @@
   - `runs/e2e/fifth-10-deepseek-v4-pro-direct-no-reasoning-20260620`
   - `runs/e2e/fifth-10-tencent-hy3-preview-no-reasoning-20260620`
   - `runs/e2e/fifth-10-gemma4-e2b-20260620`
-- 正式报告：`reports/baseline/fifth-10-case-model-comparison-v0-20260620.md`。
+- 正式报告：`reports/baseline/batches/fifth-10-case-model-comparison-v0-20260620.md`。
 - 主要结果：
   - Oracle DeepSeek：Precision 0.730769，Recall 0.904762，Evidence Accuracy 1.000000，cost 约 0.050774940。
   - Oracle Tencent HY3：Precision 0.904762，Recall 0.904762，Evidence Accuracy 1.000000，cost 约 0.007490269。
@@ -85,7 +96,7 @@
 ### 2026-06-20：50-case baseline 汇总
 
 - 目标：在 50 个 case 全部具备三模型 Oracle / E2E 主线结果后，聚合整体 baseline 指标、成本、分仓库/难度表现和 case 质量分层。
-- 正式报告：`reports/baseline/50-case-baseline-summary-v0-20260620.md`。
+- 正式报告：`reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
 - 聚合范围：DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 30 个正式 run；不包含 OpenAI GPT-5.5、Qwen3.5、smoke、mock-golden 或 hard single-case smoke。
 - 主要结果：
   - Oracle：DeepSeek Precision 0.859060 / Recall 0.902256；Tencent HY3 Precision 0.851613 / Recall 0.947368；Gemma4 Precision 0.296552 / Recall 0.323308。
@@ -93,7 +104,7 @@
   - DeepSeek / HY3 的 E2E Retrieval Recall 均为 1.000000，但 Edge Recall 明显低于 Oracle，说明当前在线模型主瓶颈在 final edge 收敛、symbol canonicalization、depth 和动态边界判断。
   - 当前 50 case 中，13 个为 over-easy candidate，3 个为明显 E2E gap，7 个为 precision boundary，2 个建议人工复核 golden / reasoning 边界。
 - Golden 修订：`astrbot-pipeline-003` 已改为把配置决定的两个 concrete sub-stage `process` 边都作为 required edge，原 `AgentRequestSubStage.agent_sub_stage.process` 合成属性边不再作为 required edge；`scrapy-signal-001` 已补齐 `CoreStats.item_dropped` 与 `CoreStats.response_received` 两个 signal receiver registration 的 excluded edge；validator 通过，并已基于已有预测重新生成相关 `score.json` 与 50-case 汇总。
-- 下一步：在开始 PE / RAG / Fine-tune 优化前，基于 strict / constructor-normalized 双指标确定 PE / RAG v1 目标 case 集。
+- 交接：在开始 PE / RAG / Fine-tune 优化前，基于 strict / constructor-normalized 双指标确定 PE / RAG v1 目标 case 集。
 
 ### 2026-06-20：实现 constructor-normalized scorer 辅助指标
 
@@ -110,7 +121,7 @@
 ### 2026-06-20：生成 50-case constructor-normalized 对比报告
 
 - 目标：基于 `call-chain-scorer-v1` 重新聚合 50-case baseline，量化 strict 主分数与 constructor-normalized 辅助分数之间的差异。
-- 正式报告：`reports/baseline/50-case-constructor-normalized-comparison-v0-20260620.md`。
+- 正式报告：`reports/baseline/summary/50-case-constructor-normalized-comparison-v0-20260620.md`。
 - 运行方式：对 30 个正式 run 基于既有 `prediction.yaml` 重新评分，不重新调用模型，不产生 API 成本。
 - 主要结果：
   - Oracle DeepSeek：Strict Recall 0.902256，Constructor-normalized Recall 0.924812。
