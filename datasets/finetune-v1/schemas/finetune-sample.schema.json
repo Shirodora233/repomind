@@ -1,0 +1,491 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://repomind.local/schemas/finetune-sample.schema.json",
+  "title": "RepoMind Fine-tune Sample v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "dataset_version",
+    "source_type",
+    "repo",
+    "split",
+    "language",
+    "task_type",
+    "direction",
+    "target",
+    "target_type",
+    "max_depth",
+    "instruction",
+    "input",
+    "output",
+    "messages",
+    "edges",
+    "evidence",
+    "negative",
+    "dynamic_boundary",
+    "leakage"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^ft-[a-z0-9]+(?:-[a-z0-9]+)*-[0-9]{3}$"
+    },
+    "dataset_version": {
+      "type": "string",
+      "const": "finetune-data-v1"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": ["synthetic_micro", "real_project", "transformed_case", "human_authored"]
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source_ref"
+      }
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split": {
+      "type": "string",
+      "enum": ["train", "dev", "test"]
+    },
+    "language": {
+      "type": "string",
+      "enum": ["python", "typescript", "javascript", "go", "java", "mixed"]
+    },
+    "task_type": {
+      "type": "string",
+      "enum": ["find_callers", "find_callees", "trace_path", "impact_analysis"]
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["upstream", "downstream", "bidirectional", "path_between"]
+    },
+    "target": {
+      "$ref": "#/$defs/symbol"
+    },
+    "target_type": {
+      "type": "string",
+      "enum": ["function", "method", "class", "constructor", "route", "handler", "unknown"]
+    },
+    "max_depth": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "instruction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input": {
+      "$ref": "#/$defs/task_input"
+    },
+    "output": {
+      "$ref": "#/$defs/task_output"
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/message"
+      }
+    },
+    "edges": {
+      "$ref": "#/$defs/edge_buckets"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "negative": {
+      "$ref": "#/$defs/negative_metadata"
+    },
+    "dynamic_boundary": {
+      "$ref": "#/$defs/dynamic_boundary_metadata"
+    },
+    "leakage": {
+      "$ref": "#/$defs/leakage_metadata"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "symbol": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["repo", "case", "file", "manual_note"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "task_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repo",
+        "target",
+        "task_type",
+        "direction",
+        "max_depth",
+        "scope",
+        "include_tests",
+        "external_deps",
+        "context"
+      ],
+      "properties": {
+        "repo": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "$ref": "#/$defs/symbol"
+        },
+        "task_type": {
+          "type": "string",
+          "enum": ["find_callers", "find_callees", "trace_path", "impact_analysis"]
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["upstream", "downstream", "bidirectional", "path_between"]
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["repo_only", "repo_and_tests", "repo_plus_external_boundaries"]
+        },
+        "include_tests": {
+          "type": "boolean"
+        },
+        "external_deps": {
+          "type": "string",
+          "enum": ["exclude", "boundary_only", "include"]
+        },
+        "context": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/context_item"
+          }
+        },
+        "question": {
+          "type": "string"
+        }
+      }
+    },
+    "context_item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "content"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["target_definition", "caller_candidate", "callee_candidate", "distractor", "registry", "runtime_config", "other"]
+        },
+        "content": {
+          "type": "string"
+        }
+      }
+    },
+    "task_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case_id", "edges", "boundary_edges", "notes"],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "boundary_edges": {
+          "$ref": "#/$defs/boundary_edge_buckets"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "content"],
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["system", "user", "assistant"]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "edge_buckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_edges", "optional_edges", "excluded_edges", "runtime_only_edges"],
+      "properties": {
+        "required_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "optional_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "excluded_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excluded_edge"
+          }
+        },
+        "runtime_only_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        }
+      }
+    },
+    "boundary_edge_buckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["optional_edges", "excluded_edges", "runtime_only_edges"],
+      "properties": {
+        "optional_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        },
+        "excluded_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/excluded_edge"
+          }
+        },
+        "runtime_only_edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/edge"
+          }
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caller", "callee", "file", "line", "evidence", "confidence_type"],
+      "properties": {
+        "caller": {
+          "$ref": "#/$defs/symbol"
+        },
+        "callee": {
+          "$ref": "#/$defs/symbol"
+        },
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence_type": {
+          "type": "string",
+          "enum": ["static_confirmed", "framework_inferred", "dynamic_possible", "runtime_only"]
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "excluded_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["caller", "callee", "reason"],
+      "properties": {
+        "caller": {
+          "$ref": "#/$defs/symbol"
+        },
+        "callee": {
+          "$ref": "#/$defs/symbol"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "line", "snippet", "bucket"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snippet": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bucket": {
+          "type": "string",
+          "enum": ["required_edges", "optional_edges", "excluded_edges", "runtime_only_edges"]
+        },
+        "edge_ref": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["call", "not_call", "registration", "runtime_boundary", "constructor", "note"]
+        }
+      }
+    },
+    "negative_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_negative", "negative_type", "reason", "distractor_symbols"],
+      "properties": {
+        "is_negative": {
+          "type": "boolean"
+        },
+        "negative_type": {
+          "type": "string",
+          "enum": ["none", "same_name_distractor", "import_only", "string_or_comment_only", "tests_excluded", "external_boundary", "no_callers", "no_callees"]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "distractor_symbols": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/symbol"
+          }
+        }
+      }
+    },
+    "dynamic_boundary_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["has_dynamic_boundary", "boundary_types", "optional_policy", "runtime_only_policy"],
+      "properties": {
+        "has_dynamic_boundary": {
+          "type": "boolean"
+        },
+        "boundary_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "callback_registration",
+              "registry_lookup",
+              "decorator_wrapper",
+              "runtime_config",
+              "plugin_loading",
+              "dynamic_import",
+              "polymorphism",
+              "factory_return"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "optional_policy": {
+          "type": "string"
+        },
+        "runtime_only_policy": {
+          "type": "string"
+        }
+      }
+    },
+    "leakage_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["derived_from_test_repo", "split_by_repo_group"],
+      "properties": {
+        "derived_from_test_repo": {
+          "type": "boolean"
+        },
+        "test_repo_name": {
+          "type": "string"
+        },
+        "split_by_repo_group": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

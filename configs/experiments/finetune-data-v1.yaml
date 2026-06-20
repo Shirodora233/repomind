@@ -1,6 +1,25 @@
 version: finetune-data-v1
 stage: fine_tune_data_and_training
-status: planned
+status: smoke_schema_builder_validator_ready
+
+dataset:
+  root: datasets/finetune-v1
+  schema: datasets/finetune-v1/schemas/finetune-sample.schema.json
+  smoke_jsonl: datasets/finetune-v1/smoke/synthetic-micro-smoke.jsonl
+  current_smoke_source_type: synthetic_micro
+  jsonl_required_fields:
+    - instruction
+    - input
+    - output
+    - messages
+    - repo
+    - split
+    - task_type
+    - target
+    - edges
+    - evidence
+    - negative
+    - dynamic_boundary
 
 target_model:
   local_baseline_alias: gemma4-e2b
@@ -10,6 +29,8 @@ target_model:
 
 data_requirements:
   minimum_examples: 500
+  smoke_examples_target: 20
+  smoke_examples_allowed_range: [10, 50]
   format: jsonl
   required_sample_types:
     - positive_call_edges
@@ -22,6 +43,19 @@ data_requirements:
     - caller_direction_cases
     - callee_direction_cases
     - evidence_output_cases
+  full_dataset_expansion_rules:
+    min_train_repos: 3
+    min_dev_repos: 1
+    train_dev_repos_must_exclude_current_test_repos: true
+    negative_case_target_ratio: "20%-30%"
+    dynamic_boundary_examples_required: true
+    output_edges_must_include:
+      - caller
+      - callee
+      - file
+      - line
+      - evidence
+      - confidence_type
 
 leakage_rules:
   split_by_repo: true
@@ -32,7 +66,7 @@ leakage_rules:
   current_call_chain_v1_test_cases_must_not_enter_training: true
 
 gates:
-  smoke_dataset_examples: 50
+  smoke_dataset_examples: 20
   full_dataset_examples: 500
   validate_before_training: true
   smoke_train_before_formal_train: true
