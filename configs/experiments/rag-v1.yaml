@@ -1,6 +1,6 @@
 version: rag-v1
 stage: rag_pipeline
-status: planned
+status: implementation_skeleton_ready
 
 baseline_reference:
   dataset: call-chain-v1
@@ -17,6 +17,54 @@ pipeline_requirements:
   - context_pack_builder
   - generation_fusion
   - retrieval_metrics
+
+scripts:
+  indexer: scripts/rag_index.py
+  retriever: scripts/rag_retrieve.py
+  retrieval_evaluator: scripts/rag_eval_retrieval.py
+
+index:
+  schema_version: rag-index-v1
+  default_output_root: runs/indexes
+  repos_yaml: datasets/call-chain-v1/repos.yaml
+  default_suffixes:
+    - .py
+    - .pyi
+  include_tests: false
+  chunk_lines: 80
+  overlap_lines: 20
+  max_file_bytes: 500000
+  default_manifest_files:
+    - manifest.json
+    - chunks.jsonl
+    - lexical_stats.json
+
+retrieval:
+  schema_version: rag-retrieval-v1
+  default_output_root: runs/rag-retrieval
+  default_variant: bm25_only
+  lexical_variants:
+    - bm25_only
+    - keyword
+  dense_variants_status: placeholder_interface_only
+  default_top_k: 10
+  repo_filter: case_repo_only
+  no_golden_leakage: true
+
+retrieval_evaluation:
+  schema_version: rag-retrieval-eval-v1
+  default_output_root: runs/rag-retrieval-eval
+  default_k:
+    - 5
+    - 10
+  evidence_source: golden.required_edges.file
+  definition_source: oracle_context.files[role=target_definition].path
+  metrics:
+    - Recall@K
+    - MRR
+    - EvidenceFileRecall@K
+    - EvidenceLineRecall@K
+    - DefinitionAccuracy@K
 
 embedding_candidates:
   default:
@@ -37,6 +85,7 @@ embedding_candidates:
 
 retrieval_variants:
   - bm25_only
+  - keyword
   - qwen3_dense
   - jina_code_dense
   - bge_m3_dense
@@ -73,3 +122,13 @@ reporting:
   batch_dir: reports/rag/batches
   summary_dir: reports/rag/summary
   record_file: records/10-rag-pipeline.md
+
+resource_guardrails:
+  current_delivery_scope:
+    - build_chunk_manifest
+    - run_bm25_or_keyword_retrieval
+    - evaluate_retrieval_against_golden_evidence_files
+  explicitly_not_running_now:
+    - local_gpu_embedding_batch_index
+    - formal_e2e_model_runs
+    - pe_rag_combined_experiment
