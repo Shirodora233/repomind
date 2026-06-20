@@ -73,3 +73,8 @@
   - 更新 `configs/experiments/rag-v1.yaml`，记录 `context_pack` schema、默认 top-k、token budget、输出文件和泄漏约束。
   - 验证命令：`python -m py_compile scripts/rag_pack_context.py`；`python scripts/rag_pack_context.py --help`；`python scripts/rag_pack_context.py --retrieval runs/rag-retrieval/rag-v1-verify-keyword-multiquery-safe-20260621 --case-id scrapy-signal-004 --case-id astrbot-hook-001 --out-dir runs/rag-context/rag-v1-context-pack-smoke-20260621`。Smoke 输出 2 个 prompt-ready case，`scrapy-signal-004` 打包 10 chunks / 7 files / 约 6809 tokens，`astrbot-hook-001` 打包 10 chunks / 7 files / 约 6258 tokens。
   - 后续：RAG-only E2E 可基于该 context pack 接入模型生成和 scoring；这一步完成后再考虑 PE+RAG 或完整消融。
+- 2026-06-21：新增 `scripts/run_rag_context.py`，提供 RAG-only generation runner 入口；本轮只做 dry-run，不调用模型。
+  - Runner 读取 `context_pack.json` 中逐 case prompt 文件，支持 `dry-run` 与 `openai-compatible`，复用 model provider 配置、raw response 记录、YAML parsing 和 `score_cases()`。
+  - 输出目录默认 `runs/rag-context-runs/<timestamp>`，包含 `run_config.json`、`version_manifest.json`、`timing.json`、`context_pack_snapshot.json`、逐 case prompt 与 context pack case metadata。
+  - 更新 `configs/experiments/rag-v1.yaml`，记录 `rag_context_runner` 入口。该 runner 目标是 RAG-only 单策略运行，不包含 PE prompt 变体。
+  - 验证命令：`python -m py_compile scripts/run_rag_context.py`；`python scripts/run_rag_context.py --help`；`python scripts/run_rag_context.py --provider dry-run --context-pack runs/rag-context/rag-v1-context-pack-smoke-20260621 --case-id scrapy-signal-004 --case-id astrbot-hook-001 --out-dir runs/rag-context-runs/rag-v1-context-run-dry-smoke-20260621`。Dry-run 写出 2 个 prompt，不生成 prediction/score，不调用模型。
