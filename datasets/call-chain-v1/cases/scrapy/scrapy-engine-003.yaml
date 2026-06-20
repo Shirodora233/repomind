@@ -1,0 +1,54 @@
+id: scrapy-engine-003
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.engine.ExecutionEngine._get_scheduler_class
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - factory
+  - dynamic_import
+notes: >
+  Dynamic scheduler loader case. The target loads the scheduler class from
+  settings, while interface checks and later scheduler methods are not call
+  edges to scheduler operations.
+oracle_context:
+  files:
+    - path: scrapy/core/engine.py
+      role: target_definition
+      symbols:
+        - scrapy.core.engine.ExecutionEngine._get_scheduler_class
+        - scrapy.core.scheduler.BaseScheduler
+      reason: Contains the target dynamic class loader and interface check.
+    - path: scrapy/utils/misc.py
+      role: factory
+      symbols:
+        - scrapy.utils.misc.load_object
+      reason: Defines the dynamic object loader called by the target.
+golden:
+  required_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._get_scheduler_class
+      callee: scrapy.utils.misc.load_object
+      file: scrapy/core/engine.py
+      line: 156
+      evidence: "scheduler_cls: type[BaseScheduler] = load_object(settings[\"SCHEDULER\"])"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._get_scheduler_class
+      callee: scrapy.core.scheduler.BaseScheduler.next_request
+      file: scrapy/core/scheduler.py
+      line: 115
+      reason: The target checks class compatibility; it does not invoke scheduler runtime methods.
+      evidence: "def next_request(self) -> Request | None:"
+  runtime_only_edges: []

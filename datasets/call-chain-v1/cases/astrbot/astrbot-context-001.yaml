@@ -1,0 +1,76 @@
+id: astrbot-context-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.star.context.Context.register_llm_tool
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - constructor
+  - registry
+  - plugin
+notes: >
+  Deprecated LLM tool registration case. It creates handler metadata, appends
+  it to the star handler registry, and forwards the tool to the provider tool
+  manager.
+oracle_context:
+  files:
+    - path: astrbot/core/star/context.py
+      role: target_definition
+      symbols:
+        - astrbot.core.star.context.Context.register_llm_tool
+        - astrbot.core.star.star_handler.StarHandlerMetadata
+        - astrbot.core.star.star_handler.StarHandlerRegistry.append
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      reason: Contains the target method and all direct repo-internal calls.
+    - path: astrbot/core/star/star_handler.py
+      role: registry
+      symbols:
+        - astrbot.core.star.star_handler.StarHandlerMetadata
+        - astrbot.core.star.star_handler.StarHandlerRegistry.append
+      reason: Defines the metadata type and registry append method.
+    - path: astrbot/core/provider/func_tool_manager.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      reason: Defines the tool manager method called by the target.
+golden:
+  required_edges:
+    - caller: astrbot.core.star.context.Context.register_llm_tool
+      callee: astrbot.core.star.star_handler.StarHandlerMetadata
+      file: astrbot/core/star/context.py
+      line: 676
+      evidence: "md = StarHandlerMetadata("
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: astrbot.core.star.context.Context.register_llm_tool
+      callee: astrbot.core.star.star_handler.StarHandlerRegistry.append
+      file: astrbot/core/star/context.py
+      line: 685
+      evidence: "star_handlers_registry.append(md)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.star.context.Context.register_llm_tool
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      file: astrbot/core/star/context.py
+      line: 686
+      evidence: "self.provider_manager.llm_tools.add_func(name, func_args, desc, func_obj)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.star.context.Context.register_llm_tool
+      callee: astrbot.core.star.context.Context.register_web_api
+      file: astrbot/core/star/context.py
+      line: 568
+      reason: register_web_api is a neighboring registration API, not called by register_llm_tool.
+      evidence: "def register_web_api("
+  runtime_only_edges: []

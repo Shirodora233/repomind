@@ -107,3 +107,22 @@ Results:
   but it exposes useful framework-specific failures around signal callback
   registration, upstream caller over-reporting, and protocol dispatch canonical
   symbols.
+
+## 2026-06-20 Fifth batch expansion to 50 cases
+
+- Added 6 new Scrapy cases based on the cross-repo failure analysis:
+  `scrapy-signal-002`, `scrapy-signal-003`, `scrapy-crawlspider-001`,
+  `scrapy-engine-003`, `scrapy-engine-004`, and `scrapy-feed-001`.
+- The new Scrapy cases focus on signal wait callbacks, async signal branch
+  dispatch, CrawlSpider rule callbacks, engine scheduling callback
+  registration, feed exporter signal registration, and scheduler dynamic
+  loading.
+- Dataset size increased from 40 to 50 cases together with the 4 new AstrBot
+  cases recorded in `records/02-test-case-construction.md`.
+- Validation:
+  - `python scripts\validate_cases.py --cases datasets\call-chain-v1\cases`
+    returned `validated 50 case files`.
+  - New fifth-batch mock-golden Oracle returned Precision 1.0 / Recall 1.0 /
+    Evidence Accuracy 1.0.
+  - New fifth-batch mock-golden E2E returned Precision 1.0 / Recall 1.0 /
+    Evidence Accuracy 1.0, with `tool_calls=32` and `files_read=12`.

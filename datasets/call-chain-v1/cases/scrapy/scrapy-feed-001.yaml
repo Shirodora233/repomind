@@ -1,0 +1,77 @@
+id: scrapy-feed-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.extensions.feedexport.FeedExporter.from_crawler
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - constructor
+  - callback
+  - event_bus
+notes: >
+  Feed exporter factory case. The target constructs the exporter and registers
+  signal receivers; the receiver methods are not invoked by from_crawler.
+oracle_context:
+  files:
+    - path: scrapy/extensions/feedexport.py
+      role: target_definition
+      symbols:
+        - scrapy.extensions.feedexport.FeedExporter.from_crawler
+        - scrapy.extensions.feedexport.FeedExporter
+        - scrapy.extensions.feedexport.FeedExporter.open_spider
+        - scrapy.extensions.feedexport.FeedExporter.close_spider
+        - scrapy.extensions.feedexport.FeedExporter.item_scraped
+      reason: Contains the target factory, constructor, and registered receiver methods.
+    - path: scrapy/signalmanager.py
+      role: direct_callee
+      symbols:
+        - scrapy.signalmanager.SignalManager.connect
+      reason: Defines the signal registration method called by from_crawler.
+golden:
+  required_edges:
+    - caller: scrapy.extensions.feedexport.FeedExporter.from_crawler
+      callee: scrapy.extensions.feedexport.FeedExporter
+      file: scrapy/extensions/feedexport.py
+      line: 447
+      evidence: "exporter = cls(crawler)"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: scrapy.extensions.feedexport.FeedExporter.from_crawler
+      callee: scrapy.signalmanager.SignalManager.connect
+      file: scrapy/extensions/feedexport.py
+      line: 448
+      evidence: "crawler.signals.connect(exporter.open_spider, signals.spider_opened)"
+      confidence_type: static_confirmed
+      notes: "Additional connect calls in this method share the same caller-callee edge key."
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.extensions.feedexport.FeedExporter.from_crawler
+      callee: scrapy.extensions.feedexport.FeedExporter.open_spider
+      file: scrapy/extensions/feedexport.py
+      line: 448
+      reason: open_spider is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(exporter.open_spider, signals.spider_opened)"
+    - caller: scrapy.extensions.feedexport.FeedExporter.from_crawler
+      callee: scrapy.extensions.feedexport.FeedExporter.close_spider
+      file: scrapy/extensions/feedexport.py
+      line: 449
+      reason: close_spider is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(exporter.close_spider, signals.spider_closed)"
+    - caller: scrapy.extensions.feedexport.FeedExporter.from_crawler
+      callee: scrapy.extensions.feedexport.FeedExporter.item_scraped
+      file: scrapy/extensions/feedexport.py
+      line: 450
+      reason: item_scraped is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(exporter.item_scraped, signals.item_scraped)"
+  runtime_only_edges: []

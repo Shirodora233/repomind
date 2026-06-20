@@ -1,0 +1,87 @@
+id: scrapy-crawlspider-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - callback
+  - polymorphism
+notes: >
+  CrawlSpider rule callback case. The user callback is runtime-only, while
+  process_results, iterate_spider_output, and follow-link handling are direct
+  static callees.
+oracle_context:
+  files:
+    - path: scrapy/spiders/crawl.py
+      role: target_definition
+      symbols:
+        - scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+        - scrapy.spiders.crawl.CrawlSpider.process_results
+        - scrapy.spiders.crawl.CrawlSpider._requests_to_follow
+        - scrapy.spiders.crawl.CrawlSpider._build_request
+      reason: Contains the target callback handling and follow-link helper.
+    - path: scrapy/utils/asyncgen.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.asyncgen.collect_asyncgen
+      reason: Defines the async-generator collection helper.
+    - path: scrapy/utils/spider.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.spider.iterate_spider_output
+      reason: Defines the output normalization helper.
+golden:
+  required_edges:
+    - caller: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+      callee: scrapy.utils.asyncgen.collect_asyncgen
+      file: scrapy/spiders/crawl.py
+      line: 181
+      evidence: "cb_res = await collect_asyncgen(cb_res)"
+      confidence_type: static_confirmed
+    - caller: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+      callee: scrapy.spiders.crawl.CrawlSpider.process_results
+      file: scrapy/spiders/crawl.py
+      line: 184
+      evidence: "cb_res = self.process_results(response, cb_res)"
+      confidence_type: static_confirmed
+    - caller: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+      callee: scrapy.utils.spider.iterate_spider_output
+      file: scrapy/spiders/crawl.py
+      line: 185
+      evidence: "for request_or_item in iterate_spider_output(cb_res):"
+      confidence_type: static_confirmed
+    - caller: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+      callee: scrapy.spiders.crawl.CrawlSpider._requests_to_follow
+      file: scrapy/spiders/crawl.py
+      line: 189
+      evidence: "for request_or_item in self._requests_to_follow(response):"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+      callee: scrapy.spiders.crawl.CrawlSpider._build_request
+      file: scrapy/spiders/crawl.py
+      line: 153
+      reason: _build_request is called inside _requests_to_follow, which is one level deeper than max_depth=1 from parse_with_rules.
+      evidence: "request = self._build_request(rule_index, link)"
+  runtime_only_edges:
+    - caller: scrapy.spiders.crawl.CrawlSpider.parse_with_rules
+      callee: runtime.rule_callback
+      file: scrapy/spiders/crawl.py
+      line: 179
+      evidence: "cb_res = callback(response, **cb_kwargs) or ()"
+      confidence_type: runtime_only
+      notes: "The concrete callback is supplied by the spider rule at runtime."

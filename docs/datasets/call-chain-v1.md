@@ -21,6 +21,7 @@ datasets/call-chain-v1/
   cases/
     README.md
     astrbot/
+    scrapy/
     micro/
 ```
 
@@ -29,6 +30,7 @@ datasets/call-chain-v1/
 - `repos.yaml`：记录测试集使用的源仓库、固定 commit、本地路径和用途。
 - `schemas/call-chain-case.schema.json`：定义调用链 case 的结构化字段。
 - `cases/astrbot/`：后续存放来自 AstrBot 的真实项目 case。
+- `cases/scrapy/`：存放来自 Scrapy 的真实项目 case。
 - `cases/micro/`：后续存放 synthetic / micro case，用于精确诊断特定能力。
 
 真实目标仓库源码放在本地 `repos/` 目录，不提交到本项目。
@@ -52,6 +54,23 @@ AstrBot 在 v1 中的定位：
 - 真实 Python 动态工程样例来源。
 - 主要用于 medium / hard 难度样例。
 - 适合覆盖 agent、provider、platform adapter、plugin、pipeline、async、外部 SDK 边界等调用链场景。
+
+### Scrapy
+
+| 字段 | 内容 |
+| --- | --- |
+| repo key | `scrapy` |
+| 仓库 | `https://github.com/scrapy/scrapy.git` |
+| 本地路径 | `repos/Scrapy` |
+| 固定 commit | `c9f952c2584f490cd2e5c843980212abc67c2971` |
+| HEAD 摘要 | `c9f952c Refactor and improve catching warnings in tests. (#7643)` |
+| 默认分支 | `master` |
+| 本地文件数 | 约 613 |
+
+Scrapy 在 v1 中的定位：
+- 第二个真实 Python 仓库来源，用于降低 AstrBot 单仓库偏差。
+- 主要用于 medium / hard 难度框架机制样例。
+- 适合覆盖 crawler/engine lifecycle、middleware manager、signal dispatch、feed export、scheduler、download handler、protocol/callback 边界等调用链场景。
 
 ## 3. 测试集分层设计
 
@@ -126,3 +145,15 @@ v1 测试集计划同时支持两种测评方式。
 只给模型仓库、commit、目标 symbol 和任务要求，让系统自主检索文件、扩展上下文并输出答案，用于测试真实产品场景下的端到端能力。
 
 两种方式使用同一份 golden answer。
+
+## 6. 当前内容概览
+
+`call-chain-v1` 当前包含 50 个 YAML case。
+
+| 来源 | 数量 | 覆盖重点 |
+| --- | ---: | --- |
+| AstrBot | 34 | 动态 Python 应用、插件 hook、平台适配器、provider、route wrapper、callback、negative case |
+| Scrapy | 16 | 框架调度、crawler/engine 生命周期、middleware、signal、feed export、dynamic loading、protocol/callback 边界 |
+| Micro | 0 | 预留给后续 synthetic diagnostic case |
+
+当前 50 个 case 仍以 `find_callers` 和 `find_callees` 为主，并同时支持 Oracle Context 与 Agentic Retrieval / E2E 两套评测。

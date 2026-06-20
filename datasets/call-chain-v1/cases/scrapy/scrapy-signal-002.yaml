@@ -1,0 +1,61 @@
+id: scrapy-signal-002
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.signalmanager.SignalManager.wait_for
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - callback
+notes: >
+  Await-a-signal helper case. The target registers a local callback and awaits
+  a Deferred conversion; the local callback body must not be treated as a
+  direct callee of wait_for.
+oracle_context:
+  files:
+    - path: scrapy/signalmanager.py
+      role: target_definition
+      symbols:
+        - scrapy.signalmanager.SignalManager.wait_for
+        - scrapy.signalmanager.SignalManager.connect
+        - scrapy.signalmanager.SignalManager.disconnect
+      reason: Contains the target, the direct registration call, and nested callback distractor.
+    - path: scrapy/utils/defer.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.defer.maybe_deferred_to_future
+      reason: Defines the repo helper awaited by wait_for.
+golden:
+  required_edges:
+    - caller: scrapy.signalmanager.SignalManager.wait_for
+      callee: scrapy.signalmanager.SignalManager.connect
+      file: scrapy/signalmanager.py
+      line: 115
+      evidence: "self.connect(handle, signal)"
+      confidence_type: static_confirmed
+    - caller: scrapy.signalmanager.SignalManager.wait_for
+      callee: scrapy.utils.defer.maybe_deferred_to_future
+      file: scrapy/signalmanager.py
+      line: 116
+      evidence: "await maybe_deferred_to_future(d)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.signalmanager.SignalManager.wait_for
+      callee: scrapy.signalmanager.SignalManager.disconnect
+      file: scrapy/signalmanager.py
+      line: 112
+      reason: disconnect is called inside the nested handle callback when the signal fires, not directly by wait_for.
+      evidence: "self.disconnect(handle, signal)"
+  runtime_only_edges: []

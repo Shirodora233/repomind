@@ -1,0 +1,78 @@
+id: scrapy-signal-003
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.utils.signal.send_catch_log_async
+target_type: function
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - async
+  - callback
+  - polymorphism
+notes: >
+  Runtime branch case. The target chooses between asyncio and Deferred signal
+  dispatch paths, both visible as direct syntactic callees. Receiver invocation
+  inside those helpers is out of scope for max_depth=1.
+oracle_context:
+  files:
+    - path: scrapy/utils/signal.py
+      role: target_definition
+      symbols:
+        - scrapy.utils.signal.send_catch_log_async
+        - scrapy.utils.signal._send_catch_log_asyncio
+        - scrapy.utils.signal._send_catch_log_deferred
+      reason: Contains the target and both branch callees.
+    - path: scrapy/utils/asyncio.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.asyncio.is_asyncio_available
+      reason: Defines the branch predicate used by the target.
+    - path: scrapy/utils/defer.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.defer.maybe_deferred_to_future
+      reason: Defines the Deferred-to-Future bridge used by the non-asyncio branch.
+golden:
+  required_edges:
+    - caller: scrapy.utils.signal.send_catch_log_async
+      callee: scrapy.utils.asyncio.is_asyncio_available
+      file: scrapy/utils/signal.py
+      line: 155
+      evidence: "if is_asyncio_available():"
+      confidence_type: static_confirmed
+    - caller: scrapy.utils.signal.send_catch_log_async
+      callee: scrapy.utils.signal._send_catch_log_asyncio
+      file: scrapy/utils/signal.py
+      line: 156
+      evidence: "return await _send_catch_log_asyncio(signal, sender, *arguments, **named)"
+      confidence_type: static_confirmed
+    - caller: scrapy.utils.signal.send_catch_log_async
+      callee: scrapy.utils.defer.maybe_deferred_to_future
+      file: scrapy/utils/signal.py
+      line: 157
+      evidence: "results = await maybe_deferred_to_future("
+      confidence_type: static_confirmed
+    - caller: scrapy.utils.signal.send_catch_log_async
+      callee: scrapy.utils.signal._send_catch_log_deferred
+      file: scrapy/utils/signal.py
+      line: 158
+      evidence: "_send_catch_log_deferred(signal, sender, *arguments, **named)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.utils.signal.send_catch_log_async
+      callee: pydispatch.robustapply.robustApply
+      file: scrapy/utils/signal.py
+      line: 195
+      reason: robustApply is called inside _send_catch_log_asyncio, not directly by send_catch_log_async.
+      evidence: "robustApply("
+  runtime_only_edges: []

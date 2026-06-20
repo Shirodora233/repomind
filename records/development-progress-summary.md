@@ -51,16 +51,16 @@
 - 已拉取第二真实仓库 Scrapy 到本地 `repos/Scrapy`，并在 `repos.yaml` 固定 commit。
 - 已完成 Scrapy 第四批 10 个正式 YAML case，当前 `call-chain-v1` 共 40 个 case。
 - 已完成 Scrapy 第四批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
+- 已完成 AstrBot 第三批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 正式复测，并生成正式中文报告。
+- 已基于跨仓库失败模式新增第五批 10 个 YAML case，当前 `call-chain-v1` 共 50 个 case，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。
 
 ## 待推进
 
-- 提交新增 10-case 三模型复测报告、共同缺陷分类报告、第三批候选记录和第三批 YAML case。
-- 对第三批新增 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 Oracle / E2E 复测，并生成对比报告。
-- 人工复核 `astrbot-chat-003` 的 E2E trace，确认 DeepSeek 在 hard service-chain case 上低 recall 的具体原因。
-- 继续按每批约 10 个 case 扩展测试集，逐步扩展到 50+ case。
-- 下一批新增 case 应优先补充 `find_callers`、negative callers、动态 dispatch、插件机制、框架 callback、runtime-only 边界，并开始评估第二个真实仓库来源。
+- 对第五批新增 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 Oracle / E2E 复测，并生成对比报告。
+- 汇总 50-case baseline，标记过易、过难、golden 不稳定或边界定义不清的 case。
+- 人工复核代表性低分 E2E trace，例如 `astrbot-chat-003`、`astrbot-star-001`、`scrapy-signal-001`，确认检索命中后低 recall 的具体原因。
 - 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。
-- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50+ case 和多模型 baseline。
+- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50-case 多模型 baseline 和失败模式复核。
 - 本地模型后续以 `gemma4:e2b` 作为主要小模型候选；`qwen3.5:2b` 保留为低成本下限或格式/指令跟随诊断模型。
 
 ## 维护规则

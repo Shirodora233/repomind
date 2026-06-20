@@ -18,3 +18,5 @@ micro-inheritance-001.yaml
 ```
 
 Do not store copied source files here. Oracle Context should reference files in the pinned repository snapshot through `oracle_context.files`.
+
+Current count: 50 case files, including 34 AstrBot cases and 16 Scrapy cases.

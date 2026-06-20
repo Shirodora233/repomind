@@ -1,0 +1,78 @@
+id: scrapy-engine-004
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - callback
+  - polymorphism
+notes: >
+  Engine scheduling case. It separates direct scheduler/download/signal calls
+  from Twisted callback registration with addBoth/addErrback.
+oracle_context:
+  files:
+    - path: scrapy/core/engine.py
+      role: target_definition
+      symbols:
+        - scrapy.core.engine.ExecutionEngine._start_scheduled_request
+        - scrapy.core.engine.ExecutionEngine._download
+        - scrapy.core.engine.ExecutionEngine._handle_downloader_output
+        - scrapy.core.engine.ExecutionEngine._remove_request
+      reason: Contains the target scheduling logic and registered callback distractors.
+    - path: scrapy/core/scheduler.py
+      role: type_definition
+      symbols:
+        - scrapy.core.scheduler.BaseScheduler.next_request
+      reason: Defines the scheduler protocol method called from the target.
+    - path: scrapy/signalmanager.py
+      role: direct_callee
+      symbols:
+        - scrapy.signalmanager.SignalManager.send_catch_log
+      reason: Defines the signal dispatch wrapper called when the scheduler is empty.
+golden:
+  required_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.core.scheduler.BaseScheduler.next_request
+      file: scrapy/core/engine.py
+      line: 364
+      evidence: "request = self._slot.scheduler.next_request()"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/engine.py
+      line: 366
+      evidence: "self.signals.send_catch_log(signals.scheduler_empty)"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.core.engine.ExecutionEngine._download
+      file: scrapy/core/engine.py
+      line: 369
+      evidence: "d: Deferred[Response | Request] = self._download(request)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.core.engine.ExecutionEngine._handle_downloader_output
+      file: scrapy/core/engine.py
+      line: 370
+      reason: _handle_downloader_output is registered as a Deferred callback with addBoth, not invoked directly.
+      evidence: "d.addBoth(self._handle_downloader_output, request)"
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.core.engine.ExecutionEngine._remove_request
+      file: scrapy/core/engine.py
+      line: 379
+      reason: _remove_request is passed through functools.partial to addBoth, not invoked directly by the target.
+      evidence: "d2: Deferred[None] = d.addBoth(partial(self._remove_request, request=request))"
+  runtime_only_edges: []

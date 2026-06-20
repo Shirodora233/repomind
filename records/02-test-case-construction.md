@@ -20,7 +20,7 @@
 - 已从候选中选出 10 个进入正式 YAML case 标注，并完成首版 golden answer。
 - 已完成第二批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 20 个正式 YAML case。
 - 已基于前 20 个 case 的失败模式形成第三批 AstrBot 候选池，候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller 等共同缺陷。
-- 已完成第三批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 30 个正式 YAML case。
+- 已完成第五批 AstrBot 补样，当前 `datasets/call-chain-v1/cases/astrbot/` 共 34 个正式 YAML case；`call-chain-v1` 全量共 50 个正式 YAML case。
 
 ## 阶段进展记录
 
@@ -143,6 +143,14 @@
 - 已确认 30 个 AstrBot YAML case 全部通过 schema 校验。
 - 已确认新增 case 可通过 mock-golden Oracle / E2E runner 进入评分流程，说明 golden answer 结构与 scorer 兼容。
 
+### 2026-06-20 第五批 AstrBot 补样
+
+- 实现：新增 4 个 AstrBot YAML case，当前 AstrBot case 从 30 个扩展到 34 个。
+- 新增 case：`astrbot-webhook-003`、`astrbot-context-001`、`astrbot-platform-004`、`astrbot-webhook-004`。
+- 覆盖：Lark webhook callback setter 的上游 caller、deprecated LLM tool registration、platform adapter nested decorator registration、FastAPI webhook route decorator factory negative case。
+- 目的：配合新增 6 个 Scrapy case，将 `call-chain-v1` 从 40 个扩展到 50 个，并继续补强 `find_callers`、negative/no-callee、callback/registration、constructor/factory 和 decorator 边界。
+- 验证：第五批 10 个新增 case 已通过全量 validator、mock-golden Oracle 和 mock-golden E2E；详细命令与 Scrapy 侧记录见 `records/02-scrapy-case-expansion.md`。
+
 ## 相关文件
 
 - `.gitignore`
@@ -186,6 +194,6 @@
 
 ## 下一步
 
-- 对第三批新增 10 个 YAML case 做一轮代表模型复测，优先使用 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local，判断新增 case 是否继续拉开 easy / medium / hard 与不同机制的差距。
-- 基于 30-case 复测结果，标记过易、过难、golden 不稳定或边界定义不清的 case，并决定是否修订。
-- 继续按每批约 10 个 case 扩展到 50+；后续批次应增加更多 `find_callers`、negative caller、runtime-only、插件注册、框架 callback 和第二真实仓库样例。
+- 第三批 AstrBot 10 个 case 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 Oracle / E2E 正式复测。
+- `call-chain-v1` 已扩展到 50 个 case；下一步应对第五批新增 10 个 case 运行 DeepSeek / Tencent HY3 / Gemma4 的 Oracle / E2E 正式复测，并整理新的模型对比报告。
+- 50-case baseline 完成后，再进入 Prompt Engineering / RAG / Fine-tune 优化实验，避免在测试集仍快速变化时过早调参。
