@@ -14,9 +14,9 @@
 | 主 baseline 模型 | DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local |
 | 当前 scorer | `call-chain-scorer-v1`，strict 主分数 + constructor-normalized 辅助指标 |
 | 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
-| 当前 PE 资产 | `pe-v1` scaffold，含 prompt assets、20 条 synthetic few-shot、`pe_postprocess.py` |
-| 当前 RAG 资产 | `rag-v1` scaffold，含 chunk index、BM25/keyword retrieval、retrieval eval |
-| 当前 Fine-tune 数据 | `finetune-data-v1` smoke schema/builder/validator，20 条 synthetic micro 样本 |
+| 当前 PE 资产 | `pe-v1` prompt assets、20 条 synthetic few-shot、`pe_postprocess.py`、matrix planner v2、34 个 generated prompts |
+| 当前 RAG 资产 | `rag-v1` chunk index、BM25/keyword retrieval、`keyword_multiquery_safe`、retrieval eval |
+| 当前 Fine-tune 数据 | `finetune-data-v1` smoke+ 50 条 synthetic micro 样本，已新增 500+ source plan 与 dry-run manifest 入口 |
 | 主报告 | `reports/baseline/summary/baseline-summary-v0-20260620.md`（70-case baseline 最终汇总） |
 | 辅助评分报告 | `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md` |
 | 失败诊断报告 | `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md` |
@@ -47,13 +47,19 @@
 | 2026-06-21 | PE v1 scaffold | `f92d681` | PE prompt assets、20 条 synthetic few-shot、后处理脚本 |
 | 2026-06-21 | RAG v1 scaffold | `ac48b76` | chunk index、BM25/keyword retrieval、retrieval eval |
 | 2026-06-21 | Fine-tune data smoke | `369e31e` | FT 数据 schema、builder、validator、20 条 synthetic micro smoke |
+| 2026-06-21 | Fine-tune smoke+ 扩展 | `2866bdc` | 50 条 smoke+、required tag coverage 21/21 |
+| 2026-06-21 | RAG lexical pilot | `36557b1`、`baafd0c` | pilot 20 retrieval benchmark，`keyword_multiquery` 达到 Recall@10=1.0 |
+| 2026-06-21 | PE matrix planner | `dde26a0` | 16 组 PE 组合 dry-run command planner |
+| 2026-06-21 | Fine-tune 500+ 来源规划 | `3e771ed` | 500+ source plan、`full_synthetic` dry-run manifest 入口 |
+| 2026-06-21 | RAG definition-safe retrieval | `d04a2d5` | `keyword_multiquery_safe`，pilot 20 DefinitionAccuracy@5=1.0、Recall@10=1.0 |
+| 2026-06-21 | PE prompt assembly ready | `4701bc9` | 34 个 generated prompt 资产，全矩阵 dry-run 无缺 prompt |
 
 ## 当前待办
 
-- 先跑 PE prompt / postprocess smoke，并补齐 PE matrix runner，避免手动跑 16 组组合导致配置漂移。
-- RAG 先跑 20-case pilot retrieval benchmark，比较 `bm25_only` 与 `keyword`，再接入 Qwen3/Jina/BGE dense 或 hybrid。
-- Fine-tune 数据先扩到 50 条 smoke+，再规划非 test repo 的 500+ 数据来源；正式训练继续等待本地资源空闲。
-- 消融矩阵等待 PE / RAG / Fine-tune 单项版本冻结后再运行，不在优化前直接跑完整 All。
+- PE：可进入小规模 Oracle / E2E smoke 或 pilot 运行；真实模型结果出来前，不把 PE 维度贡献写成结论。
+- RAG：下一步应把 `keyword_multiquery_safe` 接入 context pack / RAG-only E2E，验证“检索命中后生成是否仍漏边”。
+- Fine-tune：正式训练前仍需冻结 500+ train/dev 数据；当前只有 source plan 与 synthetic dry-run 入口，未启动训练。
+- 消融矩阵：等待 PE smoke/pilot、RAG-only E2E、Fine-tune 数据冻结或训练 smoke 形成单项稳定版本后再运行。
 
 ## 维护规则
 
