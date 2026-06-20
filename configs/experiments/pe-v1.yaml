@@ -1,6 +1,6 @@
 version: pe-v1
 stage: prompt_engineering
-status: scaffolded_not_run
+status: scaffolded_prompt_assembly_ready_not_run
 
 baseline_reference:
   dataset: call-chain-v1
@@ -37,6 +37,28 @@ prompt_assets:
   oracle_runnable_template: prompts/pe/oracle-context-pe-v1.md
   e2e_runnable_template: prompts/pe/e2e-task-pe-v1.md
   e2e_system_prompt: prompts/pe/e2e-agent-system-pe-v1.md
+  generated_dir: prompts/pe/generated
+
+prompt_assembly:
+  script: scripts/assemble_pe_prompts.py
+  output_dir: prompts/pe/generated
+  assembler_version: pe-prompt-assembler-v1
+  base_policy: base and postprocess-only combinations do not generate PE prompt templates
+  few_shot_selection_policy: all_20_synthetic_representative_examples
+  placeholder_policy:
+    oracle:
+      - "{{CASE_METADATA}}"
+      - "{{ORACLE_CONTEXT}}"
+      - "{{OUTPUT_SCHEMA}}"
+    e2e_task:
+      - "{{CASE_METADATA}}"
+      - "{{TOOL_BUDGET}}"
+      - "{{TOOL_SPECS}}"
+      - "{{OUTPUT_SCHEMA}}"
+    e2e_system: []
+  cli_examples:
+    assemble_single_both: python scripts/assemble_pe_prompts.py --combination S+F+C+P --track both
+    assemble_all_both: python scripts/assemble_pe_prompts.py --all --track both
 
 postprocess:
   script: scripts/pe_postprocess.py
@@ -68,10 +90,14 @@ matrix_runner:
   script: scripts/run_pe_matrix.py
   default_mode: dry_run_plan_only
   plan_dir: runs/pe/plans
-  prompt_assembly_status: planned_not_implemented
+  prompt_assembly_status: implemented_via_generated_templates
+  generated_prompt_status_policy:
+    missing_generated_prompt: requires_prompt_assembly
+    generated_prompt_exists_without_postprocess: ready
+    generated_prompt_exists_with_postprocess: ready_with_postprocess_plan
   exact_combination_policy:
     base: use baseline Oracle/E2E prompts and no PE postprocess
-    S_F_C: combinations containing S, F, or C need assembled prompt templates before real model runs
+    S_F_C: combinations containing S, F, or C use prompts assembled under prompts/pe/generated before real model runs
     P: combinations containing P need deterministic postprocess plus re-score orchestration after runner prediction output
   note: Command plans must mark prompt/postprocess gaps explicitly and must not be reported as completed PE experiments.
 

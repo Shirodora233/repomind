@@ -64,3 +64,17 @@
     - `python scripts/run_pe_matrix.py --dry-run --case-limit 1 --combination base/S+F+C+P`
     - dry-run 输出 `runs/pe/plans/pe-matrix-plan-20260620T173357Z.json`，共 8 条 runner command templates（2 个组合 × 2 个 track × 2 个 primary models）；验证期间没有调用模型。
   - 尚未完成：真实 16 组 PE pilot、S/F/C prompt assembler、P 组合的真实 postprocess 后重评分闭环。
+- 2026-06-21：补齐 PE v1 prompt assembler，并生成 16 组矩阵中所有含 S/F/C 的版本化 prompt 资产；本轮仍未调用真实模型。
+  - 新增 `scripts/assemble_pe_prompts.py`，支持 `--combination`、`--all`、`--track oracle/e2e/both` 和 `--output-dir`。`base` 与 `P-only` 按规则不生成 prompt；`P` 只在 runner plan 中标记后处理，不嵌入 prompt。
+  - 生成 `prompts/pe/generated/*.md` 共 34 个文件：14 个 Oracle prompt、8 个 E2E system prompt、12 个 E2E task prompt。所有生成文件保留 runner placeholders，例如 `{{CASE_METADATA}}`、`{{ORACLE_CONTEXT}}`、`{{TOOL_BUDGET}}`、`{{TOOL_SPECS}}` 和 `{{OUTPUT_SCHEMA}}`。
+  - `scripts/run_pe_matrix.py` 升级为 `pe-matrix-planner-v2`，会检查 generated prompt 文件是否存在。缺失时标记 `requires_prompt_assembly`；生成后标记为 `ready` 或 `ready_with_postprocess_plan`。
+  - 更新 `configs/experiments/pe-v1.yaml`，记录 prompt assembly 脚本、输出目录、placeholder policy、生成状态策略和 CLI 示例。
+  - 更新 `reports/pe/README.md`，说明 generated prompts 是版本化 prompt 资产，`runs/pe/plans/` 仍只是本地 dry-run 命令计划。
+  - 最小验证：
+    - `python -m py_compile scripts/assemble_pe_prompts.py scripts/run_pe_matrix.py`
+    - `python scripts/assemble_pe_prompts.py --help`
+    - `python scripts/run_pe_matrix.py --help`
+    - `python scripts/assemble_pe_prompts.py --all --track both`：生成 34 个 prompt 文件，跳过 `base` 与 `P`。
+    - `python scripts/run_pe_matrix.py --dry-run --case-limit 1 --combination base/S+F+C+P --format json`：`S+F+C+P` Oracle/E2E 命令均为 `ready_with_postprocess_plan`。
+    - `python scripts/run_pe_matrix.py --dry-run --case-limit 1 --format json`：64 条 runner command templates；状态统计为 `ready=32`、`ready_with_postprocess_plan=32`、`requires_prompt_assembly=0`。
+  - 尚未完成：真实 PE Oracle / E2E 模型 pilot，以及 P 组合在真实 prediction 上的 postprocess 后重评分闭环。

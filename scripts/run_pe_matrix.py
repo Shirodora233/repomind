@@ -15,7 +15,7 @@ DEFAULT_CONFIG = PROJECT_ROOT / "configs" / "experiments" / "pe-v1.yaml"
 DEFAULT_PLAN_DIR = PROJECT_ROOT / "runs" / "pe" / "plans"
 DIMENSION_ORDER = ("S", "F", "C", "P")
 PROMPT_DIMENSIONS = {"S", "F", "C"}
-PLANNER_VERSION = "pe-matrix-planner-v1"
+PLANNER_VERSION = "pe-matrix-planner-v2"
 
 BASE_PROMPTS = {
     "oracle": {
@@ -243,9 +243,9 @@ def build_plan(
         },
         "dimension_assets": dimension_assets,
         "current_runner_limitations": [
-            "The Oracle and E2E runners accept complete prompt templates; they do not assemble S/F/C prompt dimensions.",
-            "The runners do not call scripts/pe_postprocess.py before scoring; P requires postprocess plus re-score orchestration.",
-            "Generated commands marked as template_requires_* must not be treated as completed experiments.",
+            "The Oracle and E2E runners accept complete prompt templates; use scripts/assemble_pe_prompts.py to prebuild S/F/C generated templates.",
+            "Commands with missing generated templates are marked requires_prompt_assembly and must not be treated as completed experiments.",
+            "The runners do not call scripts/pe_postprocess.py before scoring; P uses the emitted postprocess plus re-score plan after runner prediction output.",
         ],
         "available_bundled_pe_templates": bundled_pe_templates(config),
         "commands": commands,
@@ -329,11 +329,15 @@ def build_command_entry(
 ) -> dict[str, Any]:
     dims = combination_dimensions(combination)
     prompt_dims = [dim for dim in dims if dim in PROMPT_DIMENSIONS]
-    needs_prompt_assembly = bool(prompt_dims)
     needs_postprocess = "P" in dims
-    status = command_status(needs_prompt_assembly, needs_postprocess)
     run_dir = run_directory(config, track, model, combination, len(case_ids))
     prompt_plan = prompt_plan_for(track, combination, dims, config)
+    prompt_requirements = prompt_requirements_for(prompt_plan)
+    missing_generated_prompts = [item["path"] for item in prompt_requirements if not item["exists"]]
+    if prompt_requirements:
+        prompt_plan["generated_prompt_requirements"] = prompt_requirements
+        prompt_plan["mode"] = "assembled_prompt" if not missing_generated_prompts else "assembled_prompt_required"
+    status = command_status(missing_generated_prompts, needs_postprocess)
     runner_argv = runner_command(
         config=config,
         track=track,
@@ -352,7 +356,7 @@ def build_command_entry(
         "case_ids": case_ids,
         "run_dir": run_dir,
         "status": status,
-        "requires_prompt_assembly": needs_prompt_assembly,
+        "requires_prompt_assembly": bool(missing_generated_prompts),
         "requires_postprocess_orchestration": needs_postprocess,
         "prompt_plan": prompt_plan,
         "runner_command": {
@@ -360,21 +364,31 @@ def build_command_entry(
             "shell": shell_command(runner_argv),
         },
     }
+    if missing_generated_prompts:
+        entry["missing_generated_prompts"] = missing_generated_prompts
     if needs_postprocess:
         entry["postprocess_plan"] = postprocess_plan(run_dir, case_ids)
-    if status != "ready":
-        entry["not_run_reason"] = status.replace("_", " ")
+    if missing_generated_prompts:
+        entry["not_run_reason"] = "requires prompt assembly"
+    elif status == "ready_with_postprocess_plan":
+        entry["execution_note"] = "runner command is ready; run the postprocess plan after predictions are produced"
     return entry
 
 
-def command_status(needs_prompt_assembly: bool, needs_postprocess: bool) -> str:
-    if needs_prompt_assembly and needs_postprocess:
-        return "template_requires_prompt_assembly_and_postprocess_orchestration"
-    if needs_prompt_assembly:
-        return "template_requires_prompt_assembly"
+def command_status(missing_generated_prompts: list[str], needs_postprocess: bool) -> str:
+    if missing_generated_prompts:
+        return "requires_prompt_assembly"
     if needs_postprocess:
-        return "template_requires_postprocess_orchestration"
+        return "ready_with_postprocess_plan"
     return "ready"
+
+
+def prompt_requirements_for(prompt_plan: dict[str, Any]) -> list[dict[str, Any]]:
+    paths = prompt_plan.get("required_generated_prompts") or []
+    requirements: list[dict[str, Any]] = []
+    for path in paths:
+        requirements.append({"path": str(path), "exists": resolve_project_path(str(path)).exists()})
+    return requirements
 
 
 def run_directory(
@@ -403,23 +417,28 @@ def prompt_plan_for(track: str, combination: str, dims: list[str], config: dict[
     version = str(config.get("version") or "pe-v1")
     inputs = prompt_inputs_for(dims, config)
     if track == "oracle":
+        prompt = f"prompts/pe/generated/oracle-context-{version}-{combo_label}.md"
         return {
             "mode": "assembled_prompt_required",
-            "prompt": f"prompts/pe/generated/oracle-context-{version}-{combo_label}.md",
+            "prompt": prompt,
             "prompt_version": f"oracle-context-{version}-{combo_label}",
             "assembly_inputs": inputs,
+            "required_generated_prompts": [prompt],
         }
 
     task_prompt = BASE_PROMPTS["e2e"]["prompt"]
     task_prompt_version = BASE_PROMPTS["e2e"]["task_prompt_version"]
     system_prompt = BASE_PROMPTS["e2e"]["system_prompt"]
     system_prompt_version = BASE_PROMPTS["e2e"]["system_prompt_version"]
+    required_generated_prompts: list[str] = []
     if "S" in prompt_dims:
         system_prompt = f"prompts/pe/generated/e2e-agent-system-{version}-{combo_label}.md"
         system_prompt_version = f"e2e-agent-system-{version}-{combo_label}"
+        required_generated_prompts.append(system_prompt)
     if any(dim in prompt_dims for dim in ("F", "C")):
         task_prompt = f"prompts/pe/generated/e2e-task-{version}-{combo_label}.md"
         task_prompt_version = f"e2e-task-{version}-{combo_label}"
+        required_generated_prompts.append(task_prompt)
     return {
         "mode": "assembled_prompt_required",
         "prompt": task_prompt,
@@ -427,6 +446,7 @@ def prompt_plan_for(track: str, combination: str, dims: list[str], config: dict[
         "task_prompt_version": task_prompt_version,
         "system_prompt_version": system_prompt_version,
         "assembly_inputs": inputs,
+        "required_generated_prompts": required_generated_prompts,
     }
 
 
