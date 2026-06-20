@@ -119,3 +119,12 @@
 - Tencent E2E 说明：检索指标满分，主要失败来自过报、canonical symbol 不稳定，以及对象方法 / callback / dynamic sub-stage 边界判断。
 - 正式报告见 `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`。
 - 初步判断：E2E 轨道已经能区分“检索失败 / 协议失败”和“检索成功后的边界判断失败”。在优化前仍应继续扩展 case，而不是直接围绕当前 10 case 调 prompt。
+
+## 2026-06-20 新增 10-case E2E 复测
+
+- 基于提交 `d1d577b chore(dataset): expand AstrBot call-chain cases`，仅运行第二批新增 10 个 AstrBot case，不包含首批 10 个 case。
+- DeepSeek direct no-reasoning 原始输出目录：`runs/e2e/new-10-deepseek-v4-pro-direct-no-reasoning-20260620`。结果：Edge Precision 0.894737，Edge Recall 0.551724，Evidence Accuracy 1.000000；Definition Accuracy 1.000000，Retrieval Recall 1.000000，tool_calls=77，files_read=22；OpenRouter cost 约 0.039518967。
+- Tencent HY3 no-reasoning 原始输出目录：`runs/e2e/new-10-tencent-hy3-preview-no-reasoning-20260620`。结果：Edge Precision 0.812500，Edge Recall 0.862069，Evidence Accuracy 0.960000；Definition Accuracy 1.000000，Retrieval Recall 1.000000，tool_calls=79，files_read=20；OpenRouter cost 约 0.024229704。
+- Gemma4 E2B 本地原始输出目录：`runs/e2e/new-10-gemma4-e2b-20260620`。结果：Edge Precision 0.000000，Edge Recall 0.000000，Evidence Accuracy n/a；Definition Accuracy 0.600000，Retrieval Recall 0.600000，tool_calls=48，files_read=28。
+- 初步判断：新增 case 对 E2E 很有区分度。DeepSeek 与 Tencent 的检索指标均为满分，但最终 edge recall 差异明显，说明失败点主要在检索后的边界判断、canonical symbol 对齐和 final 输出稳定性。Gemma4 E2B 能调用工具，但检索命中和最终 symbol-level edge 输出都不稳定。
+- 正式报告见 `reports/baseline/new-10-case-model-comparison-v0-20260620.md`。

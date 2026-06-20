@@ -157,3 +157,12 @@
 - 正式报告见 `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`。
 - 已生成 base 10 多模型综合分析报告：`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`。
 - 初步判断：Oracle Context 已能稳定拉开强在线模型、中等在线模型和本地小模型差距；OpenAI 适合作为高成本上限标杆，Tencent 适合作为高 recall / 低成本但易过报的对照模型。
+
+## 2026-06-20 新增 10-case Oracle 复测
+
+- 基于提交 `d1d577b chore(dataset): expand AstrBot call-chain cases`，仅运行第二批新增 10 个 AstrBot case，不包含首批 10 个 case。
+- DeepSeek direct no-reasoning 原始输出目录：`runs/oracle/new-10-deepseek-v4-pro-direct-no-reasoning-20260620`。结果：Edge Precision 0.900000，Edge Recall 0.896552，Evidence Accuracy 0.961539；OpenRouter cost 约 0.089341170。
+- Tencent HY3 no-reasoning 原始输出目录：`runs/oracle/new-10-tencent-hy3-preview-no-reasoning-20260620`。结果：Edge Precision 1.000000，Edge Recall 0.931034，Evidence Accuracy 1.000000；OpenRouter cost 约 0.018256776。
+- Gemma4 E2B 本地原始输出目录：`runs/oracle/new-10-gemma4-e2b-20260620`。结果：Edge Precision 0.166667，Edge Recall 0.103448，Evidence Accuracy 0.666667。
+- 初步判断：新增 case 在 Oracle Context 轨道能继续拉开在线模型与本地小模型差距。Tencent HY3 当前最稳；DeepSeek 主要受 canonical symbol 拼写错误影响；Gemma4 E2B 零样本仍不适合直接做精确 golden 标注。
+- 正式报告见 `reports/baseline/new-10-case-model-comparison-v0-20260620.md`。

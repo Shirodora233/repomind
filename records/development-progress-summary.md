@@ -15,7 +15,8 @@
 | 2026-06-19 | DeepSeek 10-case baseline | 完成 DeepSeek direct no-reasoning 的 10-case Oracle Context 与 E2E baseline，并生成正式中文报告；Oracle Precision 0.828571 / Recall 0.8125，E2E Precision 0.446154 / Recall 0.84375。 | `5a8a450 docs(reports): add oracle baseline report`、`cc9af22 docs(reports): add e2e baseline report` | `reports/baseline/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`、`reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md` |
 | 2026-06-20 | 本地 Ollama 小模型 baseline | 新增 `ollama-native` provider，确认 `/api/chat` + `num_ctx=65536` + `think=false` 可支持本地长上下文；完成 `qwen3.5:2b` 与 `gemma4:e2b` 的 10-case Oracle / E2E 对照报告。决定后续本地模型优先使用 `gemma4:e2b`。 | `61fa190 feat(evaluation): add local ollama baseline support` | `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
 | 2026-06-20 | 在线模型 baseline 扩展与 base 10 复核 | 新增 OpenAI GPT-5.5 no-reasoning alias；完成 `openai/gpt-5.5` 与 `tencent/hy3-preview` 的 10-case Oracle / E2E baseline；生成 base 10 多模型综合分析报告。 | `adc7964 docs(reports): add online baseline analysis` | `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md` |
-| 2026-06-20 | AstrBot case 第二批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 10 扩到 20；覆盖 chat route/service、session callback、conversation 对象方法、provider 状态切换、Telegram registry、optional dynamic caller。 | 未提交 | `records/02-test-case-construction.md` |
+| 2026-06-20 | AstrBot case 第二批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 10 扩到 20；覆盖 chat route/service、session callback、conversation 对象方法、provider 状态切换、Telegram registry、optional dynamic caller。 | `d1d577b chore(dataset): expand AstrBot call-chain cases` | `records/02-test-case-construction.md` |
+| 2026-06-20 | 新增 10-case 三模型复测 | 仅对第二批新增 10 个 case 运行 DeepSeek、Tencent HY3、Gemma4 的 Oracle 与 E2E；确认新增 case 能继续拉开模型差距，并暴露 E2E 检索后边界判断问题。 | 未提交 | `reports/baseline/new-10-case-model-comparison-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
 
 ## 最近完成
 
@@ -38,11 +39,13 @@
 - 已生成 base 10 多模型综合分析报告，确认当前 10 个 pilot case 能拉开模型差距，但不足以支持最终策略选择。
 - 已记录 OpenAI E2E 文本 action 协议适配问题，避免将其误判为模型能力失败。
 - 已完成第二批 AstrBot case 扩展，当前共有 20 个正式 YAML case，并已通过 schema、mock-golden Oracle 和 mock-golden E2E 验证。
+- 已提交第二批 case 扩展：`d1d577b chore(dataset): expand AstrBot call-chain cases`。
+- 已完成新增 10-case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式报告。
 
 ## 待推进
 
-- 提交当前第二批 case 扩展与阶段记录。
-- 对 20-case 数据集跑一轮代表模型复测，检查新增 case 是否能继续拉开模型差距，并识别需要修订的 golden 或边界定义。
+- 提交新增 10-case 三模型复测报告和阶段记录。
+- 人工复核 `astrbot-chat-003` 的 E2E trace，确认 DeepSeek 在 hard service-chain case 上低 recall 的具体原因。
 - 继续按每批约 10 个 case 扩展测试集，逐步扩展到 50+ case。
 - 下一批新增 case 应优先补充 `find_callers`、negative callers、动态 dispatch、插件机制、框架 callback、runtime-only 边界，并开始评估第二个真实仓库来源。
 - 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。
