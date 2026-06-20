@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：未开始
+状态：进行中
 
 ## 阶段目标
 
@@ -10,27 +10,44 @@
 
 ## 当前产出
 
-- 暂无。
+- 已实现最小 E2E Agentic Retrieval runner，支持 dry-run、mock-golden 和真实模型 openai-compatible/native 调用。
+- 已实现 repo-only 工具循环：`list_files`、`search_text`、`read_file`。
+- 已保存 E2E run 的 task、tool trace、retrieval metrics、model trace、messages、raw responses、prediction 和 score。
+- 已完成 DeepSeek direct-no-reasoning 10-case E2E baseline。
+- 已完成本地 Ollama Qwen3.5 2B 与 Gemma4 E2B 10-case E2E baseline。
 
 ## 阶段进展记录
 
-暂无。
+见下方按日期追加记录。
 
 ## 关键决策
 
-- 待补充。
+- E2E baseline 默认保持 `max_tool_calls=20`、`max_files_read=12`、`max_context_tokens=24000`，暂不为了某个模型调高限制。
+- 在扩展到更多模型和 50+ case 前，暂不进入 Prompt Engineering / RAG / tool strategy 优化，避免过拟合 10 个 pilot case。
+- 对本地 Ollama 长上下文模型，优先使用 `ollama-native` provider，确保 `num_ctx` 和 `think=false` 生效。
 
 ## 遇到的问题
 
-- 待补充。
+- 小模型 E2E 能执行工具循环，但最终输出常为短 symbol、类型级边或非 canonical edge，导致 edge recall 为 0。
+- Qwen3.5 2B 在 E2E 中容易耗尽 step budget，tool calls 明显高于 DeepSeek 与 Gemma。
+- Gemma4 E2B 工具调用更克制，但仍无法稳定输出 fully-qualified symbol-level edge。
 
 ## 验证结果
 
-- 待补充。
+- `python -m py_compile scripts\run_oracle_context.py scripts\run_e2e_agent.py`：通过。
+- `python scripts\run_e2e_agent.py --provider openai-compatible --model-provider ollama-native --model-alias qwen3.5-2b --case-id astrbot-platform-001 ...`：通过，生成 prediction 和 score。
+- `python scripts\run_e2e_agent.py --provider openai-compatible --model-provider ollama-native --model-alias gemma4-e2b --case-id astrbot-platform-001 ...`：通过，生成 prediction 和 score。
 
 ## 相关文件
 
-- 待补充。
+- `scripts/run_e2e_agent.py`
+- `scripts/e2e_tools.py`
+- `prompts/e2e-agent-v0.md`
+- `prompts/e2e-agent-system-v0.md`
+- `configs/e2e-tools-v0.yaml`
+- `configs/model-providers.example.yaml`
+- `reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`
+- `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`
 
 ## 下一步
 
@@ -77,3 +94,15 @@
 - 正式报告见 `reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md`。
 - 关键结果：Edge Precision 0.446154，Edge Recall 0.84375，Evidence Accuracy 1.0；Definition Accuracy 1.0，Retrieval Recall 1.0，tool_calls=69，files_read=17；provider 全部命中 DeepSeek，reasoning_tokens=0，总成本约 0.042644065。
 - 初步判断：当前 E2E 主要瓶颈不是检索失败，而是检索成功后过度返回 helper / constructor / utility 边，以及 repo 内对象方法和动态 sub-stage 边界判断不稳定。但该结论只来自单模型 10-case baseline，下一步应先扩展多模型测试，并用多模型结果指导测试集扩展到 50+，暂不进入优化阶段。
+
+## 2026-06-20 本地 Ollama 小模型 10-case E2E baseline v0
+
+- 为 `scripts/run_e2e_agent.py` 增加 Ollama native response 解析，复用 `run_oracle_context.py` 中的 native message 调用逻辑。
+- 使用 `qwen3.5-2b` 跑 `astrbot-platform-001` E2E smoke，脚本成功生成 prediction 和 score；结果为 Precision 0.0，Recall 0.0，tool_calls=8，files_read=3。
+- 使用 `gemma4-e2b` 跑 `astrbot-platform-001` E2E smoke，脚本成功生成 prediction 和 score；结果为 Precision 0.0，Recall 0.0，tool_calls=3，files_read=1。
+- 已完成 Qwen3.5 2B 10-case E2E baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-qwen3.5-2b-native-20260620`。
+- Qwen3.5 2B 关键结果：Edge Precision 0.0，Edge Recall 0.0，Evidence Accuracy n/a；Definition Accuracy 1.0，Retrieval Recall 0.888889，tool_calls=110，files_read=23。
+- 已完成 Gemma4 E2B 10-case E2E baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-gemma4-e2b-native-20260620`。
+- Gemma4 E2B 关键结果：Edge Precision 0.0，Edge Recall 0.0，Evidence Accuracy n/a；Definition Accuracy 1.0，Retrieval Recall 0.851852，tool_calls=37，files_read=17。
+- 正式对比报告见 `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
+- 初步判断：两个本地小模型都能执行工具循环并读到不少相关文件，但最终输出多为短 symbol、类型级边或非 canonical edge，无法匹配 golden。后续本地模型微调数据应重点覆盖 fully-qualified symbol 输出和 final schema。

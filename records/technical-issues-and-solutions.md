@@ -143,3 +143,15 @@
 - 解决方式：尚未完全解决。下一步应在 E2E prompt 中明确 repo 内对象方法的判定规则，并考虑增加 AST / symbol index 工具，帮助模型把变量类型、导入符号和 fully qualified callee 对齐。
 - 后续注意：分析 E2E 失败时应区分检索失败和边界理解失败；如果 `retrieval_recall=1.0` 但 edge recall 低，优先检查模型是否漏掉对象方法、动态分派、注册表或框架回调边。
 - 相关文件：`scripts/run_e2e_agent.py`、`prompts/e2e-agent-v0.md`、`datasets/call-chain-v1/cases/astrbot/astrbot-pipeline-002.yaml`
+
+## 本地 Ollama 长上下文与 thinking 控制需使用 native API
+
+- 首次发现阶段：Oracle Context 测试阶段
+- 状态：resolved
+- 最后复核：2026-06-20
+- 现象：使用 Ollama OpenAI-compatible `/v1/chat/completions` 调用 `qwen3.5:2b` 时，即使请求体包含 `options: {num_ctx: 65536}`，Oracle smoke 仍返回 `prompt_tokens=8191`、`completion_tokens=1`、`finish_reason=length`，没有可解析 content。改用 native `/api/chat` 后，`prompt_eval_count` 能超过 8k，说明 `num_ctx` 生效。
+- 影响：本地长上下文模型如果走 `/v1` 路径，Oracle Context 会被默认 8192 token 限制截断，模型表现会被误判为推理失败；thinking 模型还可能把输出预算全部消耗在 `thinking` / `reasoning` 字段，导致 content 为空。
+- 原因：本机 Ollama OpenAI-compatible 路径没有应用请求体中的 `options.num_ctx`；Qwen3.5 / Gemma4 标签默认具备 thinking 能力，未设置 `think=false` 时会优先生成 thinking 内容。
+- 解决方式：已新增 `ollama-native` model provider，调用 `http://localhost:11434/api/chat`，并在本地模型 alias 中设置 `request_body: {think: false, options: {num_ctx: 65536}}`。`run_oracle_context.py` 与 `run_e2e_agent.py` 均已支持 native response 的 `message.content`。
+- 后续注意：跑本地 Ollama 长上下文实验时优先使用 `--model-provider ollama-native`，不要直接使用 `--model-provider ollama` 的 `/v1` OpenAI-compatible 路径。若更换模型，应先用单 case smoke 检查 `prompt_eval_count`、`done_reason` 和是否有 content。
+- 相关文件：`configs/model-providers.example.yaml`、`.env.example`、`scripts/run_oracle_context.py`、`scripts/run_e2e_agent.py`

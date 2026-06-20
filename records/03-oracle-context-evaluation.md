@@ -133,3 +133,14 @@
 - 已完成 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-deepseek-direct-no-reasoning-20260619`。
 - 正式报告见 `reports/baseline/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`。
 - 关键结果：Edge Precision 0.828571，Edge Recall 0.8125，Evidence Accuracy 1.0；10 case 全部完成，无 request / parse error；provider 全部命中 DeepSeek，reasoning_tokens=0，总成本约 0.077030206。
+
+## 2026-06-20 本地 Ollama 小模型 10-case Oracle baseline v0
+
+- 为本地模型新增 `ollama-native` provider，使用 Ollama `/api/chat` 而不是 OpenAI-compatible `/v1/chat/completions`。原因是 `/v1` 路径在本机未应用 `options.num_ctx`，Oracle prompt 会被截断在 8192 token。
+- 本地 alias `qwen3.5-2b` 与 `gemma4-e2b` 均使用 `request_body: {think: false, options: {num_ctx: 65536}}`，避免 thinking 输出耗尽 `max_tokens`，并支持长 Oracle prompt。
+- 已完成 Qwen3.5 2B 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-qwen3.5-2b-native-20260620`。
+- Qwen3.5 2B 关键结果：Edge Precision 0.210526，Edge Recall 0.125，Evidence Accuracy 0.5；2 个 case 出现长 fenced YAML 截断导致 parse error。
+- 已完成 Gemma4 E2B 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-gemma4-e2b-native-20260620`。
+- Gemma4 E2B 关键结果：Edge Precision 0.333333，Edge Recall 0.46875，Evidence Accuracy 0.6；无 parse error。
+- 正式对比报告见 `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
+- 初步判断：Gemma4 E2B 明显优于 Qwen3.5 2B，但两者都显著低于 DeepSeek；Oracle 结果能拉开本地小模型差距，适合继续作为本地候选筛选依据。

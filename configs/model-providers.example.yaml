@@ -60,3 +60,25 @@ providers:
       - alias: local-coder-small
         id: qwen2.5-coder:7b
         notes: Example local coding model tag; change to a model installed locally.
+
+  ollama-native:
+    type: ollama-native
+    base_url: "${OLLAMA_NATIVE_BASE_URL:-http://localhost:11434/api/chat}"
+    api_key_env: OLLAMA_API_KEY
+    api_key_required: false
+    default_model_env: OLLAMA_MODEL
+    models:
+      - alias: qwen3.5-2b
+        id: qwen3.5:2b
+        request_body:
+          think: false
+          options:
+            num_ctx: 65536
+        notes: Local Qwen3.5 2B model tag for baseline comparison and later fine-tune candidate evaluation; uses Ollama num_ctx=65536 and think=false for long Oracle prompts.
+      - alias: gemma4-e2b
+        id: gemma4:e2b
+        request_body:
+          think: false
+          options:
+            num_ctx: 65536
+        notes: Local Gemma 4 E2B model tag for baseline comparison and later fine-tune candidate evaluation; uses Ollama num_ctx=65536 and think=false for long Oracle prompts.

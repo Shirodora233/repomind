@@ -148,11 +148,13 @@ def list_models(config: dict[str, Any]) -> None:
             model_id = expand_env_vars(model.get("id", ""))
             routing = model.get("routing")
             reasoning = model.get("reasoning")
+            request_body = model.get("request_body")
             notes = model.get("notes", "")
             suffix = f" - {notes}" if notes else ""
             routing_suffix = f" routing={expand_env_in_value(routing)}" if routing else ""
             reasoning_suffix = f" reasoning={expand_env_in_value(reasoning)}" if reasoning else ""
-            print(f"  - {alias}: {model_id or '<empty>'}{routing_suffix}{reasoning_suffix}{suffix}")
+            request_body_suffix = f" request_body={expand_env_in_value(request_body)}" if request_body else ""
+            print(f"  - {alias}: {model_id or '<empty>'}{routing_suffix}{reasoning_suffix}{request_body_suffix}{suffix}")
 
 
 def _default_model_config_path() -> Path:
@@ -172,7 +174,7 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
             raise RuntimeError(f"unknown model provider {provider_name!r}; run --list-models to inspect configured providers")
         provider_config = providers[provider_name] or {}
         provider_type = provider_config.get("type", "openai-compatible")
-        if provider_type != "openai-compatible":
+        if provider_type not in {"openai-compatible", "ollama-native"}:
             raise RuntimeError(f"unsupported provider type {provider_type!r} for {provider_name!r}")
         model_config = _resolve_model_config(provider_config, args.model_alias)
     else:
@@ -218,6 +220,10 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
         expand_env_in_value(provider_config.get("reasoning") or {}),
         expand_env_in_value(model_config.get("reasoning") or {}),
     )
+    request_body = _deep_merge_dicts(
+        expand_env_in_value(provider_config.get("request_body") or {}),
+        expand_env_in_value(model_config.get("request_body") or {}),
+    )
     if args.reasoning_effort:
         reasoning["effort"] = args.reasoning_effort
     if args.reasoning_max_tokens is not None:
@@ -230,8 +236,16 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
     if not model:
         raise RuntimeError("missing model: pass --model, set --model-alias with a non-empty id, or set provider default model env")
 
-    if not base_url.rstrip("/").endswith("/chat/completions"):
+    if provider_type == "openai-compatible" and not base_url.rstrip("/").endswith("/chat/completions"):
         base_url = base_url.rstrip("/") + "/chat/completions"
+    if provider_type == "ollama-native":
+        stripped = base_url.rstrip("/")
+        if stripped.endswith("/api/chat"):
+            base_url = stripped
+        elif stripped.endswith("/api"):
+            base_url = stripped + "/chat"
+        else:
+            base_url = stripped + "/api/chat"
 
     return {
         "provider_name": provider_name,
@@ -242,6 +256,7 @@ def resolve_model_settings(args: argparse.Namespace, config: dict[str, Any]) -> 
         "headers": headers,
         "routing": routing,
         "reasoning": reasoning,
+        "request_body": request_body,
         "api_key_env": api_key_env,
         "api_key_required": api_key_required,
     }
@@ -273,13 +288,38 @@ def _merge_dicts(base: Any, override: Any) -> dict[str, Any]:
     return merged
 
 
+def _deep_merge_dicts(base: Any, override: Any) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    if isinstance(base, dict):
+        merged.update(base)
+    if not isinstance(override, dict):
+        return merged
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    messages = [
+        {"role": "system", "content": "You are a precise code call-chain evaluator. Return only the requested structured YAML."},
+        {"role": "user", "content": prompt},
+    ]
+    return call_model_messages(messages, settings, args)
+
+
+def call_model_messages(messages: list[dict[str, str]], settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    if settings.get("provider_type") == "ollama-native":
+        return call_ollama_native_messages(messages, settings, args)
+    return call_openai_compatible_messages(messages, settings, args)
+
+
+def call_openai_compatible_messages(messages: list[dict[str, str]], settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     payload = {
         "model": settings["model"],
-        "messages": [
-            {"role": "system", "content": "You are a precise code call-chain evaluator. Return only the requested structured YAML."},
-            {"role": "user", "content": prompt},
-        ],
+        "messages": messages,
         "temperature": args.temperature,
     }
     if args.max_tokens is not None:
@@ -288,6 +328,8 @@ def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse
         payload["provider"] = settings["routing"]
     if settings.get("reasoning"):
         payload["reasoning"] = settings["reasoning"]
+    if settings.get("request_body"):
+        payload = _deep_merge_dicts(payload, settings["request_body"])
     body = json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         settings["base_url"],
@@ -299,7 +341,40 @@ def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse
         return json.loads(response.read().decode("utf-8"))
 
 
+def call_ollama_native_messages(messages: list[dict[str, str]], settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
+    request_body = settings.get("request_body") or {}
+    configured_options = request_body.get("options") if isinstance(request_body, dict) else None
+    options = _deep_merge_dicts(configured_options or {}, {})
+    options["temperature"] = args.temperature
+    if args.max_tokens is not None:
+        options["num_predict"] = args.max_tokens
+
+    payload: dict[str, Any] = {
+        "model": settings["model"],
+        "messages": messages,
+        "stream": False,
+        "options": options,
+    }
+    if isinstance(request_body, dict):
+        payload = _deep_merge_dicts(payload, {key: value for key, value in request_body.items() if key != "options"})
+
+    request = urllib.request.Request(
+        settings["base_url"],
+        data=json.dumps(payload).encode("utf-8"),
+        headers=settings["headers"],
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=args.timeout_seconds) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
 def response_content(response: dict[str, Any]) -> str:
+    native_message = response.get("message")
+    if isinstance(native_message, dict):
+        content = native_message.get("content")
+        if content is None:
+            return ""
+        return str(content)
     choices = response.get("choices") or []
     if not choices:
         return ""
@@ -308,6 +383,12 @@ def response_content(response: dict[str, Any]) -> str:
     if content is None:
         return ""
     return str(content)
+
+
+def normalize_single_case_payload(payload: Any, case_id: str, source: str) -> dict[str, Any]:
+    if isinstance(payload, dict) and "edges" in payload and "case_id" not in payload and "cases" not in payload:
+        payload = {"case_id": case_id, **payload}
+    return normalize_prediction_payload(payload, source=source)
 
 
 def main() -> int:
@@ -386,11 +467,13 @@ def main() -> int:
     run_config = {
         "provider": args.provider,
         "model_provider": args.model_provider,
+        "provider_type": model_settings["provider_type"] if model_settings else None,
         "model_alias": args.model_alias,
         "model": model_settings["model"] if model_settings else args.model,
         "base_url": model_settings["base_url"] if model_settings else args.base_url,
         "routing": model_settings["routing"] if model_settings else None,
         "reasoning": model_settings["reasoning"] if model_settings else None,
+        "request_body": model_settings["request_body"] if model_settings else None,
         "model_config": str(model_config_path),
         "model_config_sha256": sha256_file(model_config_path),
         "env_file": str(Path(args.env_file)),
@@ -441,7 +524,7 @@ def main() -> int:
         write_text(case_dir / "raw_response.txt", content)
         try:
             payload = extract_payload_from_text(content)
-            normalized = normalize_prediction_payload(payload, source=f"{case['id']} raw_response")
+            normalized = normalize_single_case_payload(payload, case["id"], source=f"{case['id']} raw_response")
             prediction = normalized[case["id"]]
             write_yaml(case_dir / "prediction.yaml", prediction)
             predictions[case["id"]] = prediction

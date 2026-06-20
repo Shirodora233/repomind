@@ -4,7 +4,6 @@ import argparse
 import json
 import re
 import sys
-import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -26,11 +25,13 @@ from call_chain_common import (
     write_yaml,
 )
 from run_oracle_context import (
+    call_model_messages,
     format_request_error,
     list_models,
     load_env_file,
     load_model_config,
     make_mock_golden_prediction,
+    normalize_single_case_payload,
     resolve_model_settings,
 )
 from e2e_tools import (
@@ -43,7 +44,7 @@ from e2e_tools import (
     ToolBudget,
     tool_specs_for_prompt,
 )
-from score_predictions import extract_payload_from_text, normalize_prediction_payload, score_cases
+from score_predictions import extract_payload_from_text, score_cases
 from versioning import (
     git_commit,
     git_status_short,
@@ -114,29 +115,16 @@ def case_metadata_for_e2e_prompt(case: dict[str, Any]) -> dict[str, Any]:
 
 
 def call_openai_compatible_messages(messages: list[dict[str, str]], settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "model": settings["model"],
-        "messages": messages,
-        "temperature": args.temperature,
-    }
-    if args.max_tokens is not None:
-        payload["max_tokens"] = args.max_tokens
-    if settings.get("routing"):
-        payload["provider"] = settings["routing"]
-    if settings.get("reasoning"):
-        payload["reasoning"] = settings["reasoning"]
-
-    request = urllib.request.Request(
-        settings["base_url"],
-        data=json.dumps(payload).encode("utf-8"),
-        headers=settings["headers"],
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=args.timeout_seconds) as response:
-        return json.loads(response.read().decode("utf-8"))
+    return call_model_messages(messages, settings, args)
 
 
 def response_content(response: dict[str, Any]) -> str:
+    native_message = response.get("message")
+    if isinstance(native_message, dict):
+        content = native_message.get("content")
+        if content is None:
+            return ""
+        return str(content)
     choices = response.get("choices") or []
     if not choices:
         return ""
@@ -269,7 +257,7 @@ def run_openai_compatible_loop(
             prediction_payload = action.get("prediction") or {
                 key: value for key, value in action.items() if key in {"case_id", "edges"}
             }
-            normalized = normalize_prediction_payload(prediction_payload, source=f"{case['id']} final action")
+            normalized = normalize_single_case_payload(prediction_payload, case["id"], source=f"{case['id']} final action")
             persist_agent_state(case_dir, case["id"], messages, model_trace)
             return normalized.get(case["id"])
 
@@ -333,7 +321,7 @@ def force_final_action(
         prediction_payload = action.get("prediction") or {
             key: value for key, value in action.items() if key in {"case_id", "edges"}
         }
-        normalized = normalize_prediction_payload(prediction_payload, source=f"{case['id']} finalization")
+        normalized = normalize_single_case_payload(prediction_payload, case["id"], source=f"{case['id']} finalization")
         return normalized.get(case["id"])
     except Exception as exc:
         trace_item["parse_error"] = str(exc)
@@ -504,11 +492,13 @@ def main() -> int:
     run_config = {
         "provider": args.provider,
         "model_provider": args.model_provider,
+        "provider_type": model_settings["provider_type"] if model_settings else None,
         "model_alias": args.model_alias,
         "model": model_settings["model"] if model_settings else args.model,
         "base_url": model_settings["base_url"] if model_settings else args.base_url,
         "routing": model_settings["routing"] if model_settings else None,
         "reasoning": model_settings["reasoning"] if model_settings else None,
+        "request_body": model_settings["request_body"] if model_settings else None,
         "model_config": str(model_config_path),
         "model_config_sha256": sha256_file(model_config_path),
         "env_file": str(Path(args.env_file)),
