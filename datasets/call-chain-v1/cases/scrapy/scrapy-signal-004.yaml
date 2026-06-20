@@ -1,0 +1,143 @@
+id: scrapy-signal-004
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.signalmanager.SignalManager.send_catch_log
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - cross_file
+  - event_bus
+  - callback
+notes: >
+  Large fan-in signal-dispatch caller case. Some caller symbols contain multiple
+  send_catch_log callsites; symbol-level scoring keeps one edge per caller.
+oracle_context:
+  files:
+    - path: scrapy/signalmanager.py
+      role: target_definition
+      symbols:
+        - scrapy.signalmanager.SignalManager.send_catch_log
+      reason: Defines the target signal manager method.
+    - path: scrapy/core/engine.py
+      role: direct_caller
+      symbols:
+        - scrapy.core.engine.ExecutionEngine._start_scheduled_request
+        - scrapy.core.engine.ExecutionEngine._schedule_request
+        - scrapy.core.engine.ExecutionEngine._download
+        - scrapy.core.engine.ExecutionEngine._spider_idle
+      reason: Engine lifecycle and scheduling code dispatches signals through SignalManager.
+    - path: scrapy/core/downloader/__init__.py
+      role: direct_caller
+      symbols:
+        - scrapy.core.downloader.Downloader._enqueue_request
+        - scrapy.core.downloader.Downloader._download
+      reason: Downloader paths dispatch request/response-related signals.
+    - path: scrapy/core/scraper.py
+      role: direct_caller
+      symbols:
+        - scrapy.core.scraper.Scraper.handle_spider_error
+      reason: Scraper error path dispatches spider_error through SignalManager.
+    - path: scrapy/extensions/memusage.py
+      role: direct_caller
+      symbols:
+        - scrapy.extensions.memusage.MemoryUsage._check_warning
+      reason: Extension warning path dispatches a signal.
+    - path: scrapy/extensions/telnet.py
+      role: direct_caller
+      symbols:
+        - scrapy.extensions.telnet.TelnetConsole._get_telnet_vars
+      reason: Telnet extension dispatches update_telnet_vars through SignalManager.
+    - path: scrapy/utils/_download_handlers.py
+      role: direct_caller
+      symbols:
+        - scrapy.utils._download_handlers.check_stop_download
+      reason: Utility callback dispatches the bytes_received/headers_received signal through SignalManager.
+    - path: scrapy/utils/signal.py
+      role: distractor
+      symbols:
+        - scrapy.utils.signal.send_catch_log
+      reason: External utility function called by SignalManager; it is not an upstream caller of SignalManager.send_catch_log.
+golden:
+  required_edges:
+    - caller: scrapy.core.downloader.Downloader._enqueue_request
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/downloader/__init__.py
+      line: 182
+      evidence: "self.signals.send_catch_log("
+      confidence_type: static_confirmed
+    - caller: scrapy.core.downloader.Downloader._download
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/downloader/__init__.py
+      line: 231
+      evidence: "self.signals.send_catch_log("
+      confidence_type: static_confirmed
+      notes: "The same caller also invokes send_catch_log at line 248; symbol-level scoring keeps one edge."
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/engine.py
+      line: 366
+      evidence: "self.signals.send_catch_log(signals.scheduler_empty)"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.engine.ExecutionEngine._schedule_request
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/engine.py
+      line: 441
+      evidence: "request_scheduled_result = self.signals.send_catch_log("
+      confidence_type: static_confirmed
+      notes: "The same caller also invokes send_catch_log at line 451; symbol-level scoring keeps one edge."
+    - caller: scrapy.core.engine.ExecutionEngine._download
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/engine.py
+      line: 510
+      evidence: "self.signals.send_catch_log("
+      confidence_type: static_confirmed
+    - caller: scrapy.core.engine.ExecutionEngine._spider_idle
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/engine.py
+      line: 569
+      evidence: "res = self.signals.send_catch_log("
+      confidence_type: static_confirmed
+    - caller: scrapy.core.scraper.Scraper.handle_spider_error
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/scraper.py
+      line: 371
+      evidence: "self.signals.send_catch_log("
+      confidence_type: static_confirmed
+    - caller: scrapy.extensions.memusage.MemoryUsage._check_warning
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/extensions/memusage.py
+      line: 142
+      evidence: "self.crawler.signals.send_catch_log(signal=signals.memusage_warning_reached)"
+      confidence_type: static_confirmed
+    - caller: scrapy.extensions.telnet.TelnetConsole._get_telnet_vars
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/extensions/telnet.py
+      line: 121
+      evidence: "self.crawler.signals.send_catch_log(update_telnet_vars, telnet_vars=telnet_vars)"
+      confidence_type: static_confirmed
+    - caller: scrapy.utils._download_handlers.check_stop_download
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/utils/_download_handlers.py
+      line: 78
+      evidence: "signal_result = crawler.signals.send_catch_log("
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.signalmanager.SignalManager.send_catch_log
+      callee: scrapy.utils.signal.send_catch_log
+      file: scrapy/signalmanager.py
+      line: 52
+      reason: This is a downstream utility call made by the target method, not an upstream caller of it.
+      evidence: "return _signal.send_catch_log(signal, **kwargs)"
+  runtime_only_edges: []

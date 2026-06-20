@@ -1,0 +1,67 @@
+id: scrapy-crawler-006
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.crawler.Crawler.crawl
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - same_name_distractor
+  - polymorphism
+notes: >
+  Upstream caller case for the per-spider crawler's crawl method. Several
+  commands call CrawlerProcess.crawl or ExecutionEngine.crawl and are excluded
+  because they are same-name methods on different classes.
+oracle_context:
+  files:
+    - path: scrapy/crawler.py
+      role: target_definition
+      symbols:
+        - scrapy.crawler.Crawler.crawl
+        - scrapy.crawler.CrawlerRunner._crawl
+        - scrapy.crawler.CrawlerRunner.crawl
+        - scrapy.crawler.CrawlerProcess.crawl
+      reason: Defines the target and direct runner caller.
+    - path: scrapy/commands/crawl.py
+      role: distractor
+      symbols:
+        - scrapy.commands.crawl.Command.run
+      reason: Calls CrawlerProcess.crawl, not Crawler.crawl.
+    - path: scrapy/core/engine.py
+      role: distractor
+      symbols:
+        - scrapy.core.engine.ExecutionEngine.crawl
+      reason: Same method name on the execution engine.
+golden:
+  required_edges:
+    - caller: scrapy.crawler.CrawlerRunner._crawl
+      callee: scrapy.crawler.Crawler.crawl
+      file: scrapy/crawler.py
+      line: 461
+      evidence: "d = crawler.crawl(*args, **kwargs)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.commands.crawl.Command.run
+      callee: scrapy.crawler.Crawler.crawl
+      file: scrapy/commands/crawl.py
+      line: 31
+      reason: The command calls CrawlerProcess.crawl inherited from CrawlerRunner, not Crawler.crawl directly.
+      evidence: "self.crawler_process.crawl(spname, **opts.spargs)"
+    - caller: scrapy.core.engine.ExecutionEngine._handle_downloader_output
+      callee: scrapy.crawler.Crawler.crawl
+      file: scrapy/core/engine.py
+      line: 409
+      reason: This self.crawl call targets ExecutionEngine.crawl, not scrapy.crawler.Crawler.crawl.
+      evidence: "self.crawl(result)"
+  runtime_only_edges: []

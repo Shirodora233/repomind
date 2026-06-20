@@ -1,0 +1,48 @@
+id: scrapy-feed-002
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.extensions.feedexport.FeedExporter._get_storage
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - factory
+notes: >
+  Feed storage lookup caller case. It covers one normal batch-start path and
+  one capability-check path.
+oracle_context:
+  files:
+    - path: scrapy/extensions/feedexport.py
+      role: target_definition
+      symbols:
+        - scrapy.extensions.feedexport.FeedExporter._get_storage
+        - scrapy.extensions.feedexport.FeedExporter._start_new_batch
+        - scrapy.extensions.feedexport.FeedExporter._storage_supported
+      reason: Defines the target storage lookup helper and both direct callers.
+golden:
+  required_edges:
+    - caller: scrapy.extensions.feedexport.FeedExporter._start_new_batch
+      callee: scrapy.extensions.feedexport.FeedExporter._get_storage
+      file: scrapy/extensions/feedexport.py
+      line: 599
+      evidence: "storage = self._get_storage(uri, feed_options)"
+      confidence_type: static_confirmed
+    - caller: scrapy.extensions.feedexport.FeedExporter._storage_supported
+      callee: scrapy.extensions.feedexport.FeedExporter._get_storage
+      file: scrapy/extensions/feedexport.py
+      line: 688
+      evidence: "self._get_storage(uri, feed_options)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges: []
+  runtime_only_edges: []

@@ -2,18 +2,19 @@
 
 ## 阶段状态
 
-状态：已完成（baseline 汇总阶段；后续优化另开记录）
+状态：已完成（baseline 汇总阶段；新增 caller 扩展已记录，后续优化另开记录）
 
 ## 阶段目标
 
-基于已完成正式复测的 AstrBot 与 Scrapy case，整理跨仓库共同失败模式，记录从 30/40 case 扩展到 50 case 的判断依据，并形成 baseline 汇总结论。
+基于已完成正式复测的 AstrBot 与 Scrapy case，整理跨仓库共同失败模式，记录从 30/40/50 case 扩展到 70 case 的判断依据，并形成 baseline 汇总结论。
 
 ## 当前交接
 
-- 50-case baseline 主报告见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
-- constructor-normalized 辅助评分报告见 `reports/baseline/summary/50-case-constructor-normalized-comparison-v0-20260620.md`。
+- 70-case baseline 最终汇总见 `reports/baseline/summary/baseline-summary-v0-20260620.md`。
+- 新增 caller 20-case 单批次对比见 `reports/baseline/batches/caller-20-case-model-comparison-v0-20260620.md`。
+- constructor-normalized 辅助评分报告见 `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md`。
 - 跨仓库失败诊断见 `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md`。
-- 后续应基于 strict / constructor-normalized 双指标确定 PE / RAG v1 目标 case 集；不在本文件继续追加优化过程。
+- 后续应基于 70-case strict / constructor-normalized 双指标、E2E 检索指标和 caller 批次失败样本确定 PE / RAG v1 目标 case 集。
 
 ## 阶段进展记录
 
@@ -96,7 +97,7 @@
 ### 2026-06-20：50-case baseline 汇总
 
 - 目标：在 50 个 case 全部具备三模型 Oracle / E2E 主线结果后，聚合整体 baseline 指标、成本、分仓库/难度表现和 case 质量分层。
-- 正式报告：`reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- 正式报告：该历史汇总已被 70-case 最终报告 `reports/baseline/summary/baseline-summary-v0-20260620.md` 覆盖，原 50-case summary 文件不再保留为推荐入口。
 - 聚合范围：DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 30 个正式 run；不包含 OpenAI GPT-5.5、Qwen3.5、smoke、mock-golden 或 hard single-case smoke。
 - 主要结果：
   - Oracle：DeepSeek Precision 0.859060 / Recall 0.902256；Tencent HY3 Precision 0.851613 / Recall 0.947368；Gemma4 Precision 0.296552 / Recall 0.323308。
@@ -121,7 +122,7 @@
 ### 2026-06-20：生成 50-case constructor-normalized 对比报告
 
 - 目标：基于 `call-chain-scorer-v1` 重新聚合 50-case baseline，量化 strict 主分数与 constructor-normalized 辅助分数之间的差异。
-- 正式报告：`reports/baseline/summary/50-case-constructor-normalized-comparison-v0-20260620.md`。
+- 正式报告：`reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md`。
 - 运行方式：对 30 个正式 run 基于既有 `prediction.yaml` 重新评分，不重新调用模型，不产生 API 成本。
 - 主要结果：
   - Oracle DeepSeek：Strict Recall 0.902256，Constructor-normalized Recall 0.924812。
@@ -139,3 +140,36 @@
 - 版本：新增 `oracle-context-runner-v1` 和 `e2e-agent-runner-v1`，并将两个 runner 默认 `--runner-version` 更新为 v1。
 - 验证：已通过 `python -m py_compile scripts\run_oracle_context.py scripts\run_e2e_agent.py scripts\score_predictions.py scripts\call_chain_common.py`、`python scripts\validate_cases.py --cases datasets\call-chain-v1\cases`、Oracle mock-golden timing smoke 和 E2E mock-golden timing smoke；两个 smoke 均使用 `scrapy-feed-001`，预测分数均为 1.0，并确认 `timing.json` / case-level `timing.json` / `run_config.json` timing summary 已生成。
 - 决策：不为旧 50-case baseline 全量重跑 runtime。旧 run 的正式报告可注明 runner 未结构化记录 wall-clock；后续优化实验从 runner v1 开始比较运行时间。
+
+### 2026-06-20：新增 20 个 find_callers case 并完成 Oracle / E2E 复测
+
+- 目标：修正 50-case 主线中 `find_callers` 明显偏少的问题，并用新增 caller case 复核模型差距是否足够明显。
+- 新增 case：AstrBot 10 个、Scrapy 10 个，全部为 `find_callers` / `upstream` / `max_depth=1`。
+- 新增分布：easy 4、medium 12、hard 4；required edge 51 条，excluded edge 18 条。
+- 当前数据集：70 个 YAML case；AstrBot 44 个，Scrapy 26 个；`find_callers` 27 个，`find_callees` 43 个。
+- 验证：
+  - `python scripts/validate_cases.py --cases "datasets/call-chain-v1/cases/**/*.yaml"`：70 case 通过。
+  - Oracle mock-golden 70-case：Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0。
+  - E2E mock-golden 70-case：Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0。
+- Oracle run：
+  - `runs/baseline/oracle/new-caller-20/deepseek-v4-pro-direct-no-reasoning-20260620`
+  - `runs/baseline/oracle/new-caller-20/tencent-hy3-preview-no-reasoning-20260620`
+  - `runs/baseline/oracle/new-caller-20/gemma4-e2b-20260620`
+- 主要结果：
+  - DeepSeek：Precision 0.980000 / Recall 0.960784 / Evidence Accuracy 1.000000，实际 provider 为 DeepSeek，成本约 0.153016035。
+  - Tencent HY3：Precision 1.000000 / Recall 1.000000 / Evidence Accuracy 1.000000，实际 provider 为 SiliconFlow 9 / GMICloud 11，成本约 0.022493477。
+  - Gemma4 E2B：Precision 0.323529 / Recall 0.215686 / Evidence Accuracy 0.272727，本地 Ollama。
+- E2E run：
+  - `runs/baseline/e2e/new-caller-20/deepseek-v4-pro-direct-no-reasoning-20260620`
+  - `runs/baseline/e2e/new-caller-20/tencent-hy3-preview-no-reasoning-20260620`
+  - `runs/baseline/e2e/new-caller-20/gemma4-e2b-20260620`
+- E2E 主要结果：
+  - DeepSeek：Precision 0.901961 / Recall 0.901961 / Evidence Accuracy 1.000000，Definition Accuracy 0.950000，Retrieval Recall 0.973684，成本约 0.073001。
+  - Tencent HY3：Precision 0.823529 / Recall 0.823529 / Evidence Accuracy 1.000000，Definition Accuracy 0.800000，Retrieval Recall 0.973684，成本约 0.030517。
+  - Gemma4 E2B：Precision 0.000000 / Recall 0.000000，Definition Accuracy 0.650000，Retrieval Recall 0.385965，本地 Ollama。
+- 结论：
+  - 新增 caller case 对强在线模型不是不可解问题，说明 case 质量和 oracle context 足够清晰；Tencent HY3 满分，DeepSeek 只出现 1 个 wrapper 漏报和 1 个 symbol 拼写错误。
+  - E2E 后 DeepSeek 在 caller 批次上反超 Tencent HY3，说明 caller 方向能暴露强模型之间的 agentic retrieval / finalization 差异。
+  - 两个在线模型 caller 批次 Retrieval Recall 均为 0.973684，但 Edge Recall 低于 Oracle，继续支持“检索后 final edge 收敛是主瓶颈”的判断。
+  - Gemma4 在 caller 方向暴露出方向混淆、fully-qualified symbol 不稳定、多 caller recall 低、同名/registration 边界失败和 evidence 不稳，适合作为后续 fine-tune 数据设计的下限信号。
+  - 70-case baseline 最终汇总已更新到 `reports/baseline/summary/baseline-summary-v0-20260620.md`。

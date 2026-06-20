@@ -1,0 +1,61 @@
+id: astrbot-chat-005
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - route_handler
+  - cross_file
+notes: >
+  Upstream caller case for a chat deletion service method. It separates the
+  route wrapper and dashboard-query wrapper from the deeper delete_session_internal call.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/services/chat_service.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+        - astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session_from_dashboard_query
+        - astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+      reason: Defines the target, wrapper caller, and downstream deletion helper.
+    - path: astrbot/dashboard/api/chat.py
+      role: direct_caller
+      symbols:
+        - astrbot.dashboard.api.chat.delete_chat_session
+      reason: Route handler calls the target through the service object.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.api.chat.delete_chat_session
+      callee: astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+      file: astrbot/dashboard/api/chat.py
+      line: 169
+      evidence: "return await _run(lambda: service.delete_webchat_session(auth.username, session_id))"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session_from_dashboard_query
+      callee: astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1048
+      evidence: "await self.delete_webchat_session(username, session_id)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+      callee: astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1039
+      reason: delete_session_internal is a downstream callee of the target, not an upstream caller of the target.
+      evidence: "await self.delete_session_internal(session, username)"
+  runtime_only_edges: []

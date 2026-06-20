@@ -1,0 +1,80 @@
+id: astrbot-bot-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - route_handler
+  - cross_file
+notes: >
+  Upstream route-to-service case with multiple endpoint names and a dashboard
+  payload wrapper. It tests whether models merge same service variable calls
+  without drifting to terminate_platform.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/services/config_service.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+        - astrbot.dashboard.services.config_service.BotConfigService.delete_bot_from_dashboard_payload
+      reason: Defines the target service method and a wrapper caller.
+    - path: astrbot/dashboard/api/bots.py
+      role: direct_caller
+      symbols:
+        - astrbot.dashboard.api.bots.delete_bot_by_id
+        - astrbot.dashboard.api.bots.delete_bot
+        - astrbot.dashboard.api.bots.delete_dashboard_alias_platform
+      reason: API endpoints call the target method directly.
+    - path: astrbot/core/platform/manager.py
+      role: distractor
+      symbols:
+        - astrbot.core.platform.manager.PlatformManager.terminate_platform
+      reason: delete_bot calls terminate_platform downstream; it is not an upstream caller of delete_bot.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.api.bots.delete_bot_by_id
+      callee: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      file: astrbot/dashboard/api/bots.py
+      line: 122
+      evidence: "await service.delete_bot(bot_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.api.bots.delete_bot
+      callee: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      file: astrbot/dashboard/api/bots.py
+      line: 191
+      evidence: "await service.delete_bot(bot_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.api.bots.delete_dashboard_alias_platform
+      callee: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      file: astrbot/dashboard/api/bots.py
+      line: 250
+      evidence: "await service.delete_bot(str(bot_id))"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.config_service.BotConfigService.delete_bot_from_dashboard_payload
+      callee: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      file: astrbot/dashboard/services/config_service.py
+      line: 1252
+      evidence: "await self.delete_bot(str(platform_id))"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      callee: astrbot.core.platform.manager.PlatformManager.terminate_platform
+      file: astrbot/dashboard/services/config_service.py
+      line: 1216
+      reason: This is a downstream callee inside delete_bot, not an upstream caller of delete_bot.
+      evidence: "await self.core_lifecycle.platform_manager.terminate_platform(bot_id)"
+  runtime_only_edges: []

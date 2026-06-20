@@ -27,12 +27,12 @@ datasets/call-chain-v1/
 
 ## Current Case Set
 
-`call-chain-v1` currently contains 50 YAML cases:
+`call-chain-v1` currently contains 70 YAML cases:
 
 | Source | Cases | Focus |
 | --- | ---: | --- |
-| AstrBot | 34 | dynamic Python application code, plugin hooks, platform adapters, providers, route wrappers, callbacks, and negative cases |
-| Scrapy | 16 | framework orchestration, crawler/engine lifecycle, middleware, signals, feed export, dynamic loading, protocol/callback boundaries |
+| AstrBot | 44 | dynamic Python application code, plugin hooks, platform adapters, providers, route wrappers, callbacks, and negative cases |
+| Scrapy | 26 | framework orchestration, crawler/engine lifecycle, middleware, signals, feed export, dynamic loading, protocol/callback boundaries |
 | Micro | 0 | reserved for future synthetic diagnostics |
 
 ## Case File Rules

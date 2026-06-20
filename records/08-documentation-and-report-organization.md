@@ -23,7 +23,7 @@
 
 `docs/` 当前补齐：
 
-- `docs/datasets/call-chain-v1.md`：记录当前 50-case 数据集形态、分布和测评方式。
+- `docs/datasets/call-chain-v1.md`：记录当前数据集形态、分布和测评方式。
 - `docs/evaluation/oracle-context-and-e2e-v1.md`：记录当前 Oracle / E2E runner、默认限制和输出结构。
 - `docs/evaluation/scoring-v1.md`：记录 strict 主分数和 constructor-normalized 辅助指标。
 
@@ -47,7 +47,7 @@
 
 ### 2026-06-20：补齐正式 docs
 
-- 更新 `docs/datasets/call-chain-v1.md`，将“计划”表述改为当前 50-case 事实，并补充 repo、difficulty、task、depth、golden edge 和 feature 分布。
+- 更新 `docs/datasets/call-chain-v1.md`，将“计划”表述改为当时 50-case 事实，并补充 repo、difficulty、task、depth、golden edge 和 feature 分布。
 - 新增 `docs/evaluation/oracle-context-and-e2e-v1.md`，固化当前两条评测轨道、runner 版本、E2E 默认限制和输出文件约定。
 - 新增 `docs/evaluation/scoring-v1.md`，固化 strict 主分数、constructor-normalized 辅助指标和不参与归一化的边界。
 - 更新 `docs/call-chain-evaluation-protocol.md`，链接到当前 runner 和 scorer 细则文档。
@@ -68,7 +68,7 @@
 
 ### 2026-06-20：按瓶颈诊断质量标准调整 baseline 主报告
 
-- 更新 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- 更新 `reports/baseline/summary/baseline-summary-v0-20260620.md`。
 - 新增“瓶颈诊断质量摘要”，按评测用例质量、瓶颈识别准确性、数据支撑三项说明当前 baseline 是否满足评审标准。
 - 将“共同失败模式”改为表格化表达，逐项列出精确现象、数据支撑、代表错误样本和优化指向。
 - 调整“策略结论”，强调下一阶段不应只扩大模型池，而应围绕 PE v1、RAG / Agent v1、Fine-tune 数据准备和 case 边界复核推进。

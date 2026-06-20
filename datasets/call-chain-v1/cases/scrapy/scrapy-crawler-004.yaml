@@ -1,0 +1,49 @@
+id: scrapy-crawler-004
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.crawler.CrawlerRunner._crawl
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - same_name_distractor
+notes: >
+  Simple upstream caller case for the synchronous Deferred-based runner.
+  AsyncCrawlerRunner has a same-name _crawl method and should not be merged.
+oracle_context:
+  files:
+    - path: scrapy/crawler.py
+      role: target_definition
+      symbols:
+        - scrapy.crawler.CrawlerRunner._crawl
+        - scrapy.crawler.CrawlerRunner.crawl
+        - scrapy.crawler.AsyncCrawlerRunner._crawl
+        - scrapy.crawler.AsyncCrawlerRunner.crawl
+      reason: Contains the target, direct caller, and same-name async runner distractor.
+golden:
+  required_edges:
+    - caller: scrapy.crawler.CrawlerRunner.crawl
+      callee: scrapy.crawler.CrawlerRunner._crawl
+      file: scrapy/crawler.py
+      line: 454
+      evidence: "return self._crawl(crawler, *args, **kwargs)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.crawler.AsyncCrawlerRunner.crawl
+      callee: scrapy.crawler.CrawlerRunner._crawl
+      file: scrapy/crawler.py
+      line: 570
+      reason: This calls AsyncCrawlerRunner._crawl, not CrawlerRunner._crawl.
+      evidence: "return self._crawl(crawler, *args, **kwargs)"
+  runtime_only_edges: []

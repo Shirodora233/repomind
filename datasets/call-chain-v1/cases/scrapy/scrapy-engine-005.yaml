@@ -1,0 +1,47 @@
+id: scrapy-engine-005
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.engine.ExecutionEngine._schedule_request
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+notes: >
+  Minimal upstream caller case inside the execution engine. The public crawl
+  method calls the private scheduler helper directly.
+oracle_context:
+  files:
+    - path: scrapy/core/engine.py
+      role: target_definition
+      symbols:
+        - scrapy.core.engine.ExecutionEngine._schedule_request
+        - scrapy.core.engine.ExecutionEngine.crawl
+        - scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      reason: Contains the target helper, direct caller, and nearby scheduler logic.
+golden:
+  required_edges:
+    - caller: scrapy.core.engine.ExecutionEngine.crawl
+      callee: scrapy.core.engine.ExecutionEngine._schedule_request
+      file: scrapy/core/engine.py
+      line: 437
+      evidence: "self._schedule_request(request)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._start_scheduled_request
+      callee: scrapy.core.engine.ExecutionEngine._schedule_request
+      file: scrapy/core/engine.py
+      line: 360
+      reason: Nearby scheduler method, but it pulls requests from the scheduler and does not call _schedule_request.
+      evidence: "def _start_scheduled_request(self) -> bool:"
+  runtime_only_edges: []

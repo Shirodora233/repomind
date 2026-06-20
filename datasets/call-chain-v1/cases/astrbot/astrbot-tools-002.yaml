@@ -1,0 +1,71 @@
+id: astrbot-tools-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - cross_file
+  - registry
+notes: >
+  Tool-registry caller case. The target is called both internally when replacing
+  a function and externally from Context wrappers.
+oracle_context:
+  files:
+    - path: astrbot/core/provider/func_tool_manager.py
+      role: target_definition
+      symbols:
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      reason: Defines the target registry operation and the internal replacement caller.
+    - path: astrbot/core/star/context.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.star.context.Context.add_llm_tools
+        - astrbot.core.star.context.Context.unregister_llm_tool
+      reason: Context methods call the provider manager's tool registry.
+    - path: astrbot/core/agent/tool.py
+      role: distractor
+      symbols:
+        - astrbot.core.agent.tool.ToolSet.remove_func
+      reason: Same method name in a different tool class.
+golden:
+  required_edges:
+    - caller: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+      file: astrbot/core/provider/func_tool_manager.py
+      line: 376
+      evidence: "self.remove_func(name)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.star.context.Context.add_llm_tools
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+      file: astrbot/core/star/context.py
+      line: 565
+      evidence: "self.provider_manager.llm_tools.remove_func(tool.name)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.star.context.Context.unregister_llm_tool
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+      file: astrbot/core/star/context.py
+      line: 698
+      evidence: "self.provider_manager.llm_tools.remove_func(name)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.agent.tool.ToolSet.remove_func
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+      file: astrbot/core/agent/tool.py
+      line: 189
+      reason: Same method name in another class; it is not a caller of FunctionToolManager.remove_func.
+      evidence: "def remove_func(self, name: str) -> None:"
+  runtime_only_edges: []

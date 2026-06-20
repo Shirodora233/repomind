@@ -6,16 +6,16 @@
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 数据集 | `call-chain-v1`，50 个 YAML case；AstrBot 34 个，Scrapy 16 个 |
-| 主要任务 | `find_callees` 43 个，`find_callers` 7 个 |
-| 难度分布 | easy 6 个，medium 24 个，hard 20 个 |
-| Golden edges | required 133 条，optional 10 条，excluded 72 条，runtime-only 3 条 |
+| 数据集 | `call-chain-v1`，70 个 YAML case；AstrBot 44 个，Scrapy 26 个 |
+| 主要任务 | `find_callees` 43 个，`find_callers` 27 个 |
+| 难度分布 | easy 10 个，medium 36 个，hard 24 个 |
+| Golden edges | required 184 条，optional 10 条，excluded 90 条，runtime-only 3 条 |
 | 主评测轨道 | Oracle Context 与 Agentic Retrieval / E2E |
 | 主 baseline 模型 | DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local |
 | 当前 scorer | `call-chain-scorer-v1`，strict 主分数 + constructor-normalized 辅助指标 |
 | 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
-| 主报告 | `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md` |
-| 辅助评分报告 | `reports/baseline/summary/50-case-constructor-normalized-comparison-v0-20260620.md` |
+| 主报告 | `reports/baseline/summary/baseline-summary-v0-20260620.md`（70-case baseline 最终汇总） |
+| 辅助评分报告 | `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md` |
 | 失败诊断报告 | `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md` |
 | 数据集正式说明 | `docs/datasets/call-chain-v1.md` |
 | 评测正式说明 | `docs/evaluation/oracle-context-and-e2e-v1.md`、`docs/evaluation/scoring-v1.md` |
@@ -39,11 +39,11 @@
 | 2026-06-20 | Golden 边界修订 | `97321a8` | 修订 `astrbot-pipeline-003` 与 `scrapy-signal-001` 边界 |
 | 2026-06-20 | Scorer v1 | `faf9f73` | constructor-normalized 辅助指标与 50-case 对比报告 |
 | 2026-06-20 | Runner timing v1 | `a358ef1` | Oracle / E2E structured wall-clock timing |
+| 2026-06-20 | Caller case 扩展到 70 | 未提交 | 新增 20 个 `find_callers` case，并完成 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测 |
 
 ## 当前待办
 
-- 复核 50-case 中的代表性低分 / 边界 case，例如 `scrapy-feed-001`、`astrbot-chat-003`、`astrbot-star-001`，确定是否需要更新说明或 golden。
-- 基于 50-case strict 与 constructor-normalized 双指标，确定 PE / RAG v1 的优化目标 case 集。
+- 基于 70-case strict / constructor-normalized 双指标和 caller E2E 结果，确定 PE / RAG v1 的优化目标 case 集。
 - 设计 Prompt Engineering v1：明确对象方法、动态注册、callback、constructor symbol 和 excluded edge 的输出约束。
 - 设计 RAG / E2E v1：优先解决检索后 final edge 收敛、symbol canonicalization 和多 action 文本协议问题。
 - 后续正式实验从 runner v1 开始比较 wall-clock runtime；旧 runner v0 baseline 不回填运行时间。

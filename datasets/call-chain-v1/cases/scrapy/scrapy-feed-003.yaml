@@ -1,0 +1,52 @@
+id: scrapy-feed-003
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.extensions.feedexport.FeedExporter.open_spider
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - class_method
+  - callback
+  - registry
+  - event_bus
+  - negative_case
+notes: >
+  Registration-boundary caller case. FeedExporter.from_crawler passes
+  open_spider as a signal receiver but does not call it directly, so the
+  required static caller set is empty.
+oracle_context:
+  files:
+    - path: scrapy/extensions/feedexport.py
+      role: target_definition
+      symbols:
+        - scrapy.extensions.feedexport.FeedExporter.open_spider
+        - scrapy.extensions.feedexport.FeedExporter.from_crawler
+      reason: Defines the target receiver and the registration site.
+    - path: scrapy/signalmanager.py
+      role: registry
+      symbols:
+        - scrapy.signalmanager.SignalManager.connect
+      reason: Defines the signal registration API used by from_crawler.
+golden:
+  required_edges: []
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.extensions.feedexport.FeedExporter.from_crawler
+      callee: scrapy.extensions.feedexport.FeedExporter.open_spider
+      file: scrapy/extensions/feedexport.py
+      line: 448
+      reason: open_spider is registered as a signal receiver; from_crawler does not invoke it directly.
+      evidence: "crawler.signals.connect(exporter.open_spider, signals.spider_opened)"
+    - caller: scrapy.signalmanager.SignalManager.connect
+      callee: scrapy.extensions.feedexport.FeedExporter.open_spider
+      reason: SignalManager.connect stores the receiver; the actual runtime callback depends on later signal dispatch.
+  runtime_only_edges: []

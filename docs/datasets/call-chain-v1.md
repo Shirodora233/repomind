@@ -74,67 +74,70 @@ Scrapy 在 v1 中的定位：
 
 ## 3. 当前内容概览
 
-`call-chain-v1` 当前包含 50 个 YAML case，全部为 Python、`repo_only` scope，默认不计入测试代码。
+`call-chain-v1` 当前包含 70 个 YAML case，全部为 Python、`repo_only` scope，默认不计入测试代码。
 
 ### 仓库分布
 
 | 来源 | 数量 | 覆盖重点 |
 | --- | ---: | --- |
-| AstrBot | 34 | 动态 Python 应用、插件 hook、平台适配器、provider、route wrapper、callback、negative case |
-| Scrapy | 16 | 框架调度、crawler/engine 生命周期、middleware、signal、feed export、dynamic loading、protocol/callback 边界 |
+| AstrBot | 44 | 动态 Python 应用、插件 hook、平台适配器、provider、route wrapper、callback、negative case |
+| Scrapy | 26 | 框架调度、crawler/engine 生命周期、middleware、signal、feed export、dynamic loading、protocol/callback 边界 |
 | Micro | 0 | 预留给后续 synthetic diagnostic case |
 
 ### 难度分布
 
 | 难度 | 数量 | 说明 |
 | --- | ---: | --- |
-| Easy | 6 | 基础跨文件定位、直接调用、简单类方法调用 |
-| Medium | 24 | async、跨模块 service/provider/manager、框架常见一跳调用 |
-| Hard | 20 | plugin、registry、event/callback、factory、多态、动态 import、协议边界 |
+| Easy | 10 | 基础跨文件定位、直接调用、简单类方法调用 |
+| Medium | 36 | async、跨模块 service/provider/manager、框架常见一跳调用 |
+| Hard | 24 | plugin、registry、event/callback、factory、多态、动态 import、协议边界 |
 
 ### 任务分布
 
 | 任务类型 | direction | 数量 |
 | --- | --- | ---: |
 | `find_callees` | `downstream` | 43 |
-| `find_callers` | `upstream` | 7 |
+| `find_callers` | `upstream` | 27 |
 
 ### 深度分布
 
 | max_depth | 数量 |
 | ---: | ---: |
-| 1 | 49 |
+| 1 | 69 |
 | 2 | 1 |
 
 ### Golden edge 分布
 
 | edge 类别 | 数量 | 评分角色 |
 | --- | ---: | --- |
-| `required_edges` | 133 | 主 recall 目标 |
+| `required_edges` | 184 | 主 recall 目标 |
 | `optional_edges` | 10 | 可推断动态边，找到加分或辅助分析 |
-| `excluded_edges` | 72 | 明确误报边，返回则扣 precision |
+| `excluded_edges` | 90 | 明确误报边，返回则扣 precision |
 | `runtime_only_edges` | 3 | 依赖运行时配置、插件状态或环境变量才能确认 |
 
 ### 主要特征标签
 
 | feature | 数量 |
 | --- | ---: |
-| `class_method` | 38 |
-| `direct_call` | 35 |
-| `async` | 29 |
-| `cross_file` | 22 |
-| `callback` | 20 |
-| `registry` | 12 |
-| `event_bus` | 6 |
-| `polymorphism` | 6 |
-| `factory` | 6 |
+| `class_method` | 57 |
+| `direct_call` | 54 |
+| `async` | 41 |
+| `cross_file` | 31 |
+| `callback` | 24 |
+| `registry` | 14 |
+| `event_bus` | 10 |
+| `route_handler` | 9 |
+| `same_name_distractor` | 8 |
+| `polymorphism` | 8 |
+| `factory` | 8 |
+| `dynamic_import` | 6 |
 | `plugin` | 5 |
-| `route_handler` | 5 |
 | `constructor` | 5 |
-| `dynamic_import` | 5 |
 | `dependency_injection` | 4 |
-| `negative_case` | 3 |
-| `same_name_distractor` | 3 |
+| `negative_case` | 4 |
+| `external_boundary` | 2 |
+| `decorator` | 2 |
+| `inheritance` | 1 |
 
 ## 4. 分层设计
 

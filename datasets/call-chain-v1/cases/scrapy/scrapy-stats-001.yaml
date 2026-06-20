@@ -1,0 +1,60 @@
+id: scrapy-stats-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.statscollectors.StatsCollector.open_spider
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - polymorphism
+  - async
+notes: >
+  Polymorphic stats collector caller case. ExecutionEngine calls
+  self.crawler.stats.open_spider after checking the method signature; the
+  concrete stats collector can be a subclass at runtime.
+oracle_context:
+  files:
+    - path: scrapy/statscollectors.py
+      role: target_definition
+      symbols:
+        - scrapy.statscollectors.StatsCollector.open_spider
+        - scrapy.statscollectors.MemoryStatsCollector
+      reason: Defines the target base stats collector method and a subclass.
+    - path: scrapy/core/engine.py
+      role: direct_caller
+      symbols:
+        - scrapy.core.engine.ExecutionEngine.open_spider_async
+      reason: Engine open-spider lifecycle calls the crawler stats collector.
+    - path: scrapy/core/scraper.py
+      role: distractor
+      symbols:
+        - scrapy.core.scraper.Scraper.open_spider_async
+      reason: Same method name on item pipeline manager, not StatsCollector.open_spider.
+golden:
+  required_edges:
+    - caller: scrapy.core.engine.ExecutionEngine.open_spider_async
+      callee: scrapy.statscollectors.StatsCollector.open_spider
+      file: scrapy/core/engine.py
+      line: 553
+      evidence: "self.crawler.stats.open_spider(spider=self.crawler.spider)"
+      confidence_type: static_confirmed
+      notes: "The alternate branch at line 555 calls the same target symbol without an argument."
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.core.scraper.Scraper.open_spider_async
+      callee: scrapy.statscollectors.StatsCollector.open_spider
+      file: scrapy/core/scraper.py
+      line: 177
+      reason: This call targets ItemPipelineManager.open_spider, not StatsCollector.open_spider.
+      evidence: "self.itemproc.open_spider(self.crawler.spider)"
+  runtime_only_edges: []

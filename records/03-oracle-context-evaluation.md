@@ -20,7 +20,7 @@
 - 已完成 DeepSeek direct、OpenAI GPT-5.5、Tencent HY3、本地 Qwen3.5 2B、本地 Gemma4 E2B 的 10-case Oracle Context baseline。
 - 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 50-case Oracle Context baseline 汇总。
 - 当前 Oracle Context runner 默认版本为 `oracle-context-runner-v1`，scorer 默认版本为 `call-chain-scorer-v1`。
-- 当前主报告见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- 当前主报告见 `reports/baseline/summary/baseline-summary-v0-20260620.md`。
 
 ## 阶段进展记录
 

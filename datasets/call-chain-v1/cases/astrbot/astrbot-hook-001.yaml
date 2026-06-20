@@ -1,0 +1,114 @@
+id: astrbot-hook-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.pipeline.context_utils.call_event_hook
+target_type: function
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - async
+  - cross_file
+  - event_bus
+  - callback
+notes: >
+  Large fan-in hook caller case. Some caller symbols contain multiple callsites
+  to call_event_hook; symbol-level scoring records each caller only once.
+oracle_context:
+  files:
+    - path: astrbot/core/pipeline/context_utils.py
+      role: target_definition
+      symbols:
+        - astrbot.core.pipeline.context_utils.call_event_hook
+      reason: Defines the target hook-dispatch helper.
+    - path: astrbot/core/astr_agent_hooks.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.astr_agent_hooks.MainAgentHooks.on_agent_begin
+        - astrbot.core.astr_agent_hooks.MainAgentHooks.on_agent_done
+        - astrbot.core.astr_agent_hooks.MainAgentHooks.on_tool_start
+        - astrbot.core.astr_agent_hooks.MainAgentHooks.on_tool_end
+      reason: Agent hook methods call call_event_hook directly.
+    - path: astrbot/core/pipeline/respond/stage.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.pipeline.respond.stage.RespondStage.process
+      reason: Response stage calls the hook helper after sending a message.
+    - path: astrbot/core/pipeline/process_stage/method/star_request.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.star_request.StarRequestSubStage.process
+      reason: Star request sub-stage calls the hook helper.
+    - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      reason: Internal agent sub-stage contains two hook callsites under the same caller symbol.
+    - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/third_party.py
+      role: direct_caller
+      symbols:
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.third_party.ThirdPartyAgentSubStage.process
+      reason: Third-party agent sub-stage calls the hook helper.
+golden:
+  required_edges:
+    - caller: astrbot.core.astr_agent_hooks.MainAgentHooks.on_agent_begin
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/astr_agent_hooks.py
+      line: 17
+      evidence: "await call_event_hook("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_agent_hooks.MainAgentHooks.on_agent_done
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/astr_agent_hooks.py
+      line: 31
+      evidence: "await call_event_hook("
+      confidence_type: static_confirmed
+      notes: "The same caller also calls call_event_hook at line 36; symbol-level scoring keeps one edge."
+    - caller: astrbot.core.astr_agent_hooks.MainAgentHooks.on_tool_start
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/astr_agent_hooks.py
+      line: 49
+      evidence: "await call_event_hook("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_agent_hooks.MainAgentHooks.on_tool_end
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/astr_agent_hooks.py
+      line: 64
+      evidence: "await call_event_hook("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.respond.stage.RespondStage.process
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/pipeline/respond/stage.py
+      line: 292
+      evidence: "if await call_event_hook(event, EventType.OnAfterMessageSentEvent):"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.star_request.StarRequestSubStage.process
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/pipeline/process_stage/method/star_request.py
+      line: 59
+      evidence: "await call_event_hook("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 213
+      evidence: "await call_event_hook(event, EventType.OnWaitingLLMRequestEvent)"
+      confidence_type: static_confirmed
+      notes: "The same caller also calls call_event_hook at line 264; symbol-level scoring keeps one edge."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.third_party.ThirdPartyAgentSubStage.process
+      callee: astrbot.core.pipeline.context_utils.call_event_hook
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/third_party.py
+      line: 331
+      evidence: "if await call_event_hook(event, EventType.OnLLMRequestEvent, req):"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges: []
+  runtime_only_edges: []

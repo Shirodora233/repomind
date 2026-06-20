@@ -1,0 +1,61 @@
+id: astrbot-platform-006
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.platform.manager.PlatformManager.terminate_platform
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - cross_file
+notes: >
+  Platform termination caller case. PlatformManager.reload has two callsites
+  to terminate_platform, but they collapse to one symbol-level caller edge.
+oracle_context:
+  files:
+    - path: astrbot/core/platform/manager.py
+      role: target_definition
+      symbols:
+        - astrbot.core.platform.manager.PlatformManager.terminate_platform
+        - astrbot.core.platform.manager.PlatformManager.reload
+        - astrbot.core.platform.manager.PlatformManager.terminate
+      reason: Defines the target and same-class callers.
+    - path: astrbot/dashboard/services/config_service.py
+      role: direct_caller
+      symbols:
+        - astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      reason: Dashboard bot deletion terminates a platform through the platform manager.
+golden:
+  required_edges:
+    - caller: astrbot.core.platform.manager.PlatformManager.reload
+      callee: astrbot.core.platform.manager.PlatformManager.terminate_platform
+      file: astrbot/core/platform/manager.py
+      line: 257
+      evidence: "await self.terminate_platform(platform_config[\"id\"])"
+      confidence_type: static_confirmed
+      notes: "The same caller also invokes terminate_platform at line 265; symbol-level scoring keeps one edge."
+    - caller: astrbot.core.platform.manager.PlatformManager.terminate
+      callee: astrbot.core.platform.manager.PlatformManager.terminate_platform
+      file: astrbot/core/platform/manager.py
+      line: 294
+      evidence: "await self.terminate_platform(platform_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.config_service.BotConfigService.delete_bot
+      callee: astrbot.core.platform.manager.PlatformManager.terminate_platform
+      file: astrbot/dashboard/services/config_service.py
+      line: 1216
+      evidence: "await self.core_lifecycle.platform_manager.terminate_platform(bot_id)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges: []
+  runtime_only_edges: []

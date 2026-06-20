@@ -1,13 +1,13 @@
-# 50-case constructor-normalized 辅助评分对比报告 v0
+# Constructor-normalized 辅助评分对比报告 v0
 
 ## 实验范围
 
 - 日期：2026-06-20
 - 基准 commit：`97321a8440d15e93019c9a02c5b46c45e6659e3b`
 - 汇总时工作区状态：`git_dirty=true`，包含 `call-chain-scorer-v1`、评测协议和本报告更新
-- 数据集：`call-chain-v1` 当前 50 个正式 YAML case
+- 数据集范围：`call-chain-v1` 旧主线正式 YAML case
 - Scorer：`call-chain-scorer-v1`
-- 统计范围：DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 50-case Oracle Context 与 E2E 主线 run
+- 统计范围：DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的旧主线 Oracle Context 与 E2E run
 - 运行方式：基于既有 `prediction.yaml` 重新评分，不重新调用模型，不产生 API 成本
 
 本报告只分析 constructor-normalized 辅助指标。正式主分数仍以 strict `edge_precision`、`edge_recall`、`evidence_accuracy` 为准。
@@ -82,7 +82,7 @@ python scripts\score_predictions.py --predictions <run-dir> --json-out <run-dir>
 
 Constructor-normalized 辅助指标是必要的：它能把“constructor symbol 表达不同”从真实漏报中分离出来，尤其对在线模型的 Oracle / E2E 分析有帮助。
 
-但它不应替代 strict 主分数。当前 50-case baseline 的主要优化方向仍然是：
+但它不应替代 strict 主分数。旧主线 baseline 的主要优化方向仍然是：
 
 1. E2E final edge 收敛和输出约束。
 2. `max_depth=1` 下的 over-depth / callback continuation 控制。

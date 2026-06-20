@@ -20,8 +20,8 @@
 - 已从候选中选出 10 个进入正式 YAML case 标注，并完成首版 golden answer。
 - 已完成第二批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 20 个正式 YAML case。
 - 已基于前 20 个 case 的失败模式形成第三批 AstrBot 候选池，候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller 等共同缺陷。
-- 已完成第五批 AstrBot 补样，当前 `datasets/call-chain-v1/cases/astrbot/` 共 34 个正式 YAML case；`call-chain-v1` 全量共 50 个正式 YAML case。
-- 当前 50-case 数据集的正式分布、测评方式和评分说明见 `docs/datasets/call-chain-v1.md`、`docs/evaluation/oracle-context-and-e2e-v1.md` 和 `docs/evaluation/scoring-v1.md`。
+- 已完成 caller 方向补样，当前 `datasets/call-chain-v1/cases/astrbot/` 共 44 个正式 YAML case，`datasets/call-chain-v1/cases/scrapy/` 共 26 个正式 YAML case；`call-chain-v1` 全量共 70 个正式 YAML case。
+- 当前 70-case 数据集的正式分布、测评方式和评分说明见 `docs/datasets/call-chain-v1.md`、`docs/evaluation/oracle-context-and-e2e-v1.md` 和 `docs/evaluation/scoring-v1.md`。
 
 ## 阶段进展记录
 
@@ -141,8 +141,8 @@
 - 已确认 `repos/AstrBot` 存在且 HEAD commit 可读取。
 - 已确认 `datasets/call-chain-v1/` 目录结构已创建。
 - 已确认 schema 文件为 JSON 格式，并已接入 `scripts/validate_cases.py` 自动校验。
-- 已确认 34 个 AstrBot YAML case 全部通过 schema 校验。
-- 已确认 `call-chain-v1` 全量 50 个 YAML case 通过 schema、oracle file 和 golden evidence 校验。
+- 已确认 44 个 AstrBot YAML case 全部通过 schema 校验。
+- 已确认 `call-chain-v1` 全量 70 个 YAML case 通过 schema、oracle file 和 golden evidence 校验。
 - 已确认新增 case 可通过 mock-golden Oracle / E2E runner 进入评分流程，说明 golden answer 结构与 scorer 兼容。
 
 ### 2026-06-20 第五批 AstrBot 补样
@@ -196,6 +196,6 @@
 
 ## 当前交接
 
-- 第三批 AstrBot 10 个 case、Scrapy 10 个 case 和第五批 10 个 case 均已完成 DeepSeek / Tencent HY3 / Gemma4 的 Oracle / E2E 正式复测。
-- 50-case baseline 汇总报告已生成，见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- 第三批 AstrBot 10 个 case、Scrapy 10 个 case 和第五批 10 个 case 均已完成 DeepSeek / Tencent HY3 / Gemma4 的 Oracle / E2E 正式复测；新增 20 个 caller case 已完成三模型 Oracle 复测，尚未补跑 E2E。
+- 70-case baseline 最终汇总已写入主报告，见 `reports/baseline/summary/baseline-summary-v0-20260620.md`。
 - 本阶段不再维护“下一步”流水待办；当前待办统一维护在 `records/development-progress-summary.md`。

@@ -114,5 +114,5 @@ python scripts\validate_cases.py
 - Scrapy case 当前共 16 个，已纳入 `call-chain-v1` 50-case 正式数据集。
 - 当前数据集分布见 `docs/datasets/call-chain-v1.md`。
 - Scrapy 10-case 复测报告见 `reports/baseline/batches/scrapy-10-case-model-comparison-v0-20260620.md`。
-- 50-case baseline 主报告见 `reports/baseline/summary/50-case-baseline-summary-v0-20260620.md`。
+- 当前 baseline 主报告见 `reports/baseline/summary/baseline-summary-v0-20260620.md`。
 - 本文件不再维护新的 Scrapy 扩展待办；后续新增仓库或新批次 case 应新开阶段记录。

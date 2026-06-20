@@ -1,0 +1,73 @@
+id: astrbot-bot-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.services.config_service.BotConfigService.create_bot
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - route_handler
+  - cross_file
+notes: >
+  Dashboard route-to-service caller case with two API wrappers and one
+  service-level dashboard payload wrapper. The downstream platform load call
+  inside create_bot is outside upstream max_depth 1.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/services/config_service.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.services.config_service.BotConfigService.create_bot
+        - astrbot.dashboard.services.config_service.BotConfigService.create_bot_from_dashboard_payload
+      reason: Defines the target service method and a wrapper caller.
+    - path: astrbot/dashboard/api/bots.py
+      role: direct_caller
+      symbols:
+        - astrbot.dashboard.api.bots.create_bot
+        - astrbot.dashboard.api.bots.create_dashboard_alias_platform
+      reason: API endpoints call the service method directly.
+    - path: astrbot/core/platform/manager.py
+      role: distractor
+      symbols:
+        - astrbot.core.platform.manager.PlatformManager.load_platform
+      reason: create_bot calls this downstream method, but it is not a caller of create_bot.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.api.bots.create_bot
+      callee: astrbot.dashboard.services.config_service.BotConfigService.create_bot
+      file: astrbot/dashboard/api/bots.py
+      line: 81
+      evidence: "await service.create_bot(payload.to_dashboard_config())"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.api.bots.create_dashboard_alias_platform
+      callee: astrbot.dashboard.services.config_service.BotConfigService.create_bot
+      file: astrbot/dashboard/api/bots.py
+      line: 210
+      evidence: "await service.create_bot(payload.to_dashboard_config())"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.config_service.BotConfigService.create_bot_from_dashboard_payload
+      callee: astrbot.dashboard.services.config_service.BotConfigService.create_bot
+      file: astrbot/dashboard/services/config_service.py
+      line: 1226
+      evidence: "await self.create_bot(payload)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.services.config_service.BotConfigService.create_bot
+      callee: astrbot.core.platform.manager.PlatformManager.load_platform
+      file: astrbot/dashboard/services/config_service.py
+      line: 1189
+      reason: This is a downstream callee of create_bot, not an upstream caller of create_bot.
+      evidence: "await self.core_lifecycle.platform_manager.load_platform(config)"
+  runtime_only_edges: []
