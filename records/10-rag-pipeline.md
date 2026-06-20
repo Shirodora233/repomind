@@ -78,3 +78,9 @@
   - 输出目录默认 `runs/rag-context-runs/<timestamp>`，包含 `run_config.json`、`version_manifest.json`、`timing.json`、`context_pack_snapshot.json`、逐 case prompt 与 context pack case metadata。
   - 更新 `configs/experiments/rag-v1.yaml`，记录 `rag_context_runner` 入口。该 runner 目标是 RAG-only 单策略运行，不包含 PE prompt 变体。
   - 验证命令：`python -m py_compile scripts/run_rag_context.py`；`python scripts/run_rag_context.py --help`；`python scripts/run_rag_context.py --provider dry-run --context-pack runs/rag-context/rag-v1-context-pack-smoke-20260621 --case-id scrapy-signal-004 --case-id astrbot-hook-001 --out-dir runs/rag-context-runs/rag-v1-context-run-dry-smoke-20260621`。Dry-run 写出 2 个 prompt，不生成 prediction/score，不调用模型。
+- 2026-06-21：完成 RAG-only DeepSeek 2-case smoke，正式报告见 `reports/rag/batches/rag-v1-rag-context-deepseek-smoke-20260621.md`。
+  - Run path：`runs/rag-context-runs/rag-v1-deepseek-smoke-20260621`。
+  - 模型配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter routing `provider.only=["deepseek"]`、`allow_fallbacks=false`，reasoning `effort=none` / `exclude=true`。
+  - 总指标：Precision 0.937500、Recall 0.833333、Evidence Accuracy 1.000000；总成本约 0.013078275 USD，wall-clock 17.428 秒。
+  - 分 case：`astrbot-hook-001` 达到 P/R/E=1.0；`scrapy-signal-004` 为 Precision 0.875000、Recall 0.700000、Evidence 1.0，漏掉 3 个 `ExecutionEngine` caller，并多返回 `_next_request_from_scheduler`。
+  - 结论：RAG-only 闭环已可运行；主要瓶颈从检索覆盖转移到 dense fan-in caller 的生成整合与去重。进入 PE+RAG 或完整消融前，应先跑小规模 RAG-only pilot。
