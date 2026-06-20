@@ -53,3 +53,10 @@
   - `bm25_only`：MRR 0.489216，Recall@10 0.788725，EvidenceFileRecall@10 0.782353，DefinitionAccuracy@10 0.750000。
   - `keyword`：MRR 0.913725，Recall@10 0.982353，EvidenceFileRecall@10 0.970588，DefinitionAccuracy@10 1.000000。
   - 初步结论：当前 `keyword` lexical baseline 明显优于 `bm25_only`，但 `scrapy-signal-004` 等大 fan-in caller 仍暴露 top-k 覆盖不足。下一步应先做 multi-query candidate collection，再接入 Qwen3 / Jina / BGE dense embedding 对比。
+- 2026-06-21：实现 RAG lexical multi-query candidate collection，正式报告草稿见 `reports/rag/batches/rag-v1-keyword-multiquery-pilot-20-20260621.md`。
+  - 修改 `scripts/rag_common.py` 与 `scripts/rag_retrieve.py`，新增 `keyword_multiquery` variant 和 `--multi-query` flag；每个 case 生成 `case_base`、`target_fqn`、`target_tail`、`module_path`、方向 hint query，`find_callers` 额外生成 `caller_method_pattern`，用 target tail、`.tail(`、`signals.tail(` 等模式补强 caller fan-in。
+  - 多 query 候选按 `chunk_id` 去重合并，保留 best score，并在结果中记录 `best_query`、`query_count`、`matched_queries` metadata；caller multi-query 最终 top-k 增加轻量 file diversity，避免同一文件重叠 chunk 挤占大 fan-in caller 文件覆盖。
+  - 更新 `configs/experiments/rag-v1.yaml`，将 `keyword_multiquery` 纳入 lexical/retrieval variants，并记录默认 `per_query_top_k=50`。
+  - Smoke 对照：`scrapy-signal-004` 单 case `keyword` 的 Recall@10 / EvidenceFileRecall@10 / EvidenceLineRecall@10 为 0.700 / 0.500 / 0.400；`keyword_multiquery` 提升到 1.000 / 1.000 / 0.800，MRR 从 0.333333 提升到 1.000000，DefinitionAccuracy@10 保持 1.000。
+  - Pilot 20 对照：`keyword_multiquery` 的 Recall@10=1.000000、EvidenceFileRecall@10=1.000000、EvidenceLineRecall@10=0.936765，优于上一轮 `keyword` 的 0.982353 / 0.970588 / 0.842157；代价是 MRR 从 0.913725 降到 0.847059，DefinitionMRR 从 0.922500 降到 0.757143，DefinitionAccuracy@5 从 1.000000 降到 0.900000。下一步如果作为默认 RAG lexical baseline，应在 context pack 层补 target definition 保底或做 query-type 权重校准。
+  - Run paths：`runs/rag-retrieval/rag-v1-pilot-20-keyword-multiquery-20260621`，`runs/rag-retrieval-eval/rag-v1-pilot-20-keyword-multiquery-20260621-pilot-only`。本轮没有启动 embedding/GPU，也没有运行 E2E 模型。

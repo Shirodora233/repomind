@@ -46,6 +46,18 @@ retrieval:
   lexical_variants:
     - bm25_only
     - keyword
+    - keyword_multiquery
+  multi_query:
+    enabled_variant: keyword_multiquery
+    default_per_query_top_k: 50
+    query_types:
+      - case_base
+      - target_fqn
+      - target_tail
+      - module_path
+      - caller_direction
+      - caller_method_pattern
+      - callee_direction
   dense_variants_status: placeholder_interface_only
   default_top_k: 10
   repo_filter: case_repo_only
@@ -86,6 +98,7 @@ embedding_candidates:
 retrieval_variants:
   - bm25_only
   - keyword
+  - keyword_multiquery
   - qwen3_dense
   - jina_code_dense
   - bge_m3_dense

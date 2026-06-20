@@ -371,7 +371,12 @@ class BM25Index:
         }
 
 
-def keyword_score(chunk: dict[str, Any], terms: list[str], symbols: list[str]) -> float:
+def keyword_score(
+    chunk: dict[str, Any],
+    terms: list[str],
+    symbols: list[str],
+    patterns: list[str] | None = None,
+) -> float:
     text = str(chunk.get("text", ""))
     text_lower = text.lower()
     chunk_terms = set(chunk.get("lexical_terms") or tokenize(text))
@@ -393,29 +398,180 @@ def keyword_score(chunk: dict[str, Any], terms: list[str], symbols: list[str]) -
             tail = symbol.split(".")[-1]
             if tail and re.search(rf"\b{re.escape(tail)}\b", text):
                 score += 1.5
+    for pattern in patterns or []:
+        if not pattern:
+            continue
+        count = text.count(pattern)
+        if count:
+            score += 5.0 * min(count, 4)
+            continue
+        lower_count = text_lower.count(pattern.lower())
+        if lower_count:
+            score += 2.0 * min(lower_count, 4)
     return score
 
 
 def build_case_query(case: dict[str, Any]) -> dict[str, Any]:
+    return build_case_queries(case)[0]
+
+
+def build_case_queries(case: dict[str, Any]) -> list[dict[str, Any]]:
     target = str(case.get("target") or "")
+    target_type = str(case.get("target_type") or "")
+    task_type = str(case.get("task_type") or "")
+    direction = str(case.get("direction") or "")
     target_parts = split_identifier(target)
-    query_text = " ".join(
-        str(value)
-        for value in [
-            case.get("task_type"),
-            case.get("direction"),
-            case.get("target_type"),
-            target,
-            " ".join(target_parts),
-            " ".join(str(item) for item in case.get("features", []) or []),
-        ]
-        if value
-    )
-    symbols = [target]
-    dotted_prefixes = target.split(".")
-    if len(dotted_prefixes) > 1:
-        symbols.append(".".join(dotted_prefixes[:-1]))
-    return {"text": query_text, "terms": query_terms(query_text), "symbols": list(dict.fromkeys(symbols))}
+    target_tail = target.split(".")[-1] if target else ""
+    target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
+    module_symbol, module_path = target_module_hints(target, target_type)
+    feature_text = " ".join(str(item) for item in case.get("features", []) or [])
+    base_symbols = [target, target_parent]
+
+    queries = [
+        make_query(
+            "case_base",
+            [
+                task_type,
+                direction,
+                target_type,
+                target,
+                " ".join(target_parts),
+                feature_text,
+            ],
+            symbols=base_symbols,
+        )
+    ]
+
+    if target:
+        queries.append(
+            make_query(
+                "target_fqn",
+                [target, " ".join(target_parts)],
+                symbols=base_symbols,
+            )
+        )
+
+    if target_tail:
+        queries.append(
+            make_query(
+                "target_tail",
+                [target_tail, " ".join(split_identifier(target_tail)), target_type],
+                symbols=[target_tail],
+                patterns=[f"{target_tail}("],
+            )
+        )
+
+    if module_symbol or module_path:
+        queries.append(
+            make_query(
+                "module_path",
+                [module_symbol, module_path, module_path.replace("/", " ")],
+                symbols=[module_symbol],
+            )
+        )
+
+    if task_type == "find_callers" or direction == "upstream":
+        queries.append(
+            make_query(
+                "caller_direction",
+                [
+                    "find callers upstream caller callsite invokes target callee receiver",
+                    target_tail,
+                    " ".join(split_identifier(target_tail)),
+                ],
+                symbols=[target_tail],
+            )
+        )
+        if target_tail:
+            queries.append(
+                make_query(
+                    "caller_method_pattern",
+                    [
+                        target_tail,
+                        " ".join(split_identifier(target_tail)),
+                        f".{target_tail}(",
+                        f"signals.{target_tail}(",
+                    ],
+                    symbols=[
+                        target_tail,
+                        f"self.{target_tail}",
+                        f"signals.{target_tail}",
+                        f"self.signals.{target_tail}",
+                        f"crawler.signals.{target_tail}",
+                        f"self.crawler.signals.{target_tail}",
+                    ],
+                    patterns=[
+                        f"{target_tail}(",
+                        f".{target_tail}(",
+                        f"signals.{target_tail}(",
+                    ],
+                )
+            )
+    elif task_type == "find_callees" or direction == "downstream":
+        queries.append(
+            make_query(
+                "callee_direction",
+                [
+                    "find callees downstream callee calls from target definition",
+                    target_tail,
+                    " ".join(split_identifier(target_tail)),
+                ],
+                symbols=base_symbols,
+            )
+        )
+
+    return dedupe_queries(queries)
+
+
+def make_query(
+    label: str,
+    text_parts: list[str],
+    *,
+    symbols: list[str] | None = None,
+    patterns: list[str] | None = None,
+) -> dict[str, Any]:
+    query_text = " ".join(str(value) for value in text_parts if value)
+    return {
+        "label": label,
+        "text": query_text,
+        "terms": query_terms(query_text),
+        "symbols": list(dict.fromkeys(symbol for symbol in symbols or [] if symbol)),
+        "patterns": list(dict.fromkeys(pattern for pattern in patterns or [] if pattern)),
+    }
+
+
+def dedupe_queries(queries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    seen: set[tuple[str, tuple[str, ...], tuple[str, ...], tuple[str, ...]]] = set()
+    for query in queries:
+        key = (
+            str(query.get("text") or ""),
+            tuple(query.get("terms") or []),
+            tuple(query.get("symbols") or []),
+            tuple(query.get("patterns") or []),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(query)
+    return selected
+
+
+def target_module_hints(target: str, target_type: str) -> tuple[str, str]:
+    parts = [part for part in target.split(".") if part]
+    if not parts:
+        return "", ""
+    if target_type == "method" and len(parts) > 2:
+        module_parts = parts[:-2]
+    elif target_type == "class" and len(parts) > 1:
+        module_parts = parts[:-1]
+    elif len(parts) > 1:
+        module_parts = parts[:-1]
+    else:
+        module_parts = []
+    module_symbol = ".".join(module_parts)
+    module_path = "/".join(module_parts) + ".py" if module_parts else ""
+    return module_symbol, module_path
 
 
 EMBEDDING_PROVIDER_REGISTRY = {
@@ -498,6 +654,9 @@ def result_public_view(result: dict[str, Any]) -> dict[str, Any]:
         "bm25_score": result.get("bm25_score"),
         "keyword_score": result.get("keyword_score"),
         "embedding_score": result.get("embedding_score"),
+        "best_query": result.get("best_query"),
+        "query_count": result.get("query_count"),
+        "matched_queries": result.get("matched_queries", [])[:5],
         "symbols": result.get("symbols", [])[:20],
         "lexical_terms": result.get("lexical_terms", [])[:30],
         "text_preview": result.get("text_preview", ""),
