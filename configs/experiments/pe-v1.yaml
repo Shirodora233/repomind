@@ -1,6 +1,6 @@
 version: pe-v1
 stage: prompt_engineering
-status: planned
+status: scaffolded_not_run
 
 baseline_reference:
   dataset: call-chain-v1
@@ -14,16 +14,55 @@ optimization_dimensions:
   system_prompt:
     id: S
     goal: clarify role, symbol-level edge definition, direction, output schema, and exclusion rules
+    template: prompts/pe/system-v1.md
   few_shot:
     id: F
     minimum_examples: 20
     goal: cover caller/callee, negative, callback, constructor, object-method, large fan-in, and framework cases
+    example_library: prompts/pe/few-shot-examples-v1.yaml
   reasoning_checklist:
     id: C
     goal: use an evidence-first verification checklist without requiring verbose chain-of-thought output
+    template: prompts/pe/reasoning-checklist-v1.md
   postprocess:
     id: P
     goal: deterministic filtering, sorting, de-duplication, depth checks, and canonical symbol cleanup without golden leakage
+    script: scripts/pe_postprocess.py
+
+prompt_assets:
+  system: prompts/pe/system-v1.md
+  few_shot_examples: prompts/pe/few-shot-examples-v1.yaml
+  reasoning_checklist: prompts/pe/reasoning-checklist-v1.md
+  final_task_format: prompts/pe/final-task-format-v1.md
+  oracle_runnable_template: prompts/pe/oracle-context-pe-v1.md
+  e2e_runnable_template: prompts/pe/e2e-task-pe-v1.md
+  e2e_system_prompt: prompts/pe/e2e-agent-system-pe-v1.md
+
+postprocess:
+  script: scripts/pe_postprocess.py
+  golden_answer_access: forbidden
+  default_policy:
+    scope: repo_only
+    include_tests: false
+    external_deps: exclude
+  operations:
+    - strip_empty_fields
+    - normalize_symbol_call_suffixes
+    - constructor_expression_cleanup
+    - filter_tests_when_excluded
+    - filter_external_paths_when_excluded
+    - filter_non_repo_paths_for_repo_only_scope
+    - remove_exact_duplicates
+    - collapse_symbol_duplicates
+    - sort_by_caller_callee_file_line
+  cli_examples:
+    dry_run_single_file: python scripts/pe_postprocess.py --input runs/example/case/prediction.yaml --dry-run
+    write_single_file: python scripts/pe_postprocess.py --input runs/example/case/prediction.yaml --output runs/example/case/prediction.pe.yaml
+
+runner_usage:
+  oracle_prompt_arg: --prompt prompts/pe/oracle-context-pe-v1.md --prompt-version oracle-context-pe-v1
+  e2e_prompt_args: --prompt prompts/pe/e2e-task-pe-v1.md --system-prompt prompts/pe/e2e-agent-system-pe-v1.md --task-prompt-version e2e-task-pe-v1 --system-prompt-version e2e-agent-system-pe-v1
+  note: PE v1 scaffold is runnable, but no large-scale real-model PE pilot has been run yet.
 
 pilot:
   matrix: full_factorial_2x2x2x2
