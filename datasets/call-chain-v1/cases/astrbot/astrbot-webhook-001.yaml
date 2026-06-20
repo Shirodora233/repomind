@@ -1,0 +1,77 @@
+id: astrbot-webhook-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - callback
+  - cross_file
+notes: >
+  Webhook callback case. Static helper calls should be required, while the
+  event callback target is only inferable from adapter setup.
+oracle_context:
+  files:
+    - path: astrbot/core/platform/sources/lark/server.py
+      role: target_definition
+      symbols:
+        - astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+        - astrbot.core.platform.sources.lark.server.LarkWebhookServer.verify_signature
+        - astrbot.core.platform.sources.lark.server.LarkWebhookServer.decrypt_event
+        - astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_challenge
+        - astrbot.core.platform.sources.lark.server.LarkWebhookServer.set_callback
+      reason: Contains the target, static helper callees, and callback setter distractor.
+    - path: astrbot/core/platform/sources/lark/lark_adapter.py
+      role: registry
+      symbols:
+        - astrbot.core.platform.sources.lark.lark_adapter.LarkPlatformAdapter.__init__
+        - astrbot.core.platform.sources.lark.lark_adapter.LarkPlatformAdapter.handle_webhook_event
+      reason: Shows the optional runtime callback registration used in webhook mode.
+golden:
+  required_edges:
+    - caller: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+      callee: astrbot.core.platform.sources.lark.server.LarkWebhookServer.verify_signature
+      file: astrbot/core/platform/sources/lark/server.py
+      line: 160
+      evidence: "if not self.verify_signature("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+      callee: astrbot.core.platform.sources.lark.server.LarkWebhookServer.decrypt_event
+      file: astrbot/core/platform/sources/lark/server.py
+      line: 169
+      evidence: "event_data = self.decrypt_event(event_data[\"encrypt\"])"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+      callee: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_challenge
+      file: astrbot/core/platform/sources/lark/server.py
+      line: 188
+      evidence: "return await self.handle_challenge(event_data)"
+      confidence_type: static_confirmed
+  optional_edges:
+    - caller: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+      callee: astrbot.core.platform.sources.lark.lark_adapter.LarkPlatformAdapter.handle_webhook_event
+      file: astrbot/core/platform/sources/lark/server.py
+      line: 193
+      evidence: "await self.callback(event_data)"
+      confidence_type: dynamic_possible
+      notes: "The concrete callback is registered by LarkPlatformAdapter.__init__ when webhook mode is enabled."
+  excluded_edges:
+    - caller: astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback
+      callee: astrbot.core.platform.sources.lark.server.LarkWebhookServer.set_callback
+      file: astrbot/core/platform/sources/lark/lark_adapter.py
+      line: 94
+      reason: set_callback is used during adapter initialization; handle_callback invokes the stored callback and does not call set_callback.
+      evidence: "self.webhook_server.set_callback(self.handle_webhook_event)"
+  runtime_only_edges: []

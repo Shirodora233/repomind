@@ -1,0 +1,83 @@
+id: astrbot-star-003
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.star.register.star_handler.get_handler_or_create
+target_type: function
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - cross_file
+  - registry
+  - plugin
+  - constructor
+notes: >
+  Handler metadata registration case. It stresses canonical symbols across the
+  register package and the core star_handler registry module.
+oracle_context:
+  files:
+    - path: astrbot/core/star/register/star_handler.py
+      role: target_definition
+      symbols:
+        - astrbot.core.star.register.star_handler.get_handler_or_create
+        - astrbot.core.star.register.star_handler.get_handler_full_name
+        - astrbot.core.star.register.star_handler.register_command
+      reason: Contains the target, local helper, and decorator caller distractor.
+    - path: astrbot/core/star/star_handler.py
+      role: registry
+      symbols:
+        - astrbot.core.star.star_handler.StarHandlerRegistry.get_handler_by_full_name
+        - astrbot.core.star.star_handler.StarHandlerRegistry.append
+        - astrbot.core.star.star_handler.StarHandlerMetadata
+        - astrbot.core.star.star_handler.StarHandlerRegistry.get_handlers_by_event_type
+      reason: Defines the registry methods and metadata class used by the target.
+golden:
+  required_edges:
+    - caller: astrbot.core.star.register.star_handler.get_handler_or_create
+      callee: astrbot.core.star.register.star_handler.get_handler_full_name
+      file: astrbot/core/star/register/star_handler.py
+      line: 49
+      evidence: "handler_full_name = get_handler_full_name(handler)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.star.register.star_handler.get_handler_or_create
+      callee: astrbot.core.star.star_handler.StarHandlerRegistry.get_handler_by_full_name
+      file: astrbot/core/star/register/star_handler.py
+      line: 50
+      evidence: "md = star_handlers_registry.get_handler_by_full_name(handler_full_name)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.star.register.star_handler.get_handler_or_create
+      callee: astrbot.core.star.star_handler.StarHandlerMetadata
+      file: astrbot/core/star/register/star_handler.py
+      line: 53
+      evidence: "md = StarHandlerMetadata("
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: astrbot.core.star.register.star_handler.get_handler_or_create
+      callee: astrbot.core.star.star_handler.StarHandlerRegistry.append
+      file: astrbot/core/star/register/star_handler.py
+      line: 71
+      evidence: "star_handlers_registry.append(md)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.star.register.star_handler.get_handler_or_create
+      callee: astrbot.core.star.star_handler.StarHandlerRegistry.get_handlers_by_event_type
+      file: astrbot/core/star/register/star_handler.py
+      line: 50
+      reason: The target reads by full handler name; event-type lookup is used by dispatch code, not this function.
+      evidence: "md = star_handlers_registry.get_handler_by_full_name(handler_full_name)"
+    - caller: astrbot.core.star.register.star_handler.register_command.decorator
+      callee: astrbot.core.star.register.star_handler.get_handler_or_create
+      file: astrbot/core/star/register/star_handler.py
+      line: 113
+      reason: register_command.decorator calls the target; this is an upstream caller edge, not a callee of the target.
+      evidence: "handler_md = get_handler_or_create("
+  runtime_only_edges: []

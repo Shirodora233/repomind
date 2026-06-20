@@ -1,0 +1,73 @@
+id: astrbot-tools-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - same_name_distractor
+  - registry
+notes: >
+  Function tool registration case. It stresses same-name add_func/remove_func
+  distractors in the agent ToolSet module and max_depth=1 around spec_to_func.
+oracle_context:
+  files:
+    - path: astrbot/core/provider/func_tool_manager.py
+      role: target_definition
+      symbols:
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+        - astrbot.core.provider.func_tool_manager.FunctionToolManager.spec_to_func
+      reason: Contains the target and direct helper callees.
+    - path: astrbot/core/agent/tool.py
+      role: distractor
+      symbols:
+        - astrbot.core.agent.tool.ToolSet.add_func
+        - astrbot.core.agent.tool.ToolSet.remove_func
+      reason: Contains deprecated same-name methods that should not be confused with FunctionToolManager methods.
+golden:
+  required_edges:
+    - caller: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.remove_func
+      file: astrbot/core/provider/func_tool_manager.py
+      line: 376
+      evidence: "self.remove_func(name)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      callee: astrbot.core.provider.func_tool_manager.FunctionToolManager.spec_to_func
+      file: astrbot/core/provider/func_tool_manager.py
+      line: 379
+      evidence: "self.spec_to_func("
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      callee: astrbot.core.agent.tool.ToolSet.add_func
+      file: astrbot/core/agent/tool.py
+      line: 163
+      reason: ToolSet.add_func is a same-name method in a different class and is not called by FunctionToolManager.add_func.
+      evidence: "def add_func("
+    - caller: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      callee: astrbot.core.agent.tool.ToolSet.remove_func
+      file: astrbot/core/agent/tool.py
+      line: 189
+      reason: ToolSet.remove_func is a same-name distractor; the target calls FunctionToolManager.remove_func instead.
+      evidence: "def remove_func(self, name: str) -> None:"
+    - caller: astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func
+      callee: astrbot.core.agent.tool.FunctionTool
+      file: astrbot/core/provider/func_tool_manager.py
+      line: 354
+      reason: FunctionTool construction occurs inside spec_to_func, so it is depth 2 from add_func when max_depth is 1.
+      evidence: "return FuncTool("
+  runtime_only_edges: []

@@ -1,0 +1,62 @@
+id: astrbot-negative-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.star.context.Context.register_web_api
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - negative_case
+  - same_name_distractor
+  - class_method
+  - route_handler
+notes: >
+  Negative no-caller case. At the pinned commit, register_web_api has no
+  non-test repo caller; route registration helpers elsewhere are distractors.
+oracle_context:
+  files:
+    - path: astrbot/core/star/context.py
+      role: target_definition
+      symbols:
+        - astrbot.core.star.context.Context.register_web_api
+        - astrbot.core.star.context.Context.register_llm_tool
+      reason: Contains the target method and nearby registration API distractors.
+    - path: astrbot/dashboard/asgi_runtime.py
+      role: distractor
+      symbols:
+        - astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+      reason: Contains dashboard route registration logic that is not a caller of Context.register_web_api.
+  notes: >
+    Repo search for register_web_api finds only the method definition at this
+    commit. Correct output should contain no required caller edges.
+golden:
+  required_edges: []
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+      callee: astrbot.core.star.context.Context.register_web_api
+      file: astrbot/dashboard/asgi_runtime.py
+      line: 666
+      reason: add_url_rule registers routes on FastAPI; it does not call Context.register_web_api.
+      evidence: "self._app.add_api_route("
+    - caller: astrbot.core.star.context.Context.register_llm_tool
+      callee: astrbot.core.star.context.Context.register_web_api
+      file: astrbot/core/star/context.py
+      line: 686
+      reason: register_llm_tool calls the LLM tool manager add_func API, not register_web_api.
+      evidence: "self.provider_manager.llm_tools.add_func(name, func_args, desc, func_obj)"
+    - caller: astrbot.core.star.context.Context.register_web_api
+      callee: builtins.list.append
+      file: astrbot/core/star/context.py
+      line: 590
+      reason: This is an internal list mutation inside the target, not an upstream caller of register_web_api.
+      evidence: "self.registered_web_apis.append((route, view_handler, methods, desc))"
+  runtime_only_edges: []

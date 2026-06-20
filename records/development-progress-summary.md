@@ -17,6 +17,8 @@
 | 2026-06-20 | 在线模型 baseline 扩展与 base 10 复核 | 新增 OpenAI GPT-5.5 no-reasoning alias；完成 `openai/gpt-5.5` 与 `tencent/hy3-preview` 的 10-case Oracle / E2E baseline；生成 base 10 多模型综合分析报告。 | `adc7964 docs(reports): add online baseline analysis` | `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md` |
 | 2026-06-20 | AstrBot case 第二批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 10 扩到 20；覆盖 chat route/service、session callback、conversation 对象方法、provider 状态切换、Telegram registry、optional dynamic caller。 | `d1d577b chore(dataset): expand AstrBot call-chain cases` | `records/02-test-case-construction.md` |
 | 2026-06-20 | 新增 10-case 三模型复测 | 仅对第二批新增 10 个 case 运行 DeepSeek、Tencent HY3、Gemma4 的 Oracle 与 E2E；确认新增 case 能继续拉开模型差距，并暴露 E2E 检索后边界判断问题。 | 未提交 | `reports/baseline/new-10-case-model-comparison-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
+| 2026-06-20 | 共同缺陷分类与第三批候选 | 基于当前 20 case 多模型结果整理 failure taxonomy，并继续在 AstrBot 中筛选第三批候选；候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller。 | 未提交 | `reports/baseline/failure-taxonomy-v0-20260620.md`、`records/02-test-case-construction.md` |
+| 2026-06-20 | AstrBot case 第三批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 20 扩到 30；覆盖 plugin hook、handler registry、webhook callback、queue listener、platform dynamic import、ASGI route wrapper、no-caller negative 和 function tool registry，并通过 validator / mock-golden Oracle / mock-golden E2E。 | 未提交 | `datasets/call-chain-v1/cases/astrbot/`、`records/02-test-case-construction.md` |
 
 ## 最近完成
 
@@ -41,10 +43,13 @@
 - 已完成第二批 AstrBot case 扩展，当前共有 20 个正式 YAML case，并已通过 schema、mock-golden Oracle 和 mock-golden E2E 验证。
 - 已提交第二批 case 扩展：`d1d577b chore(dataset): expand AstrBot call-chain cases`。
 - 已完成新增 10-case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式报告。
+- 已整理调用链 baseline 共同缺陷分类，并筛选第三批 AstrBot 候选池，暂不引入第二真实仓库。
+- 已完成第三批 AstrBot case 扩展，当前共有 30 个正式 YAML case，并已通过 schema、mock-golden Oracle 和 mock-golden E2E 验证。
 
 ## 待推进
 
-- 提交新增 10-case 三模型复测报告和阶段记录。
+- 提交新增 10-case 三模型复测报告、共同缺陷分类报告、第三批候选记录和第三批 YAML case。
+- 对第三批新增 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 Oracle / E2E 复测，并生成对比报告。
 - 人工复核 `astrbot-chat-003` 的 E2E trace，确认 DeepSeek 在 hard service-chain case 上低 recall 的具体原因。
 - 继续按每批约 10 个 case 扩展测试集，逐步扩展到 50+ case。
 - 下一批新增 case 应优先补充 `find_callers`、negative callers、动态 dispatch、插件机制、框架 callback、runtime-only 边界，并开始评估第二个真实仓库来源。

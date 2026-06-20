@@ -19,6 +19,8 @@
 - 已完成 AstrBot 首批 12 个 pilot case 候选筛选。
 - 已从候选中选出 10 个进入正式 YAML case 标注，并完成首版 golden answer。
 - 已完成第二批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 20 个正式 YAML case。
+- 已基于前 20 个 case 的失败模式形成第三批 AstrBot 候选池，候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller 等共同缺陷。
+- 已完成第三批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 30 个正式 YAML case。
 
 ## 阶段进展记录
 
@@ -55,6 +57,43 @@
 - 验证：执行 `python scripts\validate_cases.py`，20 个 case 全部通过 schema 校验。
 - 验证：执行 `python scripts\run_oracle_context.py --provider mock-golden --out-dir tmp\oracle-mock-20-case`，20 个 case 的 mock-golden Oracle 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0。
 - 验证：执行 `python scripts\run_e2e_agent.py --provider mock-golden --out-dir tmp\e2e-mock-20-case`，20 个 case 的 mock-golden E2E 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0；工具指标为 tool_calls=67、files_read=27。
+
+### 2026-06-20 第三批候选筛选
+
+- 决策：第三批暂时继续使用 AstrBot，保持与前两批 case 的可比性；第二真实仓库延后到 AstrBot 诊断覆盖更稳定之后。
+- 依据：参考 `reports/baseline/failure-taxonomy-v0-20260620.md`，第三批候选优先覆盖前 20 case 暴露的共同缺陷，而不是随机增加数量。
+- 候选：筛选出 14 个 AstrBot 候选，其中 10 个建议优先进入 YAML golden 标注，4 个作为备选或 challenge。
+
+| 候选 ID | 目标 symbol | 任务 | 难度 | 主要文件 | 覆盖缺陷 | 选择理由 |
+| --- | --- | --- | --- | --- | --- | --- |
+| astrbot-star-001 | `astrbot.core.pipeline.context_utils.call_event_hook` | `find_callees` | hard | `astrbot/core/pipeline/context_utils.py:75` | F3/F4/F5 | 读取 handler registry 后动态调用 `handler.handler(...)`，适合标注 required registry edge + optional dynamic callback。 |
+| astrbot-star-002 | `astrbot.core.pipeline.context_utils.call_handler` | `find_callees` | hard | `astrbot/core/pipeline/context_utils.py:12` | F3/F4/F7 | 同时处理 coroutine 与 async generator，包含 `event.set_result` 与动态 handler 调用，能测对象方法和异步生成器边界。 |
+| astrbot-star-003 | `astrbot.core.star.register.star_handler.get_handler_or_create` | `find_callees` | medium | `astrbot/core/star/register/star_handler.py:38` | F1/F5 | 明确调用 `get_handler_full_name`、registry 查询、`StarHandlerMetadata` 构造和 registry append，适合测 registry read vs call。 |
+| astrbot-star-004 | `astrbot.core.star.register.star_handler.register_command` | `find_callees` | hard | `astrbot/core/star/register/star_handler.py:75` | F2/F4/F5 | decorator 工厂，包含创建 `CommandFilter`、子命令注册和内部 `decorator` 函数；适合 challenge，但 golden 需要谨慎区分“定义内部函数”和“运行时执行 decorator”。 |
+| astrbot-webhook-001 | `astrbot.core.platform.sources.lark.server.LarkWebhookServer.handle_callback` | `find_callees` | hard | `astrbot/core/platform/sources/lark/server.py:131` | F2/F4/F5 | 包含签名校验、解密、challenge 分支和 optional `self.callback(event_data)`，很适合动态 callback 分级标注。 |
+| astrbot-webhook-002 | `astrbot.core.platform.sources.lark.lark_adapter.LarkPlatformAdapter.__init__` | `find_callees` | medium | `astrbot/core/platform/sources/lark/lark_adapter.py:42` | F3/F4 | 初始化时把 `self.handle_webhook_event` 注册到 webhook server，能测 callback registration 与真实调用边的区别。 |
+| astrbot-webchat-001 | `astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._start_listener_if_needed` | `find_callees` | medium | `astrbot/core/platform/sources/webchat/webchat_queue_mgr.py:107` | F2/F4 | 通过 `asyncio.create_task(self._listen_to_queue(...))` 启动监听，适合测外部 async API 与 repo 内方法调用边界。 |
+| astrbot-webchat-002 | `astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._listen_to_queue` | `find_callees` | hard | `astrbot/core/platform/sources/webchat/webchat_queue_mgr.py:128` | F3/F4 | 循环中等待 queue/close event，并 optional 调用 `_listener_callback(data)`，适合 runtime callback 边界。 |
+| astrbot-platform-002 | `astrbot.core.platform.manager.PlatformManager.load_platform` | `find_callees` | hard | `astrbot/core/platform/manager.py:102` | F1/F4/F5 | 包含 dynamic import、`platform_cls_map` 实例化、平台任务启动和 `OnPlatformLoadedEvent` handler 调用，适合综合压力测试。 |
+| astrbot-platform-003 | `astrbot.core.platform.manager.PlatformManager.reload` | `find_callees` | medium | `astrbot/core/platform/manager.py:256` | F2/F3 | 直接调用 `terminate_platform` 和 `load_platform`，适合 medium 级 depth=1 裁剪与同类 manager 方法识别。 |
+| astrbot-asgi-001 | `astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule` | `find_callees` | hard | `astrbot/dashboard/asgi_runtime.py:652` | F2/F4/F5 | route wrapper 生成内部 endpoint，并调用 `_convert_rule`、`_call_view`，可测试框架 callback、nested function 和 external FastAPI API 过滤。 |
+| astrbot-tools-001 | `astrbot.core.provider.func_tool_manager.FunctionToolManager.add_func` | `find_callees` | medium | `astrbot/core/provider/func_tool_manager.py:361` | F1/F3 | 对已有 tool 调 `remove_func`，再通过 `spec_to_func` 生成工具对象，适合对象方法与 tool registry 语义。 |
+| astrbot-negative-001 | `astrbot.core.star.context.Context.register_web_api` | `find_callers` | negative | `astrbot/core/star/context.py:568` | F5/F6 | repo 内未发现直接 caller；真实调用更可能来自外部插件运行时，适合作为 runtime-only / no repo caller 边界。 |
+| astrbot-negative-002 | `astrbot.core.conversation_mgr.ConversationManager.add_message_pair` | `find_callers` | negative | `astrbot/core/conversation_mgr.py:332` | F5/F6 | 早期候选保留项；后续发现已由 `astrbot-conversation-001` 覆盖，第三批不重复纳入。 |
+
+- 优先进入第三批 YAML 的建议：`astrbot-star-001`、`astrbot-star-003`、`astrbot-webhook-001`、`astrbot-webhook-002`、`astrbot-webchat-001`、`astrbot-platform-002`、`astrbot-platform-003`、`astrbot-asgi-001`、`astrbot-negative-001`、`astrbot-tools-001`。
+- 备选或 challenge：`astrbot-star-002`、`astrbot-star-004`、`astrbot-webchat-002`、`astrbot-negative-002`。`astrbot-negative-002` 已由既有 case 覆盖，不进入第三批；`astrbot-star-004` 和 `astrbot-webchat-002` 的动态边界更强，适合在第三批 golden 稳定后再决定是否纳入后续批次。
+
+### 2026-06-20 第三批 YAML golden 标注
+
+- 实现：新增 10 个 AstrBot 正式 YAML case，当前 v1 AstrBot case 从 20 个扩展到 30 个。
+- 新增 case：`astrbot-star-001`、`astrbot-star-003`、`astrbot-webhook-001`、`astrbot-webhook-002`、`astrbot-webchat-001`、`astrbot-platform-002`、`astrbot-platform-003`、`astrbot-asgi-001`、`astrbot-negative-001`、`astrbot-tools-001`。
+- 覆盖：新增 plugin hook dispatch、handler registry、Lark webhook callback、callback registration、WebChat queue listener、platform dynamic import / registry、reload depth=1、ASGI nested route wrapper、no-caller negative、function tool registry。
+- 调整：`astrbot-negative-002` 的目标 `ConversationManager.add_message_pair` 已由 `astrbot-conversation-001` 覆盖，因此第三批用 `astrbot-tools-001` 补位，避免重复 target。
+- 标注：第三批继续使用 `required_edges` / `optional_edges` / `excluded_edges` 区分静态必答边、动态 callback / framework boundary、明确排除边；其中 `astrbot-webhook-001` 将注册得到的 webhook callback 作为 optional edge，`astrbot-asgi-001` 将 FastAPI route boundary 作为 optional external boundary。
+- 验证：执行 `python scripts\validate_cases.py`，30 个 case 全部通过 schema、oracle file、golden evidence 校验。
+- 验证：执行 `python scripts\run_oracle_context.py --provider mock-golden --case-id astrbot-star-001 --case-id astrbot-star-003 --case-id astrbot-webhook-001 --case-id astrbot-webhook-002 --case-id astrbot-webchat-001 --case-id astrbot-platform-002 --case-id astrbot-platform-003 --case-id astrbot-asgi-001 --case-id astrbot-negative-001 --case-id astrbot-tools-001 --out-dir tmp\oracle-mock-third-batch`，第三批 mock-golden Oracle 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0。
+- 验证：执行 `python scripts\run_e2e_agent.py --provider mock-golden --case-id astrbot-star-001 --case-id astrbot-star-003 --case-id astrbot-webhook-001 --case-id astrbot-webhook-002 --case-id astrbot-webchat-001 --case-id astrbot-platform-002 --case-id astrbot-platform-003 --case-id astrbot-asgi-001 --case-id astrbot-negative-001 --case-id astrbot-tools-001 --out-dir tmp\e2e-mock-third-batch`，第三批 mock-golden E2E 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0；工具指标为 tool_calls=33、files_read=13。
 
 ## Pilot case 候选
 
@@ -101,7 +140,7 @@
 - 已确认 `repos/AstrBot` 存在且 HEAD commit 可读取。
 - 已确认 `datasets/call-chain-v1/` 目录结构已创建。
 - 已确认 schema 文件为 JSON 格式，后续需要接入自动校验脚本。
-- 已确认 20 个 AstrBot YAML case 全部通过 schema 校验。
+- 已确认 30 个 AstrBot YAML case 全部通过 schema 校验。
 - 已确认新增 case 可通过 mock-golden Oracle / E2E runner 进入评分流程，说明 golden answer 结构与 scorer 兼容。
 
 ## 相关文件
@@ -132,11 +171,21 @@
 - `datasets/call-chain-v1/cases/astrbot/astrbot-chat-004.yaml`
 - `datasets/call-chain-v1/cases/astrbot/astrbot-provider-002.yaml`
 - `datasets/call-chain-v1/cases/astrbot/astrbot-telegram-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-star-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-star-003.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-webhook-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-webhook-002.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-webchat-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-platform-002.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-platform-003.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-asgi-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-negative-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-tools-001.yaml`
 - `docs/datasets/call-chain-v1.md`
 - `records/02-test-case-construction.md`
 
 ## 下一步
 
-- 对当前 20 个 YAML case 做一轮代表模型复测，优先使用 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local，判断新增 case 是否继续拉开 easy / medium / hard 与不同机制的差距。
-- 基于 20-case 复测结果，标记过易、过难、golden 不稳定或边界定义不清的 case，并决定是否修订。
+- 对第三批新增 10 个 YAML case 做一轮代表模型复测，优先使用 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local，判断新增 case 是否继续拉开 easy / medium / hard 与不同机制的差距。
+- 基于 30-case 复测结果，标记过易、过难、golden 不稳定或边界定义不清的 case，并决定是否修订。
 - 继续按每批约 10 个 case 扩展到 50+；后续批次应增加更多 `find_callers`、negative caller、runtime-only、插件注册、框架 callback 和第二真实仓库样例。

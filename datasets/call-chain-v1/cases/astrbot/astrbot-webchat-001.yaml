@@ -1,0 +1,55 @@
+id: astrbot-webchat-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._start_listener_if_needed
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - callback
+notes: >
+  Queue listener startup case. The target schedules the internal listener
+  coroutine but does not itself invoke the listener callback.
+oracle_context:
+  files:
+    - path: astrbot/core/platform/sources/webchat/webchat_queue_mgr.py
+      role: target_definition
+      symbols:
+        - astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._start_listener_if_needed
+        - astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._listen_to_queue
+        - astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr.set_listener
+      reason: Contains the target, listener coroutine, callback invocation, and upstream setter distractor.
+golden:
+  required_edges:
+    - caller: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._start_listener_if_needed
+      callee: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._listen_to_queue
+      file: astrbot/core/platform/sources/webchat/webchat_queue_mgr.py
+      line: 119
+      evidence: "self._listen_to_queue(conversation_id, queue, close_event),"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr.set_listener
+      callee: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._start_listener_if_needed
+      file: astrbot/core/platform/sources/webchat/webchat_queue_mgr.py
+      line: 92
+      reason: set_listener is an upstream caller of the target, not a callee of the target.
+      evidence: "self._start_listener_if_needed(conversation_id)"
+    - caller: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._start_listener_if_needed
+      callee: astrbot.core.platform.sources.webchat.webchat_queue_mgr.WebChatQueueMgr._listener_callback
+      file: astrbot/core/platform/sources/webchat/webchat_queue_mgr.py
+      line: 150
+      reason: The listener callback is invoked inside _listen_to_queue, not directly by _start_listener_if_needed.
+      evidence: "await self._listener_callback(data)"
+  runtime_only_edges: []

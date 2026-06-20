@@ -1,0 +1,76 @@
+id: astrbot-star-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.pipeline.context_utils.call_event_hook
+target_type: function
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - cross_file
+  - async
+  - registry
+  - plugin
+  - callback
+notes: >
+  Plugin hook dispatch case. The registry lookup and event stop check are
+  statically visible, while the actual handler callable is dynamically supplied
+  by plugin registration.
+oracle_context:
+  files:
+    - path: astrbot/core/pipeline/context_utils.py
+      role: target_definition
+      symbols:
+        - astrbot.core.pipeline.context_utils.call_event_hook
+        - astrbot.core.pipeline.context_utils.call_handler
+      reason: Contains the target hook dispatcher and a same-file handler helper distractor.
+    - path: astrbot/core/star/star_handler.py
+      role: registry
+      symbols:
+        - astrbot.core.star.star_handler.StarHandlerRegistry.get_handlers_by_event_type
+        - astrbot.core.star.star_handler.StarHandlerMetadata.handler
+        - astrbot.core.star.star_handler.star_handlers_registry
+      reason: Defines the registry queried by the target and the dynamic handler metadata field.
+    - path: astrbot/core/platform/astr_message_event.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.platform.astr_message_event.AstrMessageEvent.is_stopped
+      reason: Defines the event stop-state method checked by the target.
+golden:
+  required_edges:
+    - caller: astrbot.core.pipeline.context_utils.call_event_hook
+      callee: astrbot.core.star.star_handler.StarHandlerRegistry.get_handlers_by_event_type
+      file: astrbot/core/pipeline/context_utils.py
+      line: 88
+      evidence: "handlers = star_handlers_registry.get_handlers_by_event_type("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.context_utils.call_event_hook
+      callee: astrbot.core.platform.astr_message_event.AstrMessageEvent.is_stopped
+      file: astrbot/core/pipeline/context_utils.py
+      line: 102
+      evidence: "if event.is_stopped():"
+      confidence_type: static_confirmed
+  optional_edges:
+    - caller: astrbot.core.pipeline.context_utils.call_event_hook
+      callee: astrbot.core.star.star_handler.StarHandlerMetadata.handler
+      file: astrbot/core/pipeline/context_utils.py
+      line: 98
+      evidence: "await handler.handler(event, *args, **kwargs)"
+      confidence_type: dynamic_possible
+      notes: "The concrete plugin handler depends on registry state and enabled plugins."
+  excluded_edges:
+    - caller: astrbot.core.pipeline.context_utils.call_event_hook
+      callee: astrbot.core.pipeline.context_utils.call_handler
+      file: astrbot/core/pipeline/context_utils.py
+      line: 98
+      reason: call_event_hook invokes the registered handler callable directly; it does not call call_handler.
+      evidence: "await handler.handler(event, *args, **kwargs)"
+  runtime_only_edges: []

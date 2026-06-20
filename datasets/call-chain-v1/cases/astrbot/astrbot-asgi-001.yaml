@@ -1,0 +1,64 @@
+id: astrbot-asgi-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: boundary_only
+features:
+  - direct_call
+  - class_method
+  - route_handler
+  - callback
+  - external_boundary
+notes: >
+  FastAPI route adapter case. The wrapper's nested endpoint body must not be
+  mistaken for direct callees of add_url_rule.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/asgi_runtime.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+        - astrbot.dashboard.asgi_runtime._convert_rule
+        - astrbot.dashboard.asgi_runtime.bind_request_context
+        - astrbot.dashboard.asgi_runtime._call_view
+      reason: Contains the target route adapter, direct helper, nested endpoint body, and framework boundary.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+      callee: astrbot.dashboard.asgi_runtime._convert_rule
+      file: astrbot/dashboard/asgi_runtime.py
+      line: 659
+      evidence: "route_path = _convert_rule(path)"
+      confidence_type: static_confirmed
+  optional_edges:
+    - caller: astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+      callee: fastapi.FastAPI.add_api_route
+      file: astrbot/dashboard/asgi_runtime.py
+      line: 666
+      evidence: "self._app.add_api_route("
+      confidence_type: framework_inferred
+      notes: "External framework boundary; not included in the main repo-only score."
+  excluded_edges:
+    - caller: astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+      callee: astrbot.dashboard.asgi_runtime.bind_request_context
+      file: astrbot/dashboard/asgi_runtime.py
+      line: 663
+      reason: bind_request_context is called inside the generated endpoint_func, not directly by add_url_rule.
+      evidence: "with bind_request_context(request_, self):"
+    - caller: astrbot.dashboard.asgi_runtime.FastAPIAppAdapter.add_url_rule
+      callee: astrbot.dashboard.asgi_runtime._call_view
+      file: astrbot/dashboard/asgi_runtime.py
+      line: 664
+      reason: _call_view is called inside the generated endpoint_func when the route runs, not during add_url_rule.
+      evidence: "return await _call_view(view_func, dict(request_.path_params))"
+  runtime_only_edges: []
