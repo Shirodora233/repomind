@@ -5,7 +5,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import yaml
 
@@ -27,6 +27,13 @@ PREDICTION_FILENAMES = {
     "parsed_prediction.yml",
     "parsed_prediction.json",
 }
+
+
+class GoldenMatch(NamedTuple):
+    kind: str
+    key: tuple[str, str]
+    edge: dict[str, Any]
+    alias: bool = False
 
 
 def extract_payload_from_text(text: str) -> Any:
@@ -157,57 +164,133 @@ def score_case(case: dict[str, Any], prediction: dict[str, Any] | None, *, line_
             continue
         unique_predictions[key] = edge
 
+    strict = _score_unique_predictions(
+        case,
+        unique_predictions,
+        line_tolerance=line_tolerance,
+        constructor_normalized=False,
+    )
+    constructor_normalized = _score_unique_predictions(
+        case,
+        unique_predictions,
+        line_tolerance=line_tolerance,
+        constructor_normalized=True,
+    )
+    constructor_normalized["duplicate_predictions"] += duplicate_predictions
+
+    result = {
+        "case_id": case["id"],
+        "task_type": case["task_type"],
+        "difficulty": case["difficulty"],
+        "max_depth": case["max_depth"],
+        "required_edges": strict["required_edges"],
+        "optional_edges": strict["optional_edges"],
+        "runtime_only_edges": strict["runtime_only_edges"],
+        "excluded_edges": strict["excluded_edges"],
+        "predicted_edges": strict["predicted_edges"],
+        "duplicate_predictions": duplicate_predictions,
+        "malformed_predictions": malformed_predictions,
+        "matched_required": strict["matched_required"],
+        "matched_optional": strict["matched_optional"],
+        "matched_runtime_only": strict["matched_runtime_only"],
+        "excluded_hits": strict["excluded_hits"],
+        "unmatched_predictions": strict["unmatched_predictions"],
+        "edge_precision": strict["edge_precision"],
+        "edge_recall": strict["edge_recall"],
+        "evidence_accuracy": strict["evidence_accuracy"],
+        "evidence_accuracy_all_accepted": strict["evidence_accuracy_all_accepted"],
+        "missing_required": strict["missing_required"],
+        "excluded_returned": strict["excluded_returned"],
+        "unmatched_returned": strict["unmatched_returned"],
+    }
+    result.update(
+        {
+            f"constructor_normalized_{key}": value
+            for key, value in constructor_normalized.items()
+            if key not in {"required_edges", "optional_edges", "runtime_only_edges", "excluded_edges"}
+        }
+    )
+    return result
+
+
+def _score_unique_predictions(
+    case: dict[str, Any],
+    unique_predictions: dict[tuple[str, str], dict[str, Any]],
+    *,
+    line_tolerance: int,
+    constructor_normalized: bool,
+) -> dict[str, Any]:
     required = {edge_key(edge): edge for edge in case["golden"]["required_edges"]}
     optional = {edge_key(edge): edge for edge in case["golden"]["optional_edges"]}
     runtime_only = {edge_key(edge): edge for edge in case["golden"]["runtime_only_edges"]}
     excluded = {edge_key(edge): edge for edge in case["golden"]["excluded_edges"]}
-    accepted = {**required, **optional, **runtime_only}
+    match_index = _build_match_index(
+        required=required,
+        optional=optional,
+        runtime_only=runtime_only,
+        excluded=excluded,
+        constructor_normalized=constructor_normalized,
+    )
 
     matched_required: dict[tuple[str, str], dict[str, Any]] = {}
     matched_optional: dict[tuple[str, str], dict[str, Any]] = {}
     matched_runtime: dict[tuple[str, str], dict[str, Any]] = {}
     excluded_hits: dict[tuple[str, str], dict[str, Any]] = {}
     unmatched: dict[tuple[str, str], dict[str, Any]] = {}
+    normalized_predictions: dict[tuple[str, str], dict[str, Any]] = {}
+    normalized_duplicate_predictions = 0
+    constructor_alias_matches: list[dict[str, str]] = []
 
     evidence_ok_required = 0
     evidence_ok_accepted = 0
 
     for key, predicted_edge in unique_predictions.items():
-        if key in required:
-            matched_required[key] = predicted_edge
-            if evidence_matches(predicted_edge, required[key], line_tolerance=line_tolerance):
+        match = _resolve_match(key, match_index)
+        identity_key = match.key if match else key
+        if identity_key in normalized_predictions:
+            normalized_duplicate_predictions += 1
+            continue
+        normalized_predictions[identity_key] = predicted_edge
+
+        if match and match.alias:
+            constructor_alias_matches.append(
+                {
+                    "kind": match.kind,
+                    "predicted": _edge_to_id(predicted_edge),
+                    "matched": _edge_to_id(match.edge),
+                }
+            )
+
+        if match and match.kind == "required":
+            matched_required[match.key] = predicted_edge
+            if evidence_matches(predicted_edge, match.edge, line_tolerance=line_tolerance):
                 evidence_ok_required += 1
                 evidence_ok_accepted += 1
-        elif key in optional:
-            matched_optional[key] = predicted_edge
-            if evidence_matches(predicted_edge, optional[key], line_tolerance=line_tolerance):
+        elif match and match.kind == "optional":
+            matched_optional[match.key] = predicted_edge
+            if evidence_matches(predicted_edge, match.edge, line_tolerance=line_tolerance):
                 evidence_ok_accepted += 1
-        elif key in runtime_only:
-            matched_runtime[key] = predicted_edge
-            if evidence_matches(predicted_edge, runtime_only[key], line_tolerance=line_tolerance):
+        elif match and match.kind == "runtime_only":
+            matched_runtime[match.key] = predicted_edge
+            if evidence_matches(predicted_edge, match.edge, line_tolerance=line_tolerance):
                 evidence_ok_accepted += 1
-        elif key in excluded:
-            excluded_hits[key] = predicted_edge
+        elif match and match.kind == "excluded":
+            excluded_hits[match.key] = predicted_edge
         else:
-            unmatched[key] = predicted_edge
+            unmatched[identity_key] = predicted_edge
 
     accepted_matches = len(matched_required) + len(matched_optional) + len(matched_runtime)
-    predicted_count = len(unique_predictions)
+    predicted_count = len(normalized_predictions)
     required_count = len(required)
     matched_required_count = len(matched_required)
 
     return {
-        "case_id": case["id"],
-        "task_type": case["task_type"],
-        "difficulty": case["difficulty"],
-        "max_depth": case["max_depth"],
         "required_edges": required_count,
         "optional_edges": len(optional),
         "runtime_only_edges": len(runtime_only),
         "excluded_edges": len(excluded),
         "predicted_edges": predicted_count,
-        "duplicate_predictions": duplicate_predictions,
-        "malformed_predictions": malformed_predictions,
+        "duplicate_predictions": normalized_duplicate_predictions,
         "matched_required": matched_required_count,
         "matched_optional": len(matched_optional),
         "matched_runtime_only": len(matched_runtime),
@@ -220,7 +303,80 @@ def score_case(case: dict[str, Any], prediction: dict[str, Any] | None, *, line_
         "missing_required": [_edge_to_id(required[key]) for key in sorted(set(required) - set(matched_required))],
         "excluded_returned": [_edge_to_id(excluded[key]) for key in sorted(excluded_hits)],
         "unmatched_returned": [_edge_to_id(edge) for _, edge in sorted(unmatched.items())],
+        "alias_matches": constructor_alias_matches,
+        "alias_match_count": len(constructor_alias_matches),
     }
+
+
+def _build_match_index(
+    *,
+    required: dict[tuple[str, str], dict[str, Any]],
+    optional: dict[tuple[str, str], dict[str, Any]],
+    runtime_only: dict[tuple[str, str], dict[str, Any]],
+    excluded: dict[tuple[str, str], dict[str, Any]],
+    constructor_normalized: bool,
+) -> dict[str, dict[tuple[str, str], GoldenMatch | list[GoldenMatch]]]:
+    exact: dict[tuple[str, str], GoldenMatch] = {}
+    aliases: dict[tuple[str, str], list[GoldenMatch]] = {}
+    for kind, edges in (
+        ("required", required),
+        ("optional", optional),
+        ("runtime_only", runtime_only),
+        ("excluded", excluded),
+    ):
+        for key, edge in edges.items():
+            exact[key] = GoldenMatch(kind=kind, key=key, edge=edge, alias=False)
+
+    if constructor_normalized:
+        for kind, edges in (
+            ("required", required),
+            ("optional", optional),
+            ("runtime_only", runtime_only),
+            ("excluded", excluded),
+        ):
+            for key, edge in edges.items():
+                alias = _constructor_alias_key(edge)
+                if alias and alias not in exact:
+                    aliases.setdefault(alias, []).append(GoldenMatch(kind=kind, key=key, edge=edge, alias=True))
+
+    return {"exact": exact, "aliases": aliases}
+
+
+def _resolve_match(
+    key: tuple[str, str],
+    match_index: dict[str, dict[tuple[str, str], GoldenMatch | list[GoldenMatch]]],
+) -> GoldenMatch | None:
+    exact = match_index["exact"]
+    aliases = match_index["aliases"]
+    if key in exact:
+        match = exact[key]
+        assert isinstance(match, GoldenMatch)
+        return match
+    alias_matches = aliases.get(key)
+    if not alias_matches or len(alias_matches) != 1:
+        return None
+    return alias_matches[0]
+
+
+def _constructor_alias_key(edge: dict[str, Any]) -> tuple[str, str] | None:
+    if not _is_constructor_edge(edge):
+        return None
+    caller, callee = edge_key(edge)
+    if not caller or not callee:
+        return None
+    suffix = ".__init__"
+    alias = callee.removesuffix(suffix) if callee.endswith(suffix) else f"{callee}{suffix}"
+    if alias == callee:
+        return None
+    return (caller, alias)
+
+
+def _is_constructor_edge(edge: dict[str, Any]) -> bool:
+    callee = str(edge.get("callee", "")).strip()
+    if callee.endswith(".__init__"):
+        return True
+    notes = str(edge.get("notes", "")).lower()
+    return "constructor" in notes or "class construction" in notes
 
 
 def score_cases(
@@ -241,6 +397,22 @@ def score_cases(
         "unmatched_predictions": sum(item["unmatched_predictions"] for item in per_case),
         "malformed_predictions": sum(item["malformed_predictions"] for item in per_case),
         "duplicate_predictions": sum(item["duplicate_predictions"] for item in per_case),
+        "constructor_normalized_predicted_edges": sum(item["constructor_normalized_predicted_edges"] for item in per_case),
+        "constructor_normalized_matched_required": sum(item["constructor_normalized_matched_required"] for item in per_case),
+        "constructor_normalized_matched_optional": sum(item["constructor_normalized_matched_optional"] for item in per_case),
+        "constructor_normalized_matched_runtime_only": sum(
+            item["constructor_normalized_matched_runtime_only"] for item in per_case
+        ),
+        "constructor_normalized_excluded_hits": sum(item["constructor_normalized_excluded_hits"] for item in per_case),
+        "constructor_normalized_unmatched_predictions": sum(
+            item["constructor_normalized_unmatched_predictions"] for item in per_case
+        ),
+        "constructor_normalized_duplicate_predictions": sum(
+            item["constructor_normalized_duplicate_predictions"] for item in per_case
+        ),
+        "constructor_normalized_alias_match_count": sum(
+            item["constructor_normalized_alias_match_count"] for item in per_case
+        ),
     }
     accepted_matches = totals["matched_required"] + totals["matched_optional"] + totals["matched_runtime_only"]
     evidence_ok_required = sum(
@@ -250,6 +422,27 @@ def score_cases(
     totals["edge_precision"] = _safe_divide(accepted_matches, totals["predicted_edges"])
     totals["edge_recall"] = _safe_divide(totals["matched_required"], totals["required_edges"])
     totals["evidence_accuracy"] = _safe_divide(evidence_ok_required, totals["matched_required"])
+    constructor_normalized_accepted_matches = (
+        totals["constructor_normalized_matched_required"]
+        + totals["constructor_normalized_matched_optional"]
+        + totals["constructor_normalized_matched_runtime_only"]
+    )
+    constructor_normalized_evidence_ok_required = sum(
+        0
+        if item["constructor_normalized_evidence_accuracy"] is None
+        else item["constructor_normalized_evidence_accuracy"] * item["constructor_normalized_matched_required"]
+        for item in per_case
+    )
+    totals["constructor_normalized_edge_precision"] = _safe_divide(
+        constructor_normalized_accepted_matches, totals["constructor_normalized_predicted_edges"]
+    )
+    totals["constructor_normalized_edge_recall"] = _safe_divide(
+        totals["constructor_normalized_matched_required"], totals["required_edges"]
+    )
+    totals["constructor_normalized_evidence_accuracy"] = _safe_divide(
+        constructor_normalized_evidence_ok_required,
+        totals["constructor_normalized_matched_required"],
+    )
     return {"summary": totals, "cases": per_case}
 
 
@@ -271,16 +464,20 @@ def print_table(report: dict[str, Any]) -> None:
         f"precision={_fmt(summary['edge_precision'])} "
         f"recall={_fmt(summary['edge_recall'])} "
         f"evidence={_fmt(summary['evidence_accuracy'])} "
+        f"ctor_norm_precision={_fmt(summary['constructor_normalized_edge_precision'])} "
+        f"ctor_norm_recall={_fmt(summary['constructor_normalized_edge_recall'])} "
+        f"ctor_norm_evidence={_fmt(summary['constructor_normalized_evidence_accuracy'])} "
         f"excluded_hits={summary['excluded_hits']} "
         f"unmatched={summary['unmatched_predictions']}"
     )
     print()
-    print("case_id | precision | recall | evidence | pred | required | excluded_hits | unmatched")
-    print("--- | ---: | ---: | ---: | ---: | ---: | ---: | ---:")
+    print("case_id | precision | recall | evidence | ctor_precision | ctor_recall | pred | required | excluded_hits | unmatched")
+    print("--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---:")
     for item in report["cases"]:
         print(
             f"{item['case_id']} | {_fmt(item['edge_precision'])} | {_fmt(item['edge_recall'])} | "
-            f"{_fmt(item['evidence_accuracy'])} | {item['predicted_edges']} | {item['required_edges']} | "
+            f"{_fmt(item['evidence_accuracy'])} | {_fmt(item['constructor_normalized_edge_precision'])} | "
+            f"{_fmt(item['constructor_normalized_edge_recall'])} | {item['predicted_edges']} | {item['required_edges']} | "
             f"{item['excluded_hits']} | {item['unmatched_predictions']}"
         )
 

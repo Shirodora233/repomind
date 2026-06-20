@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：已建立 v0 版本化记录机制。
+状态：已建立 v0 版本化记录机制；scorer 已新增 v1 辅助指标版本。
 
 ## 阶段目标
 
@@ -16,6 +16,7 @@
 - 新增 `scripts/e2e_tools.py`，将 `list_files` / `search_text` / `read_file` 工具实现从 E2E runner 拆出，方便独立 hash 和后续迭代。
 - 新增 `scripts/versioning.py`，统一生成 file hash、git commit、git dirty 状态、case manifest、version manifest 和脱敏后的模型配置 snapshot。
 - 更新 `scripts/run_oracle_context.py` 和 `scripts/run_e2e_agent.py`，在每次 run 根目录写入版本化快照。
+- 新增 `call-chain-scorer-v1`，在 strict symbol-level 主分数之外记录 constructor-normalized 辅助指标；Oracle / E2E runner 默认 scorer version 已更新为 `call-chain-scorer-v1`。
 
 ## 版本化输出约定
 
@@ -42,6 +43,7 @@
 - prompt snapshot 保存模板，不保存每个 case 展开的完整源文件上下文；每个 case 展开的 `prompt.md` / `task.md` 仍保存在 case 子目录中。
 - `git_dirty` 和 `git_status_short` 会进入 manifest。正式 baseline 应优先在 clean commit 上运行；如果必须在 dirty 状态运行，文件 hash 仍可作为复现锚点，但实验记录中要说明原因。
 - `mock-golden` 仍只用于验证 runner / scorer / manifest 链路，不作为真实模型效果。
+- `call-chain-scorer-v1` 不改变 strict 主分数，只额外记录 constructor-normalized 辅助指标；正式报告仍应优先展示 strict 指标，再用 normalized 指标解释 constructor canonical mismatch。
 
 ## 验证结果
 
@@ -51,6 +53,8 @@
 - `python scripts\run_e2e_agent.py --provider dry-run --case-id astrbot-agent-001 --out-dir tmp\e2e-versioning-dry-check` 通过，生成 E2E task。
 - 对 `tmp\e2e-versioning-dry-check\astrbot-agent-001\task.md` 检查 `oracle_context`、`golden`、`required_edges`、`optional_edges`、`excluded_edges`、`features` 和 Oracle 文件路径关键词，未发现泄漏。
 - `python scripts\run_e2e_agent.py --provider mock-golden --case-id astrbot-pipeline-002 --out-dir tmp\e2e-versioning-mock-check-2` 通过，Precision 1.0，Recall 1.0，Evidence Accuracy 1.0，tool_calls 4，files_read 2。
+- `python scripts\score_predictions.py --case-id scrapy-feed-001 --predictions runs\oracle\fifth-10-deepseek-v4-pro-direct-no-reasoning-20260620 --format json` 通过，strict Precision / Recall 为 0.5 / 0.5，constructor-normalized Precision / Recall 为 1.0 / 1.0。
+- `python scripts\score_predictions.py --case-id scrapy-signal-001 --predictions runs\e2e\scrapy-10-deepseek-v4-pro-direct-no-reasoning-20260620 --format json` 通过，constructor-normalized 仅修正 `CoreStats.__init__` constructor alias，仍保留 `Crawler.signals.connect` symbol mismatch。
 
 ## 后续注意
 

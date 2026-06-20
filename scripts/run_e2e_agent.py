@@ -431,7 +431,7 @@ def main() -> int:
     parser.add_argument("--task-prompt-version", default="e2e-task-v0")
     parser.add_argument("--system-prompt-version", default="e2e-agent-system-v0")
     parser.add_argument("--tool-version", default="e2e-tools-v0")
-    parser.add_argument("--scorer-version", default="call-chain-scorer-v0")
+    parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
     args = parser.parse_args()
 
     prompt_path = Path(args.prompt)

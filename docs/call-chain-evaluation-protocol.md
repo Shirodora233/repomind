@@ -14,6 +14,9 @@
 - 测试代码默认不计入，除非 case 标明 `include_tests: true`。
 - 外部库调用默认不计入主分数，只作为边界说明。
 - 每条答案必须尽量包含 caller、callee、file、line、evidence。
+- 主分数使用 strict symbol-level matching：`caller` 与 `callee` 必须和 golden 的 canonical symbol 完全一致。
+- Python `ClassName(...)` 构造调用在 golden 中默认使用 class symbol，例如 `pkg.mod.ClassName`。显式 `super().__init__()` 或直接 `__init__` 调用可使用 `pkg.mod.ClassName.__init__`。
+- scorer 同时输出 constructor-normalized 辅助指标，用于诊断 `ClassName` 与 `ClassName.__init__` 的表达差异；该辅助指标不替代主分数。
 
 动态调用关系应分级记录：
 
@@ -55,8 +58,26 @@ must_return_evidence: true
 - case 集合版本。
 - 运行时间。
 - 主要指标：Edge Precision、Edge Recall、Evidence Accuracy。
+- 辅助指标：Constructor-normalized Edge Precision、Constructor-normalized Edge Recall、Constructor-normalized Evidence Accuracy。该指标只在 golden 明确是 constructor edge 时，将同一 caller 下的 `ClassName` 与 `ClassName.__init__` 视为等价。
 - E2E 附加指标：Definition Accuracy、Retrieval Recall、Tool Calls、Files Read、Token Cost。
 - 失败案例摘要和下一步改进方向。
+
+## 4. 评分口径
+
+默认 `score.json` 同时保留 strict 指标和 constructor-normalized 辅助指标：
+
+- `edge_precision` / `edge_recall` / `evidence_accuracy`：正式主分数，严格匹配 golden symbol。
+- `constructor_normalized_edge_precision` / `constructor_normalized_edge_recall` / `constructor_normalized_evidence_accuracy`：辅助诊断分数，仅放宽 constructor edge 的 `ClassName` 与 `ClassName.__init__` 表达差异。
+- `constructor_normalized_alias_matches`：逐 case 记录哪些预测边通过 constructor 等价匹配到 golden。
+
+constructor-normalized 匹配只在以下情况生效：
+
+- golden edge 的 callee 以 `.__init__` 结尾。
+- 或 golden edge 的 `notes` 明确包含 constructor / class construction 说明。
+
+普通方法、属性访问、注册回调、动态分派和 receiver symbol 不会因为名称相近而被归一化。正式报告必须优先展示 strict 主分数；constructor-normalized 指标用于分析“语义正确但 constructor symbol 表达不同”的损失边界。
+
+## 5. Fine-tune 数据隔离
 
 Fine-tune 数据必须避免泄漏：
 

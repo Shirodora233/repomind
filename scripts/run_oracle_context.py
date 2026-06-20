@@ -419,7 +419,7 @@ def main() -> int:
     parser.add_argument("--line-tolerance", type=int, default=0)
     parser.add_argument("--runner-version", default="oracle-context-runner-v0")
     parser.add_argument("--prompt-version", default="oracle-context-v0")
-    parser.add_argument("--scorer-version", default="call-chain-scorer-v0")
+    parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
     args = parser.parse_args()
 
     prompt_path = Path(args.prompt)

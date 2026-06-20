@@ -41,3 +41,8 @@ scorer_versions:
   call-chain-scorer-v0:
     script: scripts/score_predictions.py
     scoring_unit: symbol-level call edge
+    metrics: strict symbol-level matching
+  call-chain-scorer-v1:
+    script: scripts/score_predictions.py
+    scoring_unit: symbol-level call edge
+    metrics: strict symbol-level matching plus constructor-normalized auxiliary metrics
