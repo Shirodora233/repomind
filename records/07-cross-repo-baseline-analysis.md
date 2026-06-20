@@ -43,3 +43,16 @@
 
 - 已读取并聚合相关 `score.json` 的 summary 与低分 case。
 - 本阶段未修改评测脚本、case schema 或 golden answer，因此不需要重新运行 case validator。
+
+### 2026-06-20：补跑 AstrBot 第三批 10 个 case
+
+- 目标：补齐当前 40-case 数据集中尚未正式复测的 AstrBot 第三批 10 个 case。
+- Case IDs：`astrbot-star-001`、`astrbot-star-003`、`astrbot-webhook-001`、`astrbot-webhook-002`、`astrbot-webchat-001`、`astrbot-platform-002`、`astrbot-platform-003`、`astrbot-asgi-001`、`astrbot-negative-001`、`astrbot-tools-001`。
+- 已完成 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B 的 Oracle Context 与 E2E 正式运行。
+- 正式报告：`reports/baseline/astrbot-third-10-case-model-comparison-v0-20260620.md`。
+- 主要结论：
+  - 当前 40 个 case 已全部具备正式 baseline 结果。
+  - 强模型在第三批 E2E 中 Definition Accuracy / Retrieval Recall 均为 1.0，但 Edge Recall 仍低于 Oracle，继续说明检索命中后的 edge 收敛、symbol 规范化和动态边界判断是主要瓶颈。
+  - `astrbot-star-001`、`astrbot-asgi-001`、`astrbot-webhook-002` 是第三批最有诊断价值的失败 case。
+  - 第五批扩展应继续优先补 `find_callers`、negative/no-caller、callback/registration、constructor/factory/dynamic loading 和 runtime-only/protocol 场景。
+- 验证：六个正式 run 均生成 `score.json`；原始输出保存在 `runs/`，不纳入提交。
