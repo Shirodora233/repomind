@@ -47,14 +47,22 @@ retrieval:
     - bm25_only
     - keyword
     - keyword_multiquery
+    - keyword_multiquery_safe
   multi_query:
     enabled_variant: keyword_multiquery
+    safe_enabled_variant: keyword_multiquery_safe
     default_per_query_top_k: 50
+    definition_safety:
+      flag: --ensure-definition-slot
+      default_slot_rank: 2
+      match_source: index.defined_symbols exact target symbol
+      no_oracle_or_golden_file_leakage: true
     query_types:
       - case_base
       - target_fqn
       - target_tail
       - module_path
+      - target_definition_slot
       - caller_direction
       - caller_method_pattern
       - callee_direction
@@ -99,6 +107,7 @@ retrieval_variants:
   - bm25_only
   - keyword
   - keyword_multiquery
+  - keyword_multiquery_safe
   - qwen3_dense
   - jina_code_dense
   - bge_m3_dense

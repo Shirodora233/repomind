@@ -22,6 +22,7 @@ from rag_common import (
     RAG_RETRIEVAL_SCHEMA_VERSION,
     build_case_queries,
     build_case_query,
+    build_target_definition_query,
     dense_variant_provider,
     keyword_score,
     latest_index_dir,
@@ -37,6 +38,7 @@ RETRIEVAL_VARIANTS = {
     "bm25_only",
     "keyword",
     "keyword_multiquery",
+    "keyword_multiquery_safe",
     "qwen3_dense",
     "jina_code_dense",
     "bge_m3_dense",
@@ -62,7 +64,7 @@ def ensure_variant_available(variant: str, *, allow_embedding_placeholder: bool)
 
 
 def scoring_variant(variant: str) -> str:
-    if variant == "keyword_multiquery":
+    if variant in {"keyword_multiquery", "keyword_multiquery_safe"}:
         return "keyword"
     return variant
 
@@ -77,6 +79,41 @@ def query_match_metadata(query: dict[str, Any], score: float, bm25_score: float,
         "symbols": list(query.get("symbols") or [])[:20],
         "patterns": list(query.get("patterns") or [])[:20],
     }
+
+
+def build_scored_result(
+    *,
+    chunk: dict[str, Any],
+    query: dict[str, Any],
+    score: float,
+    bm25_score: float,
+    kw_score: float,
+    include_text: bool,
+) -> dict[str, Any]:
+    preview = str(chunk.get("text", "")).replace("\r\n", "\n").replace("\r", "\n")
+    result = {
+        "rank": 0,
+        "chunk_id": chunk["chunk_id"],
+        "repo_key": chunk["repo_key"],
+        "commit": chunk["commit"],
+        "file": chunk["file"],
+        "start_line": chunk["start_line"],
+        "end_line": chunk["end_line"],
+        "score": round(score, 6),
+        "bm25_score": round(bm25_score, 6),
+        "keyword_score": round(kw_score, 6),
+        "embedding_score": None,
+        "symbols": chunk.get("symbols", []),
+        "defined_symbols": chunk.get("defined_symbols", []),
+        "lexical_terms": chunk.get("lexical_terms", []),
+        "text_preview": preview[:600],
+        "best_query": query.get("label") or "query",
+        "query_count": 1,
+        "matched_queries": [query_match_metadata(query, score, bm25_score, kw_score)],
+    }
+    if include_text:
+        result["text"] = chunk.get("text", "")
+    return result
 
 
 def score_candidates(
@@ -105,29 +142,16 @@ def score_candidates(
                 score = bm25_score + (0.25 * kw_score)
         if score <= 0:
             continue
-        preview = str(chunk.get("text", "")).replace("\r\n", "\n").replace("\r", "\n")
-        result = {
-            "rank": 0,
-            "chunk_id": chunk["chunk_id"],
-            "repo_key": chunk["repo_key"],
-            "commit": chunk["commit"],
-            "file": chunk["file"],
-            "start_line": chunk["start_line"],
-            "end_line": chunk["end_line"],
-            "score": round(score, 6),
-            "bm25_score": round(bm25_score, 6),
-            "keyword_score": round(kw_score, 6),
-            "embedding_score": None,
-            "symbols": chunk.get("symbols", []),
-            "defined_symbols": chunk.get("defined_symbols", []),
-            "lexical_terms": chunk.get("lexical_terms", []),
-            "text_preview": preview[:600],
-            "best_query": query.get("label") or "query",
-            "matched_queries": [query_match_metadata(query, score, bm25_score, kw_score)],
-        }
-        if include_text:
-            result["text"] = chunk.get("text", "")
-        scored.append(result)
+        scored.append(
+            build_scored_result(
+                chunk=chunk,
+                query=query,
+                score=score,
+                bm25_score=bm25_score,
+                kw_score=kw_score,
+                include_text=include_text,
+            )
+        )
 
     scored.sort(key=lambda item: (-float(item["score"]), item["repo_key"], item["file"], item["start_line"]))
     for rank, item in enumerate(scored[:top_k], start=1):
@@ -219,6 +243,168 @@ def diversify_results_by_file(results: list[dict[str, Any]], *, top_k: int) -> l
     return selected
 
 
+def definition_match_for_chunk(chunk: dict[str, Any], target: str) -> dict[str, Any] | None:
+    if not target:
+        return None
+    defined_symbols = [str(symbol) for symbol in chunk.get("defined_symbols") or []]
+    if target not in defined_symbols:
+        return None
+    spans = [
+        item
+        for item in chunk.get("symbol_spans") or []
+        if isinstance(item, dict) and str(item.get("symbol") or "") == target
+    ]
+    definition_start = min((int(item.get("start_line") or 0) for item in spans), default=None)
+    definition_end = max((int(item.get("end_line") or 0) for item in spans), default=None)
+    try:
+        chunk_start = int(chunk.get("start_line"))
+        chunk_end = int(chunk.get("end_line"))
+    except (TypeError, ValueError):
+        chunk_start = 0
+        chunk_end = 0
+    definition_line_in_chunk = bool(definition_start and chunk_start <= definition_start <= chunk_end)
+    return {
+        "type": "exact_defined_symbol",
+        "symbol": target,
+        "definition_start_line": definition_start,
+        "definition_end_line": definition_end,
+        "definition_line_in_chunk": definition_line_in_chunk,
+    }
+
+
+def find_best_definition_candidate(
+    *,
+    chunks: list[dict[str, Any]],
+    target: str,
+    query: dict[str, Any],
+    variant: str,
+    include_text: bool,
+    bm25: BM25Index,
+) -> dict[str, Any] | None:
+    terms = list(query.get("terms") or [])
+    symbols = list(query.get("symbols") or [])
+    patterns = list(query.get("patterns") or [])
+    effective_variant = scoring_variant(variant)
+    candidates: list[tuple[tuple[int, float, int, str], dict[str, Any]]] = []
+    for idx, chunk in enumerate(chunks):
+        match = definition_match_for_chunk(chunk, target)
+        if match is None:
+            continue
+        bm25_score = bm25.score(terms, idx)
+        kw_score = keyword_score(chunk, terms, symbols, patterns)
+        if effective_variant == "keyword":
+            score = kw_score
+        else:
+            score = bm25_score
+            if effective_variant.endswith("_plus_bm25"):
+                score = bm25_score + (0.25 * kw_score)
+        if score <= 0:
+            score = 1.0
+        result = build_scored_result(
+            chunk=chunk,
+            query=query,
+            score=score,
+            bm25_score=bm25_score,
+            kw_score=kw_score,
+            include_text=include_text,
+        )
+        result["definition_slot"] = True
+        result["definition_match"] = match
+        definition_line_priority = 0 if match.get("definition_line_in_chunk") else 1
+        start_line = int(chunk.get("start_line") or 0)
+        candidates.append(
+            (
+                (
+                    definition_line_priority,
+                    -float(result.get("score") or 0.0),
+                    start_line,
+                    str(chunk.get("chunk_id") or ""),
+                ),
+                result,
+            )
+        )
+    if not candidates:
+        return None
+    candidates.sort(key=lambda item: item[0])
+    return candidates[0][1]
+
+
+def merge_definition_candidate(existing: dict[str, Any], candidate: dict[str, Any]) -> dict[str, Any]:
+    merged = {**existing}
+    merged["definition_slot"] = True
+    merged["definition_match"] = candidate.get("definition_match")
+    matches_by_label = {str(item.get("label") or ""): item for item in existing.get("matched_queries") or []}
+    for item in candidate.get("matched_queries") or []:
+        label = str(item.get("label") or "")
+        previous = matches_by_label.get(label)
+        if previous is None or float(item.get("score") or 0.0) > float(previous.get("score") or 0.0):
+            matches_by_label[label] = item
+    matches = sorted(
+        matches_by_label.values(),
+        key=lambda match: (-float(match.get("score") or 0.0), str(match.get("label") or "")),
+    )
+    merged["matched_queries"] = matches
+    merged["query_count"] = len(matches)
+    return merged
+
+
+def apply_definition_safety_slot(
+    results: list[dict[str, Any]],
+    *,
+    definition_candidate: dict[str, Any] | None,
+    top_k: int,
+    slot_rank: int,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if definition_candidate is None:
+        return results, {"applied": False, "reason": "no_exact_definition_candidate"}
+    if slot_rank <= 0:
+        raise ValueError("definition slot rank must be positive")
+
+    slot_index = min(slot_rank - 1, max(len(results), 1) - 1)
+    candidate_id = str(definition_candidate.get("chunk_id") or "")
+    selected = list(results)
+    existing_index = next(
+        (idx for idx, result in enumerate(selected) if str(result.get("chunk_id") or "") == candidate_id),
+        None,
+    )
+    if existing_index is not None:
+        selected[existing_index] = merge_definition_candidate(selected[existing_index], definition_candidate)
+        if existing_index <= slot_index:
+            rerank_results(selected)
+            return selected[:top_k], {
+                "applied": False,
+                "reason": "already_within_slot",
+                "slot_rank": slot_rank,
+                "definition_rank": existing_index + 1,
+                "chunk_id": candidate_id,
+            }
+        item = selected.pop(existing_index)
+        selected.insert(slot_index, item)
+        action = "promoted_existing"
+    else:
+        selected.insert(slot_index, definition_candidate)
+        action = "inserted_missing"
+
+    selected = selected[:top_k]
+    rerank_results(selected)
+    new_rank = next(
+        (idx + 1 for idx, result in enumerate(selected) if str(result.get("chunk_id") or "") == candidate_id),
+        None,
+    )
+    return selected, {
+        "applied": True,
+        "reason": action,
+        "slot_rank": slot_rank,
+        "definition_rank": new_rank,
+        "chunk_id": candidate_id,
+    }
+
+
+def rerank_results(results: list[dict[str, Any]]) -> None:
+    for rank, item in enumerate(results, start=1):
+        item["rank"] = rank
+
+
 def should_diversify_by_file(queries: list[dict[str, Any]]) -> bool:
     return any(str(query.get("label") or "").startswith("caller_") for query in queries)
 
@@ -234,9 +420,14 @@ def retrieve_one(
     multi_query: bool,
     per_query_top_k: int,
     include_text: bool,
+    ensure_definition_slot: bool = False,
+    definition_query: dict[str, Any] | None = None,
+    definition_target: str = "",
+    definition_slot_rank: int = 2,
 ) -> dict[str, Any]:
     candidate_chunks = chunks if cross_repo or not repo_key else [chunk for chunk in chunks if chunk.get("repo_key") == repo_key]
     selected_queries = queries if multi_query else queries[:1]
+    safety_metadata: dict[str, Any] | None = None
     if multi_query:
         bm25 = BM25Index(candidate_chunks)
         candidate_k = per_query_top_k or max(top_k, 50)
@@ -257,18 +448,38 @@ def retrieve_one(
             diversify_by_file=should_diversify_by_file(selected_queries),
         )
     else:
+        bm25 = BM25Index(candidate_chunks)
         results = score_candidates(
             chunks=candidate_chunks,
             query=selected_queries[0],
             variant=variant,
             top_k=top_k,
             include_text=include_text,
+            bm25=bm25,
+        )
+    if ensure_definition_slot and definition_query is not None:
+        definition_candidate = find_best_definition_candidate(
+            chunks=candidate_chunks,
+            target=definition_target,
+            query=definition_query,
+            variant=variant,
+            include_text=include_text,
+            bm25=bm25,
+        )
+        results, safety_metadata = apply_definition_safety_slot(
+            results,
+            definition_candidate=definition_candidate,
+            top_k=top_k,
+            slot_rank=definition_slot_rank,
         )
     return {
         "query": selected_queries[0],
         "queries": selected_queries if multi_query else None,
         "multi_query": multi_query,
         "per_query_top_k": per_query_top_k if multi_query else None,
+        "ensure_definition_slot": ensure_definition_slot,
+        "definition_slot_rank": definition_slot_rank if ensure_definition_slot else None,
+        "definition_slot": safety_metadata,
         "repo_key": repo_key,
         "cross_repo": cross_repo,
         "candidate_chunks": len(candidate_chunks),
@@ -322,6 +533,17 @@ def main() -> int:
         default=0,
         help="Candidate limit for each subquery in --multi-query mode. Defaults to max(top_k, 50).",
     )
+    parser.add_argument(
+        "--ensure-definition-slot",
+        action="store_true",
+        help="Promote the exact target-definition chunk from index defined_symbols into an early safety slot.",
+    )
+    parser.add_argument(
+        "--definition-slot-rank",
+        type=int,
+        default=2,
+        help="1-based rank for --ensure-definition-slot. Defaults to 2 to preserve the top evidence hit.",
+    )
     parser.add_argument("--out-dir", help="Output directory. Defaults to runs/rag-retrieval/rag-v1-<timestamp>.")
     parser.add_argument("--include-text", action="store_true", help="Include full chunk text in retrieval.json.")
     parser.add_argument(
@@ -336,6 +558,8 @@ def main() -> int:
         raise ValueError("--top-k must be positive")
     if args.per_query_top_k < 0:
         raise ValueError("--per-query-top-k must be zero or positive")
+    if args.definition_slot_rank <= 0:
+        raise ValueError("--definition-slot-rank must be positive")
 
     index_dir = project_path(args.index_dir) if args.index_dir else latest_index_dir()
     loaded_index = load_index(index_dir)
@@ -347,7 +571,8 @@ def main() -> int:
     out_root.mkdir(parents=True, exist_ok=True)
     started_at = utc_now_iso()
     started_perf = time.perf_counter()
-    multi_query = args.multi_query or args.variant == "keyword_multiquery"
+    multi_query = args.multi_query or args.variant in {"keyword_multiquery", "keyword_multiquery_safe"}
+    ensure_definition_slot = args.ensure_definition_slot or args.variant == "keyword_multiquery_safe"
     effective_scoring_variant = scoring_variant(args.variant)
     per_query_top_k = args.per_query_top_k or max(args.top_k, 50)
 
@@ -367,6 +592,10 @@ def main() -> int:
                 multi_query=multi_query,
                 per_query_top_k=per_query_top_k,
                 include_text=args.include_text,
+                ensure_definition_slot=ensure_definition_slot,
+                definition_query=build_target_definition_query(case) if ensure_definition_slot else None,
+                definition_target=str(case.get("target") or ""),
+                definition_slot_rank=args.definition_slot_rank,
             )
             case_reports.append(
                 {
@@ -396,13 +625,15 @@ def main() -> int:
 
     report = {
         "schema_version": RAG_RETRIEVAL_SCHEMA_VERSION,
-        "retriever_version": "rag-retriever-v1.1",
+        "retriever_version": "rag-retriever-v1.2",
         "started_at": started_at,
         "finished_at": utc_now_iso(),
         "duration_seconds": round(time.perf_counter() - started_perf, 3),
         "variant": args.variant,
         "scoring_variant": effective_scoring_variant,
         "multi_query": multi_query,
+        "ensure_definition_slot": ensure_definition_slot,
+        "definition_slot_rank": args.definition_slot_rank if ensure_definition_slot else None,
         "per_query_top_k": per_query_top_k if multi_query else None,
         "top_k": args.top_k,
         "index_dir": str(loaded_index.index_dir),
@@ -424,6 +655,8 @@ def main() -> int:
             "variant": args.variant,
             "scoring_variant": effective_scoring_variant,
             "multi_query": multi_query,
+            "ensure_definition_slot": ensure_definition_slot,
+            "definition_slot_rank": args.definition_slot_rank if ensure_definition_slot else None,
             "per_query_top_k": per_query_top_k if multi_query else None,
             "top_k": args.top_k,
             "case_ids": [item["case_id"] for item in case_reports],

@@ -415,6 +415,34 @@ def build_case_query(case: dict[str, Any]) -> dict[str, Any]:
     return build_case_queries(case)[0]
 
 
+def build_target_definition_query(case: dict[str, Any]) -> dict[str, Any]:
+    target = str(case.get("target") or "")
+    target_type = str(case.get("target_type") or "")
+    target_tail = target.split(".")[-1] if target else ""
+    target_parts = split_identifier(target)
+    module_symbol, module_path = target_module_hints(target, target_type)
+    patterns: list[str] = []
+    if target_tail:
+        if target_type == "class":
+            patterns.append(f"class {target_tail}")
+        else:
+            patterns.extend([f"def {target_tail}(", f"async def {target_tail}("])
+    return make_query(
+        "target_definition_slot",
+        [
+            "target definition exact defined symbol",
+            target_type,
+            target,
+            " ".join(target_parts),
+            module_symbol,
+            module_path,
+            module_path.replace("/", " "),
+        ],
+        symbols=[target, module_symbol, target_tail],
+        patterns=patterns,
+    )
+
+
 def build_case_queries(case: dict[str, Any]) -> list[dict[str, Any]]:
     target = str(case.get("target") or "")
     target_type = str(case.get("target_type") or "")
@@ -657,6 +685,8 @@ def result_public_view(result: dict[str, Any]) -> dict[str, Any]:
         "best_query": result.get("best_query"),
         "query_count": result.get("query_count"),
         "matched_queries": result.get("matched_queries", [])[:5],
+        "definition_slot": result.get("definition_slot"),
+        "definition_match": result.get("definition_match"),
         "symbols": result.get("symbols", [])[:20],
         "lexical_terms": result.get("lexical_terms", [])[:30],
         "text_preview": result.get("text_preview", ""),
