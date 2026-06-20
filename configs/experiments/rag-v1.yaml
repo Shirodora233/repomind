@@ -21,6 +21,7 @@ pipeline_requirements:
 scripts:
   indexer: scripts/rag_index.py
   retriever: scripts/rag_retrieve.py
+  context_packer: scripts/rag_pack_context.py
   retrieval_evaluator: scripts/rag_eval_retrieval.py
 
 index:
@@ -85,6 +86,27 @@ retrieval_evaluation:
     - EvidenceFileRecall@K
     - EvidenceLineRecall@K
     - DefinitionAccuracy@K
+
+context_pack:
+  schema_version: rag-context-pack-v1
+  script: scripts/rag_pack_context.py
+  default_output_root: runs/rag-context
+  default_retrieval_variant: keyword_multiquery_safe
+  default_prompt_template: prompts/oracle-context-v0.md
+  default_prompt_version: oracle-context-v0-rag-context-pack
+  default_top_k: 10
+  default_max_context_tokens: 24000
+  leakage_policy:
+    no_oracle_or_golden_file_injection: true
+    source: retrieval.json + index chunks only
+    prompt_metadata_excludes:
+      - golden
+      - oracle_context
+  outputs:
+    - context_pack.json
+    - <case_id>/retrieved_context.md
+    - <case_id>/prompt.md
+    - <case_id>/case_metadata.yaml
 
 embedding_candidates:
   default:

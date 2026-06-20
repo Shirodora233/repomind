@@ -66,3 +66,10 @@
   - Focused run：`astrbot-hook-001` 与 `scrapy-signal-004` 的 Recall@10=1.000000、EvidenceFileRecall@10=1.000000、DefinitionAccuracy@5=1.000000。
   - Pilot 20 对照：`keyword_multiquery_safe` 的 Recall@10=1.000000、EvidenceFileRecall@10=1.000000、DefinitionAccuracy@5=1.000000、DefinitionAccuracy@10=1.000000；相对 `keyword_multiquery`，DefinitionMRR 从 0.757143 提升到 0.825000，MRR 从 0.847059 提升到 0.882353；代价是 Recall@5 从 0.986765 降到 0.980882，EvidenceFileRecall@5 从 0.978431 降到 0.968627。
   - Run paths：`runs/rag-retrieval/rag-v1-smoke-definition-safe-scrapy-signal-astrbot-hook-20260621`，`runs/rag-retrieval-eval/rag-v1-smoke-definition-safe-scrapy-signal-astrbot-hook-20260621`，`runs/rag-retrieval/rag-v1-pilot-20-keyword-multiquery-safe-20260621`，`runs/rag-retrieval-eval/rag-v1-pilot-20-keyword-multiquery-safe-20260621-pilot-only`。本轮没有启动 embedding/GPU，也没有运行 E2E 模型。
+- 2026-06-21：新增 RAG context packer，打通 retrieval -> prompt-ready context 的中间层；本轮仍未调用模型、未启动 embedding/GPU。
+  - 新增 `scripts/rag_pack_context.py`，输入 `rag_retrieve.py` 的 `retrieval.json`，从对应 index `chunks.jsonl` 读取 chunk text，输出 `context_pack.json`、逐 case `retrieved_context.md`、`prompt.md` 和 `case_metadata.yaml`。
+  - RAG packer 的 prompt metadata 会移除 `golden` 与 `oracle_context`，避免把人工 Oracle 文件列表泄漏给 RAG-only 生成。
+  - 默认使用 `keyword_multiquery_safe` 的检索结果与 `prompts/oracle-context-v0.md` baseline prompt template，不注入 oracle/golden 文件；context 来源只允许 retrieval results + index chunks。
+  - 更新 `configs/experiments/rag-v1.yaml`，记录 `context_pack` schema、默认 top-k、token budget、输出文件和泄漏约束。
+  - 验证命令：`python -m py_compile scripts/rag_pack_context.py`；`python scripts/rag_pack_context.py --help`；`python scripts/rag_pack_context.py --retrieval runs/rag-retrieval/rag-v1-verify-keyword-multiquery-safe-20260621 --case-id scrapy-signal-004 --case-id astrbot-hook-001 --out-dir runs/rag-context/rag-v1-context-pack-smoke-20260621`。Smoke 输出 2 个 prompt-ready case，`scrapy-signal-004` 打包 10 chunks / 7 files / 约 6809 tokens，`astrbot-hook-001` 打包 10 chunks / 7 files / 约 6258 tokens。
+  - 后续：RAG-only E2E 可基于该 context pack 接入模型生成和 scoring；这一步完成后再考虑 PE+RAG 或完整消融。
