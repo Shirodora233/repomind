@@ -18,6 +18,7 @@
 - 已在 `docs/datasets/` 下新增 v1 测试集说明文档，记录数据源、目录结构、分层设计、case 格式和测评方式。
 - 已完成 AstrBot 首批 12 个 pilot case 候选筛选。
 - 已从候选中选出 10 个进入正式 YAML case 标注，并完成首版 golden answer。
+- 已完成第二批 AstrBot case 扩展，当前 `datasets/call-chain-v1/cases/astrbot/` 共 20 个正式 YAML case。
 
 ## 阶段进展记录
 
@@ -42,6 +43,18 @@
 - 验证：使用 Python 加载 10 个 YAML case 并按 `call-chain-case.schema.json` 校验通过。
 - 验证：检查 10 个 case 的 `oracle_context.files`、golden edge 文件路径、行号和 evidence，均能在 AstrBot pinned commit 中对应到源码。
 - 验证：执行 `git diff --check` 通过，未发现空白或行尾问题。
+
+### 2026-06-20
+
+- 实现：新增 10 个 AstrBot 正式 YAML case，当前 v1 AstrBot case 从 10 个扩展到 20 个。
+- 新增 case：`astrbot-conversation-002`、`astrbot-conversation-003`、`astrbot-session-001`、`astrbot-session-002`、`astrbot-chat-001`、`astrbot-chat-002`、`astrbot-chat-003`、`astrbot-chat-004`、`astrbot-provider-002`、`astrbot-telegram-001`。
+- 覆盖：新增 `ConversationManager` 对象方法调用、session waiter callback、dashboard route -> service、ChatService 跨数据库/会话链路、provider 状态切换通知、Telegram registry 读取与函数调用边界。
+- 覆盖：新增 `find_callers` case `astrbot-chat-004`，包含一个静态明确 caller 和一个由局部函数变量默认值产生的 optional dynamic caller。
+- 标注：新增 case 中继续使用 `required_edges` / `optional_edges` / `excluded_edges` 区分静态必答边、动态推断边和明确排除边。
+- 决策：第二批仍集中在 AstrBot，目的是在同一真实仓库内先补足低分场景的结构覆盖；第三批开始应考虑继续增加 upstream / negative / runtime-only，也可准备第二个真实仓库来源以降低单仓库偏差。
+- 验证：执行 `python scripts\validate_cases.py`，20 个 case 全部通过 schema 校验。
+- 验证：执行 `python scripts\run_oracle_context.py --provider mock-golden --out-dir tmp\oracle-mock-20-case`，20 个 case 的 mock-golden Oracle 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0。
+- 验证：执行 `python scripts\run_e2e_agent.py --provider mock-golden --out-dir tmp\e2e-mock-20-case`，20 个 case 的 mock-golden E2E 得分为 Precision 1.0 / Recall 1.0 / Evidence Accuracy 1.0；工具指标为 tool_calls=67、files_read=27。
 
 ## Pilot case 候选
 
@@ -81,15 +94,15 @@
 ## 遇到的问题
 
 - 克隆目标仓库需要网络访问，因此使用提升权限执行 `git clone`。
-- 已完成首批正式 case 标注；当前尚未接入长期复用的自动校验脚本，临时使用 Python 命令完成 schema 和 evidence 校验。
+- 首批 case 标注时尚未接入长期复用的自动校验脚本；当前已具备 `scripts/validate_cases.py`、mock-golden Oracle runner 和 mock-golden E2E runner，可用于新增 case 的最小验证。
 
 ## 验证结果
 
 - 已确认 `repos/AstrBot` 存在且 HEAD commit 可读取。
 - 已确认 `datasets/call-chain-v1/` 目录结构已创建。
 - 已确认 schema 文件为 JSON 格式，后续需要接入自动校验脚本。
-- 已确认 10 个 AstrBot YAML case 全部通过 schema 校验。
-- 已确认 10 个 AstrBot YAML case 的 oracle 文件和 golden evidence 行均可在 `repos/AstrBot` 中定位。
+- 已确认 20 个 AstrBot YAML case 全部通过 schema 校验。
+- 已确认新增 case 可通过 mock-golden Oracle / E2E runner 进入评分流程，说明 golden answer 结构与 scorer 兼容。
 
 ## 相关文件
 
@@ -109,11 +122,21 @@
 - `datasets/call-chain-v1/cases/astrbot/astrbot-provider-001.yaml`
 - `datasets/call-chain-v1/cases/astrbot/astrbot-dashboard-001.yaml`
 - `datasets/call-chain-v1/cases/astrbot/astrbot-conversation-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-conversation-002.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-conversation-003.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-session-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-session-002.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-chat-001.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-chat-002.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-chat-003.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-chat-004.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-provider-002.yaml`
+- `datasets/call-chain-v1/cases/astrbot/astrbot-telegram-001.yaml`
 - `docs/datasets/call-chain-v1.md`
 - `records/02-test-case-construction.md`
 
 ## 下一步
 
-- 对首批 10 个 YAML case 做人工复核，重点检查 symbol 命名、动态边界和 max_depth 是否符合评分预期。
-- 补充可复用的 case 校验脚本，覆盖 schema、路径、行号和 evidence 检查。
-- 准备 Oracle Context baseline prompt 与最小运行脚本，用首批 case 测试模型是否能拉开 easy / medium / hard 差距。
+- 对当前 20 个 YAML case 做一轮代表模型复测，优先使用 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local，判断新增 case 是否继续拉开 easy / medium / hard 与不同机制的差距。
+- 基于 20-case 复测结果，标记过易、过难、golden 不稳定或边界定义不清的 case，并决定是否修订。
+- 继续按每批约 10 个 case 扩展到 50+；后续批次应增加更多 `find_callers`、negative caller、runtime-only、插件注册、框架 callback 和第二真实仓库样例。

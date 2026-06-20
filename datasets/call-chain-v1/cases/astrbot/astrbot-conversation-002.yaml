@@ -1,0 +1,61 @@
+id: astrbot-conversation-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.conversation_mgr.ConversationManager.update_conversation
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+notes: >
+  Direct object-method case for distinguishing repo-internal method calls from
+  database/external operations. Useful for object_method failure analysis.
+oracle_context:
+  files:
+    - path: astrbot/core/conversation_mgr.py
+      role: target_definition
+      symbols:
+        - astrbot.core.conversation_mgr.ConversationManager.update_conversation
+        - astrbot.core.conversation_mgr.ConversationManager.get_curr_conversation_id
+      reason: Contains the target method and direct call evidence.
+    - path: astrbot/core/db/__init__.py
+      role: type_definition
+      symbols:
+        - astrbot.core.db.BaseDatabase.update_conversation
+      reason: Defines the database method called through self.db.
+  notes: >
+    This case is max_depth 1. Callers such as update_conversation_title are not
+    callees of the target and should not be returned.
+golden:
+  required_edges:
+    - caller: astrbot.core.conversation_mgr.ConversationManager.update_conversation
+      callee: astrbot.core.conversation_mgr.ConversationManager.get_curr_conversation_id
+      file: astrbot/core/conversation_mgr.py
+      line: 278
+      evidence: "conversation_id = await self.get_curr_conversation_id(unified_msg_origin)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.conversation_mgr.ConversationManager.update_conversation
+      callee: astrbot.core.db.BaseDatabase.update_conversation
+      file: astrbot/core/conversation_mgr.py
+      line: 280
+      evidence: "await self.db.update_conversation("
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.conversation_mgr.ConversationManager.update_conversation
+      callee: astrbot.core.conversation_mgr.ConversationManager.update_conversation_title
+      file: astrbot/core/conversation_mgr.py
+      line: 304
+      reason: update_conversation_title calls update_conversation; the direction is inverse for this find_callees case.
+      evidence: "await self.update_conversation("
+  runtime_only_edges: []

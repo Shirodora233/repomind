@@ -1,0 +1,71 @@
+id: astrbot-chat-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.services.chat_service.ChatService.stop_session
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - cross_file
+notes: >
+  Service-layer stop case that distinguishes request_agent_stop_all from the
+  stronger stop_all path used elsewhere.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/services/chat_service.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.services.chat_service.ChatService.stop_session
+        - astrbot.dashboard.services.chat_service.build_webchat_unified_msg_origin
+      reason: Contains the target method and local helper call.
+    - path: astrbot/core/db/__init__.py
+      role: type_definition
+      symbols:
+        - astrbot.core.db.BaseDatabase.get_platform_session_by_id
+      reason: Defines the database method used to fetch the webchat session.
+    - path: astrbot/core/utils/active_event_registry.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.active_event_registry.ActiveEventRegistry.request_agent_stop_all
+        - astrbot.core.utils.active_event_registry.ActiveEventRegistry.stop_all
+      reason: Defines the stop request method and the similar hard-stop distractor.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.stop_session
+      callee: astrbot.core.db.BaseDatabase.get_platform_session_by_id
+      file: astrbot/dashboard/services/chat_service.py
+      line: 971
+      evidence: "session = await self.db.get_platform_session_by_id(session_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.stop_session
+      callee: astrbot.dashboard.services.chat_service.build_webchat_unified_msg_origin
+      file: astrbot/dashboard/services/chat_service.py
+      line: 977
+      evidence: "unified_msg_origin = build_webchat_unified_msg_origin(session)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.stop_session
+      callee: astrbot.core.utils.active_event_registry.ActiveEventRegistry.request_agent_stop_all
+      file: astrbot/dashboard/services/chat_service.py
+      line: 978
+      evidence: "stopped_count = active_event_registry.request_agent_stop_all(unified_msg_origin)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.stop_session
+      callee: astrbot.core.utils.active_event_registry.ActiveEventRegistry.stop_all
+      file: astrbot/dashboard/services/chat_service.py
+      line: 978
+      reason: stop_session requests agent stop through request_agent_stop_all; it does not call stop_all.
+      evidence: "stopped_count = active_event_registry.request_agent_stop_all(unified_msg_origin)"
+  runtime_only_edges: []

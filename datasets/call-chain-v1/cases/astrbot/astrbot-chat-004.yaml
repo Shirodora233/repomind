@@ -1,0 +1,62 @@
+id: astrbot-chat-004
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - callback
+  - class_method
+  - async
+  - cross_file
+notes: >
+  Caller-tracing case with one explicit caller and one optional dynamic caller
+  through a local function variable. It helps separate required static callers
+  from inferred callback/function-object calls.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/services/chat_service.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+        - astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+        - astrbot.dashboard.services.chat_service.ChatService.batch_delete_sessions
+      reason: Contains the target, explicit caller, and optional function-variable caller.
+    - path: astrbot/dashboard/api/chat.py
+      role: distractor
+      symbols:
+        - astrbot.dashboard.api.chat.delete_chat_session
+      reason: Route handler calls delete_webchat_session, not delete_session_internal directly.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.delete_webchat_session
+      callee: astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1039
+      evidence: "await self.delete_session_internal(session, username)"
+      confidence_type: static_confirmed
+  optional_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.batch_delete_sessions
+      callee: astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1074
+      evidence: "await delete_session(session, username)"
+      confidence_type: dynamic_possible
+      notes: "delete_session defaults to self.delete_session_internal on line 1056, but can be overridden by caller-provided function."
+  excluded_edges:
+    - caller: astrbot.dashboard.api.chat.delete_chat_session
+      callee: astrbot.dashboard.services.chat_service.ChatService.delete_session_internal
+      file: astrbot/dashboard/api/chat.py
+      line: 169
+      reason: The route calls ChatService.delete_webchat_session; delete_session_internal is one level deeper and outside max_depth 1 for caller tracing.
+      evidence: "return await _run(lambda: service.delete_webchat_session(auth.username, session_id))"
+  runtime_only_edges: []

@@ -1,0 +1,70 @@
+id: astrbot-session-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.utils.session_waiter.SessionWaiter.trigger
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - callback
+  - class_method
+  - async
+  - cross_file
+notes: >
+  Dynamic callback case. The stored handler is invoked through an attribute and
+  should be optional/dynamic, while repo-defined helper calls remain required.
+oracle_context:
+  files:
+    - path: astrbot/core/utils/session_waiter.py
+      role: target_definition
+      symbols:
+        - astrbot.core.utils.session_waiter.SessionWaiter.trigger
+        - astrbot.core.utils.session_waiter.SessionController.stop
+        - astrbot.core.utils.session_waiter.SessionWaiter.register_wait
+      reason: Contains the target, local controller method, and registration distractor.
+    - path: astrbot/core/platform/astr_message_event.py
+      role: type_definition
+      symbols:
+        - astrbot.core.platform.astr_message_event.AstrMessageEvent.get_messages
+      reason: Defines the event method called by the target when recording history.
+  notes: >
+    session.handler is runtime-provided by register_wait, so it is optional and
+    should not be expanded to a concrete plugin handler without runtime state.
+golden:
+  required_edges:
+    - caller: astrbot.core.utils.session_waiter.SessionWaiter.trigger
+      callee: astrbot.core.platform.astr_message_event.AstrMessageEvent.get_messages
+      file: astrbot/core/utils/session_waiter.py
+      line: 164
+      evidence: "[copy.deepcopy(comp) for comp in event.get_messages()]"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.utils.session_waiter.SessionWaiter.trigger
+      callee: astrbot.core.utils.session_waiter.SessionController.stop
+      file: astrbot/core/utils/session_waiter.py
+      line: 171
+      evidence: "session.session_controller.stop(e)"
+      confidence_type: static_confirmed
+  optional_edges:
+    - caller: astrbot.core.utils.session_waiter.SessionWaiter.trigger
+      callee: astrbot.core.utils.session_waiter.SessionWaiter.handler
+      file: astrbot/core/utils/session_waiter.py
+      line: 169
+      evidence: "await session.handler(session.session_controller, event)"
+      confidence_type: dynamic_possible
+      notes: "The handler callable is stored by register_wait and depends on runtime registration."
+  excluded_edges:
+    - caller: astrbot.core.utils.session_waiter.SessionWaiter.trigger
+      callee: astrbot.core.utils.session_waiter.SessionWaiter.register_wait
+      file: astrbot/core/utils/session_waiter.py
+      line: 169
+      reason: trigger invokes the registered handler; it does not call register_wait.
+      evidence: "await session.handler(session.session_controller, event)"
+  runtime_only_edges: []

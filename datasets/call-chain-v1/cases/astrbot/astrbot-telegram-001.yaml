@@ -1,0 +1,62 @@
+id: astrbot-telegram-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.collect_commands
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - registry
+  - class_method
+  - direct_call
+notes: >
+  Registry iteration case over star handler metadata. It should return the
+  repo-local helper call and avoid treating registry reads as calls.
+oracle_context:
+  files:
+    - path: astrbot/core/platform/sources/telegram/tg_adapter.py
+      role: target_definition
+      symbols:
+        - astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.collect_commands
+        - astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter._extract_command_info
+        - astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.register_commands
+      reason: Contains the target registry iteration and helper call.
+    - path: astrbot/core/star/register/star_handler.py
+      role: registry
+      symbols:
+        - astrbot.core.star.register.star_handler.star_handlers_registry
+      reason: Defines the registry iterated by collect_commands.
+  notes: >
+    BotCommand is from python-telegram-bot and is excluded as an external
+    library boundary.
+golden:
+  required_edges:
+    - caller: astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.collect_commands
+      callee: astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter._extract_command_info
+      file: astrbot/core/platform/sources/telegram/tg_adapter.py
+      line: 354
+      evidence: "cmd_info_list = self._extract_command_info("
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.collect_commands
+      callee: astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.register_commands
+      file: astrbot/core/platform/sources/telegram/tg_adapter.py
+      line: 324
+      reason: register_commands calls collect_commands; the direction is inverse for this find_callees case.
+      evidence: "commands = self.collect_commands()"
+    - caller: astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.collect_commands
+      callee: astrbot.core.star.register.star_handler.star_handlers_registry
+      file: astrbot/core/platform/sources/telegram/tg_adapter.py
+      line: 344
+      reason: star_handlers_registry is iterated as data; reading a registry is not a function or method call.
+      evidence: "for handler_md in star_handlers_registry:"
+  runtime_only_edges: []

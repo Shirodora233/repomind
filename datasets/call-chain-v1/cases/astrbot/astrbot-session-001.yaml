@@ -1,0 +1,70 @@
+id: astrbot-session-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.builtin_stars.astrbot.main.Main.handle_session_control_agent
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - callback
+  - class_method
+  - async
+  - cross_file
+notes: >
+  Event handler case that bridges plugin code to SessionWaiter. It tests
+  callback dispatch, event stopping, and cross-file method resolution.
+oracle_context:
+  files:
+    - path: astrbot/builtin_stars/astrbot/main.py
+      role: target_definition
+      symbols:
+        - astrbot.builtin_stars.astrbot.main.Main.handle_session_control_agent
+      reason: Contains the target event handler and direct calls.
+    - path: astrbot/core/utils/session_waiter.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.session_waiter.SessionFilter.filter
+        - astrbot.core.utils.session_waiter.SessionWaiter.trigger
+      reason: Defines the session filter and trigger method called by the handler.
+    - path: astrbot/core/platform/astr_message_event.py
+      role: type_definition
+      symbols:
+        - astrbot.core.platform.astr_message_event.AstrMessageEvent.stop_event
+      reason: Defines the event stop method called after triggering the waiter.
+golden:
+  required_edges:
+    - caller: astrbot.builtin_stars.astrbot.main.Main.handle_session_control_agent
+      callee: astrbot.core.utils.session_waiter.SessionFilter.filter
+      file: astrbot/builtin_stars/astrbot/main.py
+      line: 46
+      evidence: "session_id = session_filter.filter(event)"
+      confidence_type: static_confirmed
+    - caller: astrbot.builtin_stars.astrbot.main.Main.handle_session_control_agent
+      callee: astrbot.core.utils.session_waiter.SessionWaiter.trigger
+      file: astrbot/builtin_stars/astrbot/main.py
+      line: 48
+      evidence: "await SessionWaiter.trigger(session_id, event)"
+      confidence_type: static_confirmed
+    - caller: astrbot.builtin_stars.astrbot.main.Main.handle_session_control_agent
+      callee: astrbot.core.platform.astr_message_event.AstrMessageEvent.stop_event
+      file: astrbot/builtin_stars/astrbot/main.py
+      line: 49
+      evidence: "event.stop_event()"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.builtin_stars.astrbot.main.Main.handle_session_control_agent
+      callee: astrbot.core.utils.session_waiter.SessionWaiter.register_wait
+      file: astrbot/builtin_stars/astrbot/main.py
+      line: 48
+      reason: The handler triggers an existing waiter; it does not register a new wait.
+      evidence: "await SessionWaiter.trigger(session_id, event)"
+  runtime_only_edges: []

@@ -1,0 +1,75 @@
+id: astrbot-conversation-003
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.conversation_mgr.ConversationManager.delete_conversations_by_user_id
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - callback
+  - async
+  - cross_file
+notes: >
+  Session cleanup case with a direct callback trigger. It tests whether models
+  keep callback invocation at the trigger method boundary rather than expanding
+  into registered runtime callbacks.
+oracle_context:
+  files:
+    - path: astrbot/core/conversation_mgr.py
+      role: target_definition
+      symbols:
+        - astrbot.core.conversation_mgr.ConversationManager.delete_conversations_by_user_id
+        - astrbot.core.conversation_mgr.ConversationManager._trigger_session_deleted
+      reason: Contains the target and callback trigger.
+    - path: astrbot/core/db/__init__.py
+      role: type_definition
+      symbols:
+        - astrbot.core.db.BaseDatabase.delete_conversations_by_user_id
+      reason: Defines the database method called by the target.
+    - path: astrbot/core/utils/shared_preferences.py
+      role: type_definition
+      symbols:
+        - astrbot.core.utils.shared_preferences.SharedPreferences.session_remove
+      reason: Defines the session preference removal helper.
+  notes: >
+    The registered callback functions behind _trigger_session_deleted are
+    runtime-dependent and should not be expanded as required edges.
+golden:
+  required_edges:
+    - caller: astrbot.core.conversation_mgr.ConversationManager.delete_conversations_by_user_id
+      callee: astrbot.core.db.BaseDatabase.delete_conversations_by_user_id
+      file: astrbot/core/conversation_mgr.py
+      line: 153
+      evidence: "await self.db.delete_conversations_by_user_id(user_id=unified_msg_origin)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.conversation_mgr.ConversationManager.delete_conversations_by_user_id
+      callee: astrbot.core.utils.shared_preferences.SharedPreferences.session_remove
+      file: astrbot/core/conversation_mgr.py
+      line: 155
+      evidence: "await sp.session_remove(unified_msg_origin, \"sel_conv_id\")"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.conversation_mgr.ConversationManager.delete_conversations_by_user_id
+      callee: astrbot.core.conversation_mgr.ConversationManager._trigger_session_deleted
+      file: astrbot/core/conversation_mgr.py
+      line: 158
+      evidence: "await self._trigger_session_deleted(unified_msg_origin)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.conversation_mgr.ConversationManager.delete_conversations_by_user_id
+      callee: astrbot.core.conversation_mgr.ConversationManager.delete_conversation
+      file: astrbot/core/conversation_mgr.py
+      line: 153
+      reason: The bulk user deletion method calls the database bulk delete directly; it does not call delete_conversation.
+      evidence: "await self.db.delete_conversations_by_user_id(user_id=unified_msg_origin)"
+  runtime_only_edges: []

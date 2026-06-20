@@ -1,0 +1,112 @@
+id: astrbot-chat-003
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.services.chat_service.ChatService.create_thread
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - cross_file
+notes: >
+  WebChat side-thread creation case with several direct service/database/helper
+  calls. It stresses over-report filtering and max_depth control.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/services/chat_service.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.services.chat_service.ChatService.create_thread
+        - astrbot.dashboard.services.chat_service.ChatService.load_current_conversation_history
+        - astrbot.dashboard.services.chat_service.find_turn_range
+        - astrbot.dashboard.services.chat_service.build_thread_unified_msg_origin
+        - astrbot.dashboard.services.chat_service.serialize_thread
+      reason: Contains the target and local helper callees.
+    - path: astrbot/core/db/__init__.py
+      role: type_definition
+      symbols:
+        - astrbot.core.db.BaseDatabase.get_platform_session_by_id
+        - astrbot.core.db.BaseDatabase.get_platform_message_history_by_id
+        - astrbot.core.db.BaseDatabase.get_webchat_thread_by_parent_message_and_text
+        - astrbot.core.db.BaseDatabase.create_webchat_thread
+      reason: Defines database methods called by create_thread.
+    - path: astrbot/core/conversation_mgr.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.conversation_mgr.ConversationManager.new_conversation
+      reason: Defines the conversation method used to create the side-thread conversation.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.core.db.BaseDatabase.get_platform_session_by_id
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1227
+      evidence: "session = await self.db.get_platform_session_by_id(session_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.core.db.BaseDatabase.get_platform_message_history_by_id
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1233
+      evidence: "parent_record = await self.db.get_platform_message_history_by_id("
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.core.db.BaseDatabase.get_webchat_thread_by_parent_message_and_text
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1251
+      evidence: "existing = await self.db.get_webchat_thread_by_parent_message_and_text("
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.dashboard.services.chat_service.ChatService.load_current_conversation_history
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1260
+      evidence: "conversation_id, history = await self.load_current_conversation_history(session)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.dashboard.services.chat_service.find_turn_range
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1261
+      evidence: "turn_range = find_turn_range(history, checkpoint_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.core.db.BaseDatabase.create_webchat_thread
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1267
+      evidence: "thread = await self.db.create_webchat_thread("
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.core.conversation_mgr.ConversationManager.new_conversation
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1274
+      evidence: "await self.conv_mgr.new_conversation("
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.dashboard.services.chat_service.build_thread_unified_msg_origin
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1275
+      evidence: "unified_msg_origin=build_thread_unified_msg_origin("
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.dashboard.services.chat_service.serialize_thread
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1282
+      evidence: "return serialize_thread(thread)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.dashboard.services.chat_service.ChatService.create_thread_from_dashboard_payload
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1289
+      reason: create_thread_from_dashboard_payload calls create_thread; it is not a callee of create_thread.
+      evidence: "return await self.create_thread(username, self._dashboard_payload(payload))"
+  runtime_only_edges: []

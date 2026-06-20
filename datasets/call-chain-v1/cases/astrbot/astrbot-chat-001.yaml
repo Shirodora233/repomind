@@ -1,0 +1,59 @@
+id: astrbot-chat-001
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.dashboard.api.chat.stop_chat_session
+target_type: route
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - route_handler
+  - dependency_injection
+  - async
+  - cross_file
+notes: >
+  FastAPI route handler case that should include the local response wrapper and
+  service method call, but not unrelated legacy dashboard handlers.
+oracle_context:
+  files:
+    - path: astrbot/dashboard/api/chat.py
+      role: target_definition
+      symbols:
+        - astrbot.dashboard.api.chat.stop_chat_session
+        - astrbot.dashboard.api.chat._run
+      reason: Contains the route target and local wrapper call.
+    - path: astrbot/dashboard/services/chat_service.py
+      role: direct_callee
+      symbols:
+        - astrbot.dashboard.services.chat_service.ChatService.stop_session
+      reason: Defines the injected service method called by the route.
+golden:
+  required_edges:
+    - caller: astrbot.dashboard.api.chat.stop_chat_session
+      callee: astrbot.dashboard.api.chat._run
+      file: astrbot/dashboard/api/chat.py
+      line: 178
+      evidence: "return await _run(lambda: service.stop_session(auth.username, session_id))"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.api.chat.stop_chat_session
+      callee: astrbot.dashboard.services.chat_service.ChatService.stop_session
+      file: astrbot/dashboard/api/chat.py
+      line: 178
+      evidence: "return await _run(lambda: service.stop_session(auth.username, session_id))"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.dashboard.api.chat.stop_chat_session
+      callee: astrbot.dashboard.services.chat_service.ChatService.stop_session_from_dashboard_payload
+      file: astrbot/dashboard/api/chat.py
+      line: 178
+      reason: stop_chat_session calls stop_session directly; the dashboard payload wrapper is used by the legacy route.
+      evidence: "return await _run(lambda: service.stop_session(auth.username, session_id))"
+  runtime_only_edges: []

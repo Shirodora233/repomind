@@ -1,0 +1,69 @@
+id: astrbot-provider-002
+dataset_version: call-chain-v1
+repo_key: astrbot
+repo_url: https://github.com/AstrBotDevs/AstrBot.git
+commit_sha: 143f846b92f7f0a448dc1e559a80eb2e3e338383
+language: python
+target: astrbot.core.provider.manager.ProviderManager.set_provider
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - registry
+  - class_method
+  - async
+  - cross_file
+notes: >
+  Provider selection case focused on state update and notification calls. It
+  should not be confused with provider loading or registry construction.
+oracle_context:
+  files:
+    - path: astrbot/core/provider/manager.py
+      role: target_definition
+      symbols:
+        - astrbot.core.provider.manager.ProviderManager.set_provider
+        - astrbot.core.provider.manager.ProviderManager._notify_provider_changed
+        - astrbot.core.provider.manager.ProviderManager.load_provider
+      reason: Contains the target, notification helper, and load_provider distractor.
+    - path: astrbot/core/utils/shared_preferences.py
+      role: type_definition
+      symbols:
+        - astrbot.core.utils.shared_preferences.SharedPreferences.session_put
+        - astrbot.core.utils.shared_preferences.SharedPreferences.put_async
+      reason: Defines the preference write helpers called by set_provider.
+golden:
+  required_edges:
+    - caller: astrbot.core.provider.manager.ProviderManager.set_provider
+      callee: astrbot.core.utils.shared_preferences.SharedPreferences.session_put
+      file: astrbot/core/provider/manager.py
+      line: 162
+      evidence: "await sp.session_put("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.provider.manager.ProviderManager.set_provider
+      callee: astrbot.core.provider.manager.ProviderManager._notify_provider_changed
+      file: astrbot/core/provider/manager.py
+      line: 167
+      evidence: "self._notify_provider_changed(provider_id, provider_type, umo)"
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on lines 183, 195, and 207 in other provider-type branches."
+    - caller: astrbot.core.provider.manager.ProviderManager.set_provider
+      callee: astrbot.core.utils.shared_preferences.SharedPreferences.put_async
+      file: astrbot/core/provider/manager.py
+      line: 177
+      evidence: "await sp.put_async("
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on lines 189 and 201 in other provider-type branches."
+  optional_edges: []
+  excluded_edges:
+    - caller: astrbot.core.provider.manager.ProviderManager.set_provider
+      callee: astrbot.core.provider.manager.ProviderManager.load_provider
+      file: astrbot/core/provider/manager.py
+      line: 171
+      reason: set_provider selects an already-loaded instance from inst_map; it does not load provider configs.
+      evidence: "prov = self.inst_map[provider_id]"
+  runtime_only_edges: []
