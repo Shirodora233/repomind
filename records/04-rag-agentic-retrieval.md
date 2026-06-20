@@ -15,6 +15,8 @@
 - 已保存 E2E run 的 task、tool trace、retrieval metrics、model trace、messages、raw responses、prediction 和 score。
 - 已完成 DeepSeek direct-no-reasoning 10-case E2E baseline。
 - 已完成本地 Ollama Qwen3.5 2B 与 Gemma4 E2B 10-case E2E baseline。
+- 已完成 OpenAI GPT-5.5 与 Tencent HY3 的 10-case E2E baseline。
+- 已记录 OpenAI E2E 文本 action 协议适配问题，避免将协议失败误判为模型能力失败。
 
 ## 阶段进展记录
 
@@ -106,3 +108,14 @@
 - Gemma4 E2B 关键结果：Edge Precision 0.0，Edge Recall 0.0，Evidence Accuracy n/a；Definition Accuracy 1.0，Retrieval Recall 0.851852，tool_calls=37，files_read=17。
 - 正式对比报告见 `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
 - 初步判断：两个本地小模型都能执行工具循环并读到不少相关文件，但最终输出多为短 symbol、类型级边或非 canonical edge，无法匹配 golden。后续本地模型微调数据应重点覆盖 fully-qualified symbol 输出和 final schema。
+
+## 2026-06-20 OpenAI / Tencent 10-case E2E baseline v0
+
+- 已完成 `openai/gpt-5.5` 10-case E2E Agentic Retrieval baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-openai-gpt-5.5-no-reasoning-20260620`。
+- OpenAI 关键结果：Edge Precision 0.6，Edge Recall 0.09375，Evidence Accuracy 1.0；Definition Accuracy 0.2，Retrieval Recall 0.222222，tool_calls=9，files_read=5，总成本约 0.17832。
+- OpenAI E2E 低 recall 主要来自文本 action 协议适配问题：多个 case 在同一响应中同时输出 tool action 与 final action，runner 解析到 final 后未执行工具检索。该问题已记录到技术问题文档。
+- 已完成 `tencent/hy3-preview` 10-case E2E Agentic Retrieval baseline，原始输出目录为 `runs/e2e-agent/baseline-v0-tencent-hy3-preview-no-reasoning-20260620`。
+- Tencent 关键结果：Edge Precision 0.40625，Edge Recall 0.75，Evidence Accuracy 1.0；Definition Accuracy 1.0，Retrieval Recall 1.0，tool_calls=83，files_read=28，总成本约 0.028067828。
+- Tencent E2E 说明：检索指标满分，主要失败来自过报、canonical symbol 不稳定，以及对象方法 / callback / dynamic sub-stage 边界判断。
+- 正式报告见 `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`。
+- 初步判断：E2E 轨道已经能区分“检索失败 / 协议失败”和“检索成功后的边界判断失败”。在优化前仍应继续扩展 case，而不是直接围绕当前 10 case 调 prompt。

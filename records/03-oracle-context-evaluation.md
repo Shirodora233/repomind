@@ -17,6 +17,8 @@
 - 已新增本地 `.env`、可提交的 `.env.example` 和 `configs/model-providers.example.yaml`，支持按服务商配置多个模型别名。
 - 已支持 OpenRouter provider routing，用于限制 DeepSeek 等模型的实际供应商，控制运行成本。
 - 已将实验输出目录 `runs/` 加入 `.gitignore`。
+- 已完成 DeepSeek direct、OpenAI GPT-5.5、Tencent HY3、本地 Qwen3.5 2B、本地 Gemma4 E2B 的 10-case Oracle Context baseline。
+- 已生成多模型 Oracle / E2E 综合分析报告，用于指导后续扩展到 50+ case。
 
 ## 阶段进展记录
 
@@ -144,3 +146,14 @@
 - Gemma4 E2B 关键结果：Edge Precision 0.333333，Edge Recall 0.46875，Evidence Accuracy 0.6；无 parse error。
 - 正式对比报告见 `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`。
 - 初步判断：Gemma4 E2B 明显优于 Qwen3.5 2B，但两者都显著低于 DeepSeek；Oracle 结果能拉开本地小模型差距，适合继续作为本地候选筛选依据。
+
+## 2026-06-20 OpenAI / Tencent 10-case Oracle baseline v0
+
+- 新增 `openai-gpt-5.5-no-reasoning` alias，使用 `reasoning: {effort: none, exclude: true}`，用于 OpenRouter baseline scoring run。
+- 已完成 `openai/gpt-5.5` 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-openai-gpt-5.5-no-reasoning-20260620-rerun`。
+- OpenAI 关键结果：Edge Precision 1.0，Edge Recall 0.9375，Evidence Accuracy 1.0；10 case 全部完成，无 request / parse error；总成本约 1.09657。
+- 已完成 `tencent/hy3-preview` 10-case Oracle Context baseline，原始输出目录为 `runs/oracle-context/baseline-v0-tencent-hy3-preview-no-reasoning-20260620`。
+- Tencent 关键结果：Edge Precision 0.641509，Edge Recall 0.96875，Evidence Accuracy 1.0；Recall 最高，但在 `astrbot-agent-002` 和 `astrbot-provider-001` 过报明显；总成本约 0.014841218。
+- 正式报告见 `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md` 和 `reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`。
+- 已生成 base 10 多模型综合分析报告：`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md`。
+- 初步判断：Oracle Context 已能稳定拉开强在线模型、中等在线模型和本地小模型差距；OpenAI 适合作为高成本上限标杆，Tencent 适合作为高 recall / 低成本但易过报的对照模型。

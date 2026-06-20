@@ -13,7 +13,8 @@
 | 2026-06-19 | Oracle runner 加固与成本控制 | 增加 YAML parser repair、OpenRouter provider routing、reasoning 控制、case-level request error、`--max-tokens`；确认 DeepSeek direct routing 与 no-reasoning 配置可用。 | `7ab2791 fix(evaluation): harden oracle runner parsing and routing`、`f80d16c feat(evaluation): support reasoning controls for oracle runs`、`c69a355 chore(evaluation): record deepseek direct retest` | `records/03-oracle-context-evaluation.md`、`records/technical-issues-and-solutions.md` |
 | 2026-06-19 | E2E Agentic Retrieval 基座 | 搭建最小 E2E runner、repo-only 工具循环、dry-run / mock-golden、真实模型 JSON action loop、model trace、messages、finalization 和版本化实验快照。 | `1f06883 feat(e2e): add minimal agentic retrieval runner`、`5a3214c feat(e2e): add openai-compatible agent loop`、`1c79312 feat(evaluation): add versioned experiment snapshots` | `records/04-rag-agentic-retrieval.md` |
 | 2026-06-19 | DeepSeek 10-case baseline | 完成 DeepSeek direct no-reasoning 的 10-case Oracle Context 与 E2E baseline，并生成正式中文报告；Oracle Precision 0.828571 / Recall 0.8125，E2E Precision 0.446154 / Recall 0.84375。 | `5a8a450 docs(reports): add oracle baseline report`、`cc9af22 docs(reports): add e2e baseline report` | `reports/baseline/oracle-context-deepseek-direct-no-reasoning-v0-20260619.md`、`reports/baseline/e2e-agent-deepseek-direct-no-reasoning-v0-20260619.md` |
-| 2026-06-20 | 本地 Ollama 小模型 baseline | 新增 `ollama-native` provider，确认 `/api/chat` + `num_ctx=65536` + `think=false` 可支持本地长上下文；完成 `qwen3.5:2b` 与 `gemma4:e2b` 的 10-case Oracle / E2E 对照报告。决定后续本地模型优先使用 `gemma4:e2b`。 | 未提交（当前工作区改动） | `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
+| 2026-06-20 | 本地 Ollama 小模型 baseline | 新增 `ollama-native` provider，确认 `/api/chat` + `num_ctx=65536` + `think=false` 可支持本地长上下文；完成 `qwen3.5:2b` 与 `gemma4:e2b` 的 10-case Oracle / E2E 对照报告。决定后续本地模型优先使用 `gemma4:e2b`。 | `61fa190 feat(evaluation): add local ollama baseline support` | `reports/baseline/local-ollama-qwen-gemma-baseline-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
+| 2026-06-20 | 在线模型 baseline 扩展与 base 10 复核 | 新增 OpenAI GPT-5.5 no-reasoning alias；完成 `openai/gpt-5.5` 与 `tencent/hy3-preview` 的 10-case Oracle / E2E baseline；生成 base 10 多模型综合分析报告。 | 本次提交 | `reports/baseline/openai-gpt-5.5-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/tencent-hy3-preview-no-reasoning-baseline-v0-20260620.md`、`reports/baseline/base-10-case-comprehensive-analysis-v0-20260620.md` |
 
 ## 最近完成
 
@@ -32,13 +33,17 @@
 - 已完成本地 Ollama `qwen3.5:2b` 与 `gemma4:e2b` 的 10-case Oracle / E2E 对照测试。
 - 已确认本地 Ollama 长上下文应使用 `ollama-native` provider；`/v1/chat/completions` 在本机未正确应用 `num_ctx`。
 - 已决定后续本地模型优先使用 `gemma4:e2b`：它在 Oracle Context 上明显优于 `qwen3.5:2b`，且 E2E 工具调用更克制。
+- 已完成 `openai/gpt-5.5` 与 `tencent/hy3-preview` 禁用 reasoning 的 10-case Oracle / E2E baseline。
+- 已生成 base 10 多模型综合分析报告，确认当前 10 个 pilot case 能拉开模型差距，但不足以支持最终策略选择。
+- 已记录 OpenAI E2E 文本 action 协议适配问题，避免将其误判为模型能力失败。
 
 ## 待推进
 
-- 提交当前本地 Ollama native provider、阶段记录和本地模型 baseline 报告。
-- 继续扩展在线模型 baseline，优先形成强模型 / 性价比模型 / 本地模型的横向矩阵。
-- 基于多模型结果复核 10 个 pilot case 的区分度、边界清晰度和 golden 稳定性。
-- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，将测试集扩展到 50+ case。
+- 提交当前在线模型 baseline、base 10 综合分析报告和阶段记录。
+- 基于 base 10 分析结果，继续按每批约 10 个 case 扩展测试集，逐步扩展到 50+ case。
+- 下一批新增 case 应优先补充 `find_callers`、negative callers、对象方法、动态 dispatch、registry、插件机制、框架 callback、跨目录 service chain、runtime-only 边界。
+- 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。
+- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50+ case 和多模型 baseline。
 - 本地模型后续以 `gemma4:e2b` 作为主要小模型候选；`qwen3.5:2b` 保留为低成本下限或格式/指令跟随诊断模型。
 
 ## 维护规则

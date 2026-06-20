@@ -39,6 +39,12 @@ providers:
           effort: none
           exclude: true
         notes: Disables OpenRouter reasoning output for Oracle scoring runs so max_tokens is reserved for the YAML answer.
+      - alias: openai-gpt-5.5-no-reasoning
+        id: openai/gpt-5.5
+        reasoning:
+          effort: none
+          exclude: true
+        notes: Disables OpenRouter reasoning output for baseline scoring runs so max_tokens is reserved for the structured answer.
       - alias: strong-online-1
         id: replace-with-openrouter-model-id
         notes: Placeholder for a high-capability online model.

@@ -155,3 +155,15 @@
 - 解决方式：已新增 `ollama-native` model provider，调用 `http://localhost:11434/api/chat`，并在本地模型 alias 中设置 `request_body: {think: false, options: {num_ctx: 65536}}`。`run_oracle_context.py` 与 `run_e2e_agent.py` 均已支持 native response 的 `message.content`。
 - 后续注意：跑本地 Ollama 长上下文实验时优先使用 `--model-provider ollama-native`，不要直接使用 `--model-provider ollama` 的 `/v1` OpenAI-compatible 路径。若更换模型，应先用单 case smoke 检查 `prompt_eval_count`、`done_reason` 和是否有 content。
 - 相关文件：`configs/model-providers.example.yaml`、`.env.example`、`scripts/run_oracle_context.py`、`scripts/run_e2e_agent.py`
+
+## E2E 文本 action 协议遇到同一响应多 JSON action 时会提前 final
+
+- 首次发现阶段：RAG / Agentic Retrieval 阶段
+- 状态：active
+- 最后复核：2026-06-20
+- 现象：使用 `openai-gpt-5.5-no-reasoning` 跑 10-case E2E baseline 时，多个 case 的第一轮响应同时包含 tool action 和 final action，例如先输出 `{"action":"search_text",...}`，随后又输出 `{"action":"final","prediction":...}`。当前 parser 提取到 final 后结束 case，导致工具没有执行，`tool_calls=0`、`files_read=0`、recall=0。
+- 影响：这类结果主要反映 runner / 文本协议适配问题，不应直接判定为模型没有检索或没有推理能力。OpenAI E2E baseline 的低 recall 需要单独标注。
+- 原因：当前最小 E2E loop 使用文本 JSON action 协议，不是真正的 tool calling；parser 为了兼容夹杂解释文字，会从响应中抽取可解析 JSON action。当同一响应包含多个 JSON 对象时，模型违反“一轮一个 action”的协议，而 runner 没有显式拒绝多 action 或固定使用第一个 action。
+- 解决方式：尚未解决。后续可选方案包括：发现多个 action 时返回 parse error 并要求模型重试；只接受第一个 action 并忽略后续内容；加强 system prompt；或改用原生 tool calling / structured output。
+- 后续注意：分析 E2E 失败时，先检查 `model_trace.json`。如果 `tool_calls=0` 且 trace 中出现多个 JSON action，不要把它归因于检索策略本身。
+- 相关文件：`scripts/run_e2e_agent.py`、`prompts/e2e-agent-system-v0.md`、`records/04-rag-agentic-retrieval.md`
