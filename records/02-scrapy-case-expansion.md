@@ -92,3 +92,18 @@ Results:
 - `excluded_edges` explicitly mark common false positives, especially callback
   references, same-name methods, and depth-2 calls that should not be returned
   for `max_depth: 1`.
+
+## 2026-06-20 Scrapy 10-case baseline rerun
+
+- Committed the Scrapy case batch as
+  `b3b5157 chore(dataset): add Scrapy call-chain cases`.
+- Ran DeepSeek direct no-reasoning, Tencent HY3 no-reasoning, and local Gemma4
+  E2B on the 10 Scrapy cases for both Oracle Context and E2E.
+- Formal report:
+  `reports/baseline/scrapy-10-case-model-comparison-v0-20260620.md`.
+- Raw run paths:
+  `runs/oracle/scrapy-10-*` and `runs/e2e/scrapy-10-*`.
+- Main result: Scrapy is easier for online models than the AstrBot third batch,
+  but it exposes useful framework-specific failures around signal callback
+  registration, upstream caller over-reporting, and protocol dispatch canonical
+  symbols.

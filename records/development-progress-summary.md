@@ -19,7 +19,8 @@
 | 2026-06-20 | 新增 10-case 三模型复测 | 仅对第二批新增 10 个 case 运行 DeepSeek、Tencent HY3、Gemma4 的 Oracle 与 E2E；确认新增 case 能继续拉开模型差距，并暴露 E2E 检索后边界判断问题。 | 未提交 | `reports/baseline/new-10-case-model-comparison-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
 | 2026-06-20 | 共同缺陷分类与第三批候选 | 基于当前 20 case 多模型结果整理 failure taxonomy，并继续在 AstrBot 中筛选第三批候选；候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller。 | 未提交 | `reports/baseline/failure-taxonomy-v0-20260620.md`、`records/02-test-case-construction.md` |
 | 2026-06-20 | AstrBot case 第三批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 20 扩到 30；覆盖 plugin hook、handler registry、webhook callback、queue listener、platform dynamic import、ASGI route wrapper、no-caller negative 和 function tool registry，并通过 validator / mock-golden Oracle / mock-golden E2E。 | 未提交 | `datasets/call-chain-v1/cases/astrbot/`、`records/02-test-case-construction.md` |
-| 2026-06-20 | Scrapy case 第四批扩展 | 拉取第二真实仓库 Scrapy 到 `repos/Scrapy`，固定 commit；新增 10 个 Scrapy YAML golden case，case 总数从 30 扩展到 40，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。 | 未提交 | `records/02-scrapy-case-expansion.md` |
+| 2026-06-20 | Scrapy case 第四批扩展 | 拉取第二真实仓库 Scrapy 到 `repos/Scrapy`，固定 commit；新增 10 个 Scrapy YAML golden case，case 总数从 30 扩展到 40，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。 | `b3b5157 chore(dataset): add Scrapy call-chain cases` | `records/02-scrapy-case-expansion.md` |
+| 2026-06-20 | Scrapy 10-case 三模型复测 | 对 Scrapy 第四批 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认在线模型区分度明显，主要失败集中在 signal callback registration、upstream over-report 和 protocol canonical symbol。 | 本次报告提交 | `reports/baseline/scrapy-10-case-model-comparison-v0-20260620.md`、`records/02-scrapy-case-expansion.md` |
 
 ## 最近完成
 
@@ -49,6 +50,7 @@
 
 - 已拉取第二真实仓库 Scrapy 到本地 `repos/Scrapy`，并在 `repos.yaml` 固定 commit。
 - 已完成 Scrapy 第四批 10 个正式 YAML case，当前 `call-chain-v1` 共 40 个 case。
+- 已完成 Scrapy 第四批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
 
 ## 待推进
 
