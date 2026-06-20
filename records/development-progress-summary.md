@@ -55,11 +55,12 @@
 | 2026-06-21 | PE prompt assembly ready | `4701bc9` | 34 个 generated prompt 资产，全矩阵 dry-run 无缺 prompt |
 | 2026-06-21 | RAG context packer | `fb8e3fb` | retrieval -> prompt-ready context，移除 `oracle_context` / `golden` metadata 泄漏 |
 | 2026-06-21 | RAG context runner | `1d50f7d` | RAG-only generation runner dry-run 入口，复用 scorer 与 model provider 配置 |
+| 2026-06-21 | RAG-only DeepSeek smoke | `d11dfdc` | 2-case RAG context runner smoke，P=0.9375 / R=0.8333 / E=1.0，成本约 0.0131 USD |
 
 ## 当前待办
 
 - PE：可进入小规模 Oracle / E2E smoke 或 pilot 运行；真实模型结果出来前，不把 PE 维度贡献写成结论。
-- RAG：下一步应运行小规模 RAG-only 真实模型 smoke，验证“检索命中后生成是否仍漏边”。
+- RAG：下一步应把 RAG-only 从 2-case smoke 扩到 20-case pilot，验证生成侧漏边模式是否稳定。
 - Fine-tune：正式训练前仍需冻结 500+ train/dev 数据；当前只有 source plan 与 synthetic dry-run 入口，未启动训练。
 - 消融矩阵：等待 PE smoke/pilot、RAG-only E2E、Fine-tune 数据冻结或训练 smoke 形成单项稳定版本后再运行。
 
