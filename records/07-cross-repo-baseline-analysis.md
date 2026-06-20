@@ -81,3 +81,16 @@
   - 在线模型在 E2E 中检索基本到位，但 final edge 收敛仍明显低于 Oracle，说明优化重点应转向边界规则、symbol canonicalization 和 final 输出约束。
   - Gemma4 E2B 未微调前仍适合作为本地小模型 baseline / fine-tune 候选，但不能作为可靠标注辅助。
 - 验证：六个正式 run 均生成 `score.json`；E2E run 均生成 `e2e_metrics.json`、`tool_config_snapshot.yaml` 和 `version_manifest.json`。原始输出保存在 `runs/`，不纳入提交。
+
+### 2026-06-20：50-case baseline 汇总
+
+- 目标：在 50 个 case 全部具备三模型 Oracle / E2E 主线结果后，聚合整体 baseline 指标、成本、分仓库/难度表现和 case 质量分层。
+- 正式报告：`reports/baseline/50-case-baseline-summary-v0-20260620.md`。
+- 聚合范围：DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local 的 30 个正式 run；不包含 OpenAI GPT-5.5、Qwen3.5、smoke、mock-golden 或 hard single-case smoke。
+- 主要结果：
+  - Oracle：DeepSeek Precision 0.859060 / Recall 0.902256；Tencent HY3 Precision 0.851613 / Recall 0.947368；Gemma4 Precision 0.296552 / Recall 0.323308。
+  - E2E：DeepSeek Precision 0.603448 / Recall 0.759398；Tencent HY3 Precision 0.613757 / Recall 0.834586；Gemma4 Precision 0.028169 / Recall 0.015038。
+  - DeepSeek / HY3 的 E2E Retrieval Recall 均为 1.000000，但 Edge Recall 明显低于 Oracle，说明当前在线模型主瓶颈在 final edge 收敛、symbol canonicalization、depth 和动态边界判断。
+  - 当前 50 case 中，13 个为 over-easy candidate，3 个为明显 E2E gap，7 个为 precision boundary，2 个建议人工复核 golden / reasoning 边界。
+- Golden 修订：`astrbot-pipeline-003` 已改为把配置决定的两个 concrete sub-stage `process` 边都作为 required edge，原 `AgentRequestSubStage.agent_sub_stage.process` 合成属性边不再作为 required edge；`scrapy-signal-001` 已补齐 `CoreStats.item_dropped` 与 `CoreStats.response_received` 两个 signal receiver registration 的 excluded edge；validator 通过，并已基于已有预测重新生成相关 `score.json` 与 50-case 汇总。
+- 下一步：在开始 PE / RAG / Fine-tune 优化前，优先统一 constructor canonical 规则，并给 runner 补 structured wall-clock timing。

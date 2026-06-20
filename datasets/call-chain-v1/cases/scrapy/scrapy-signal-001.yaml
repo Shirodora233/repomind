@@ -75,4 +75,16 @@ golden:
       line: 33
       reason: item_scraped is passed as a signal receiver; it is not invoked by from_crawler.
       evidence: "crawler.signals.connect(o.item_scraped, signal=signals.item_scraped)"
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.extensions.corestats.CoreStats.item_dropped
+      file: scrapy/extensions/corestats.py
+      line: 34
+      reason: item_dropped is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(o.item_dropped, signal=signals.item_dropped)"
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.extensions.corestats.CoreStats.response_received
+      file: scrapy/extensions/corestats.py
+      line: 35
+      reason: response_received is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(o.response_received, signal=signals.response_received)"
   runtime_only_edges: []

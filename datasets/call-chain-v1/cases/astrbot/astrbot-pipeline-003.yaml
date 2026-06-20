@@ -19,8 +19,10 @@ features:
   - dependency_injection
   - cross_file
 notes: >
-  Attribute-dispatch case. The process method statically calls
-  self.agent_sub_stage.process, while initialize chooses the concrete sub-stage.
+  Attribute-dispatch case. The process method calls
+  self.agent_sub_stage.process, while initialize chooses the concrete sub-stage
+  from runtime configuration. Since the concrete choice is runtime-dependent,
+  both statically possible concrete process methods are required edges.
 oracle_context:
   files:
     - path: astrbot/core/pipeline/process_stage/method/agent_request.py
@@ -46,8 +48,8 @@ oracle_context:
       reason: Another possible concrete implementation of self.agent_sub_stage.process.
   notes: >
     The exact concrete process method depends on configuration observed during
-    initialize. The required edge captures the static attribute call; concrete
-    class edges are optional.
+    initialize. The required edges include all statically visible concrete
+    process implementations that can be assigned to self.agent_sub_stage.
 golden:
   required_edges:
     - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
@@ -57,27 +59,20 @@ golden:
       evidence: "if not await SessionServiceManager.should_process_llm_request(event):"
       confidence_type: static_confirmed
     - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
-      callee: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.agent_sub_stage.process
-      file: astrbot/core/pipeline/process_stage/method/agent_request.py
-      line: 47
-      evidence: "async for resp in self.agent_sub_stage.process(event, self.prov_wake_prefix):"
-      confidence_type: dynamic_possible
-      notes: "The attribute call is static, but its concrete target is selected in initialize."
-  optional_edges:
-    - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
       callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
       file: astrbot/core/pipeline/process_stage/method/agent_request.py
       line: 47
       evidence: "async for resp in self.agent_sub_stage.process(event, self.prov_wake_prefix):"
       confidence_type: dynamic_possible
-      notes: "initialize assigns InternalAgentSubStage on line 29 for the default agent path."
+      notes: "initialize assigns InternalAgentSubStage on line 29 when agent_runner_type is local."
     - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
       callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.third_party.ThirdPartyAgentSubStage.process
       file: astrbot/core/pipeline/process_stage/method/agent_request.py
       line: 47
       evidence: "async for resp in self.agent_sub_stage.process(event, self.prov_wake_prefix):"
       confidence_type: dynamic_possible
-      notes: "initialize assigns ThirdPartyAgentSubStage on line 31 for third-party agent mode."
+      notes: "initialize assigns ThirdPartyAgentSubStage on line 31 for non-local agent runner modes."
+  optional_edges: []
   excluded_edges:
     - caller: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.process
       callee: astrbot.core.pipeline.process_stage.method.agent_request.AgentRequestSubStage.initialize

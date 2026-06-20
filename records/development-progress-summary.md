@@ -22,6 +22,7 @@
 | 2026-06-20 | Scrapy case 第四批扩展 | 拉取第二真实仓库 Scrapy 到 `repos/Scrapy`，固定 commit；新增 10 个 Scrapy YAML golden case，case 总数从 30 扩展到 40，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。 | `b3b5157 chore(dataset): add Scrapy call-chain cases` | `records/02-scrapy-case-expansion.md` |
 | 2026-06-20 | Scrapy 10-case 三模型复测 | 对 Scrapy 第四批 10 个 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认在线模型区分度明显，主要失败集中在 signal callback registration、upstream over-report 和 protocol canonical symbol。 | 本次报告提交 | `reports/baseline/scrapy-10-case-model-comparison-v0-20260620.md`、`records/02-scrapy-case-expansion.md` |
 | 2026-06-20 | 第五批 10-case 三模型复测 | 对扩展到 50-case 后的第五批新增 case 跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning 和 Gemma4 E2B 的 Oracle / E2E；确认新增 case 能覆盖构造器 canonical symbol、Deferred callback depth、registration-only negative 和注册表 symbol 边界。 | 本次报告提交 | `reports/baseline/fifth-10-case-model-comparison-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
+| 2026-06-20 | 50-case baseline 汇总 | 聚合 50 个 case 的三模型 Oracle / E2E 主线结果，形成整体指标、成本、分仓库/难度表现和 case 质量分层；修订 `astrbot-pipeline-003` 动态 sub-stage golden，并补齐 `scrapy-signal-001` registration callback excluded edges。 | 未提交 | `reports/baseline/50-case-baseline-summary-v0-20260620.md`、`records/07-cross-repo-baseline-analysis.md` |
 
 ## 最近完成
 
@@ -55,13 +56,16 @@
 - 已完成 AstrBot 第三批 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 正式复测，并生成正式中文报告。
 - 已基于跨仓库失败模式新增第五批 10 个 YAML case，当前 `call-chain-v1` 共 50 个 case，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。
 - 已完成第五批新增 10 个 case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式中文报告。
+- 已完成 50-case baseline 汇总报告，聚合 DeepSeek / Tencent HY3 / Gemma4 的 Oracle 与 E2E 主线结果，并标记 over-easy、E2E gap、precision boundary 和需复核 case。
+- 已修订 `astrbot-pipeline-003` golden：运行时配置可选择的两个 concrete sub-stage `process` 边均作为 required edge，原合成属性边不再作为 required edge，并已基于既有预测重新评分。
+- 已补齐 `scrapy-signal-001` golden 中 `CoreStats.item_dropped` 与 `CoreStats.response_received` 两个 signal receiver registration 的 excluded edge，用于更准确标记 callback registration 误报。
 
 ## 待推进
 
-- 汇总 50-case baseline，标记过易、过难、golden 不稳定或边界定义不清的 case。
-- 人工复核代表性低分 E2E trace，例如 `astrbot-chat-003`、`astrbot-star-001`、`scrapy-signal-001`，确认检索命中后低 recall 的具体原因。
+- 人工复核代表性低分 / 边界 case，例如 `scrapy-feed-001`、`astrbot-chat-003`、`astrbot-star-001`，确认 constructor canonical symbol、max_depth 和 dynamic boundary 是否需要更新说明或 golden。
+- 给 Oracle / E2E runner 增加 structured wall-clock timing，补齐后续正式实验的运行时间记录。
 - 每批新增 case 后，优先跑 DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local；OpenAI GPT-5.5 作为高成本上限模型可抽样或阶段性全量复核。
-- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50-case 多模型 baseline 和失败模式复核。
+- 在开始 Prompt Engineering / RAG / Fine-tune 优化前，先完成 50-case 代表性边界复核，并确定 PE / RAG v1 的优化目标 case 集。
 - 本地模型后续以 `gemma4:e2b` 作为主要小模型候选；`qwen3.5:2b` 保留为低成本下限或格式/指令跟随诊断模型。
 
 ## 维护规则
