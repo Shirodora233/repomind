@@ -1,0 +1,57 @@
+id: scrapy-crawler-003
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.crawler.AsyncCrawlerRunner._crawl
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - callback
+notes: >
+  Async task scheduling case. The created task calls _crawl_and_track, while
+  _done is registered as a completion callback.
+oracle_context:
+  files:
+    - path: scrapy/crawler.py
+      role: target_definition
+      symbols:
+        - scrapy.crawler.AsyncCrawlerRunner._crawl
+        - scrapy.crawler.AsyncCrawlerRunner._crawl_and_track
+        - scrapy.crawler.AsyncCrawlerRunner._done
+        - scrapy.crawler.Crawler.crawl_async
+      reason: Contains the async task creation, callback registration, and depth-2 crawler call.
+golden:
+  required_edges:
+    - caller: scrapy.crawler.AsyncCrawlerRunner._crawl
+      callee: scrapy.crawler.AsyncCrawlerRunner._crawl_and_track
+      file: scrapy/crawler.py
+      line: 592
+      evidence: "task = loop.create_task(self._crawl_and_track(crawler, *args, **kwargs))"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.AsyncCrawlerRunner._crawl
+      callee: scrapy.crawler.AsyncCrawlerRunner._done
+      file: scrapy/crawler.py
+      line: 594
+      evidence: "task.add_done_callback(partial(self._done, crawler=crawler))"
+      confidence_type: static_confirmed
+      notes: "Callback registration is treated as a direct edge to the registered local method."
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.crawler.AsyncCrawlerRunner._crawl
+      callee: scrapy.crawler.Crawler.crawl_async
+      file: scrapy/crawler.py
+      line: 576
+      reason: Crawler.crawl_async is called inside _crawl_and_track, not directly by _crawl.
+      evidence: "await crawler.crawl_async(*args, **kwargs)"
+  runtime_only_edges: []

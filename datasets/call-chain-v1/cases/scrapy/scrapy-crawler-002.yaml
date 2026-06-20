@@ -1,0 +1,107 @@
+id: scrapy-crawler-002
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.crawler.Crawler.crawl
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - factory
+notes: >
+  Crawler lifecycle case. It includes direct lifecycle helpers, engine method
+  calls wrapped by deferred_from_coro, and an exception-path close call.
+oracle_context:
+  files:
+    - path: scrapy/crawler.py
+      role: target_definition
+      symbols:
+        - scrapy.crawler.Crawler.crawl
+        - scrapy.crawler.Crawler._create_spider
+        - scrapy.crawler.Crawler._apply_settings
+        - scrapy.crawler.Crawler._update_root_log_handler
+        - scrapy.crawler.Crawler._create_engine
+      reason: Contains the target lifecycle method and local helper callees.
+    - path: scrapy/core/engine.py
+      role: direct_callee
+      symbols:
+        - scrapy.core.engine.ExecutionEngine.open_spider_async
+        - scrapy.core.engine.ExecutionEngine.start_async
+        - scrapy.core.engine.ExecutionEngine.close_async
+      reason: Defines the engine lifecycle methods invoked by Crawler.crawl.
+    - path: scrapy/utils/defer.py
+      role: other
+      symbols:
+        - scrapy.utils.defer.deferred_from_coro
+      reason: Defines the coroutine-to-Deferred wrapper used around engine calls.
+golden:
+  required_edges:
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.crawler.Crawler._create_spider
+      file: scrapy/crawler.py
+      line: 188
+      evidence: "self.spider = self._create_spider(*args, **kwargs)"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.crawler.Crawler._apply_settings
+      file: scrapy/crawler.py
+      line: 189
+      evidence: "self._apply_settings()"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.crawler.Crawler._update_root_log_handler
+      file: scrapy/crawler.py
+      line: 190
+      evidence: "self._update_root_log_handler()"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.crawler.Crawler._create_engine
+      file: scrapy/crawler.py
+      line: 191
+      evidence: "self.engine = self._create_engine()"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.core.engine.ExecutionEngine.open_spider_async
+      file: scrapy/crawler.py
+      line: 192
+      evidence: "yield deferred_from_coro(self.engine.open_spider_async())"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.core.engine.ExecutionEngine.start_async
+      file: scrapy/crawler.py
+      line: 193
+      evidence: "yield deferred_from_coro(self.engine.start_async())"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.core.engine.ExecutionEngine.close_async
+      file: scrapy/crawler.py
+      line: 197
+      evidence: "yield deferred_from_coro(self.engine.close_async())"
+      confidence_type: static_confirmed
+      notes: "Static exception-path cleanup edge."
+  optional_edges:
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.utils.defer.deferred_from_coro
+      file: scrapy/crawler.py
+      line: 192
+      evidence: "yield deferred_from_coro(self.engine.open_spider_async())"
+      confidence_type: static_confirmed
+      notes: "Technical wrapper edge; accepted but not required for the main semantic score."
+  excluded_edges:
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.spiders.Spider.from_crawler
+      file: scrapy/crawler.py
+      line: 231
+      reason: Spider.from_crawler is called inside Crawler._create_spider, so it is depth 2 when max_depth is 1.
+      evidence: "return self.spidercls.from_crawler(self, *args, **kwargs)"
+  runtime_only_edges: []

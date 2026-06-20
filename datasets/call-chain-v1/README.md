@@ -13,6 +13,7 @@ datasets/call-chain-v1/
   cases/
     README.md
     astrbot/
+    scrapy/
     micro/
 ```
 
@@ -21,6 +22,7 @@ datasets/call-chain-v1/
 - `repos.yaml`: source repositories used by this dataset, including URL, local cache path, pinned commit, and intended usage.
 - `schemas/call-chain-case.schema.json`: JSON Schema for each case file.
 - `cases/astrbot/`: real-project cases from AstrBot.
+- `cases/scrapy/`: real-project cases from Scrapy.
 - `cases/micro/`: synthetic or micro cases for precise capability diagnosis.
 
 ## Case File Rules

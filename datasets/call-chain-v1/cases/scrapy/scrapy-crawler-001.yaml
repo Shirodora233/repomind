@@ -1,0 +1,54 @@
+id: scrapy-crawler-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.crawler.CrawlerRunner.crawl
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: easy
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+notes: >
+  Small runner entry case. It checks whether the model can separate the
+  public runner method from the next internal crawl helper.
+oracle_context:
+  files:
+    - path: scrapy/crawler.py
+      role: target_definition
+      symbols:
+        - scrapy.crawler.CrawlerRunner.crawl
+        - scrapy.crawler.CrawlerRunnerBase.create_crawler
+        - scrapy.crawler.CrawlerRunner._crawl
+        - scrapy.crawler.Crawler.crawl
+      reason: Contains the target runner method, its direct callees, and the depth-2 Crawler.crawl call.
+golden:
+  required_edges:
+    - caller: scrapy.crawler.CrawlerRunner.crawl
+      callee: scrapy.crawler.CrawlerRunnerBase.create_crawler
+      file: scrapy/crawler.py
+      line: 453
+      evidence: "crawler = self.create_crawler(crawler_or_spidercls)"
+      confidence_type: static_confirmed
+    - caller: scrapy.crawler.CrawlerRunner.crawl
+      callee: scrapy.crawler.CrawlerRunner._crawl
+      file: scrapy/crawler.py
+      line: 454
+      evidence: "return self._crawl(crawler, *args, **kwargs)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.crawler.CrawlerRunner.crawl
+      callee: scrapy.crawler.Crawler.crawl
+      file: scrapy/crawler.py
+      line: 461
+      reason: Crawler.crawl is invoked inside CrawlerRunner._crawl, so it is depth 2 from CrawlerRunner.crawl.
+      evidence: "d = crawler.crawl(*args, **kwargs)"
+  runtime_only_edges: []

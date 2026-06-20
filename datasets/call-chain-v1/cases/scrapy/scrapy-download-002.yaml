@@ -1,0 +1,61 @@
+id: scrapy-download-002
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - factory
+  - registry
+  - dynamic_import
+notes: >
+  Download handler loader case. It separates dynamic class loading and
+  construction from later handler method calls.
+oracle_context:
+  files:
+    - path: scrapy/core/downloader/handlers/__init__.py
+      role: target_definition
+      symbols:
+        - scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+        - scrapy.core.downloader.handlers.DownloadHandlerProtocol.download_request
+      reason: Contains the target loader and the attribute-check distractor.
+    - path: scrapy/utils/misc.py
+      role: factory
+      symbols:
+        - scrapy.utils.misc.load_object
+        - scrapy.utils.misc.build_from_crawler
+      reason: Defines the dynamic load and construction helpers used by the target.
+golden:
+  required_edges:
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+      callee: scrapy.utils.misc.load_object
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 91
+      evidence: "dhcls: type[DownloadHandlerProtocol] = load_object(path)"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+      callee: scrapy.utils.misc.build_from_crawler
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 103
+      evidence: "dh = build_from_crawler("
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+      callee: scrapy.core.downloader.handlers.DownloadHandlerProtocol.download_request
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 120
+      reason: The target inspects dh.download_request with inspect.iscoroutinefunction; it does not call it.
+      evidence: "if not inspect.iscoroutinefunction(dh.download_request):"
+  runtime_only_edges: []

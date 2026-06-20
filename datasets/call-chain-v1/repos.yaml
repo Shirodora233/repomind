@@ -26,3 +26,28 @@ repos:
     notes: >
       Used as a representative dynamic Python project with agent, provider,
       platform adapter, plugin, pipeline, async, and external SDK patterns.
+  scrapy:
+    name: Scrapy
+    url: https://github.com/scrapy/scrapy.git
+    local_path: repos/Scrapy
+    commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+    default_branch: master
+    clone:
+      depth: 1
+      cloned_at: "2026-06-20"
+      head_summary: "c9f952c Refactor and improve catching warnings in tests. (#7643)"
+      file_count: 613
+    language_profile:
+      primary: python
+      secondary: []
+    intended_usage:
+      - real_project
+      - medium
+      - hard
+      - python_framework
+      - second_repo_generalization
+    notes: >
+      Used as a second real Python project to reduce AstrBot-specific bias.
+      Candidate cases should focus on framework call chains, crawler/engine
+      orchestration, middleware managers, signal dispatch, pipelines, download
+      handlers, and callback boundaries.

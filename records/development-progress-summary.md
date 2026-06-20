@@ -19,6 +19,7 @@
 | 2026-06-20 | 新增 10-case 三模型复测 | 仅对第二批新增 10 个 case 运行 DeepSeek、Tencent HY3、Gemma4 的 Oracle 与 E2E；确认新增 case 能继续拉开模型差距，并暴露 E2E 检索后边界判断问题。 | 未提交 | `reports/baseline/new-10-case-model-comparison-v0-20260620.md`、`records/03-oracle-context-evaluation.md`、`records/04-rag-agentic-retrieval.md` |
 | 2026-06-20 | 共同缺陷分类与第三批候选 | 基于当前 20 case 多模型结果整理 failure taxonomy，并继续在 AstrBot 中筛选第三批候选；候选优先覆盖 canonical symbol、depth、callback、registry、object method、negative caller。 | 未提交 | `reports/baseline/failure-taxonomy-v0-20260620.md`、`records/02-test-case-construction.md` |
 | 2026-06-20 | AstrBot case 第三批扩展 | 新增 10 个 AstrBot YAML case，case 总数从 20 扩到 30；覆盖 plugin hook、handler registry、webhook callback、queue listener、platform dynamic import、ASGI route wrapper、no-caller negative 和 function tool registry，并通过 validator / mock-golden Oracle / mock-golden E2E。 | 未提交 | `datasets/call-chain-v1/cases/astrbot/`、`records/02-test-case-construction.md` |
+| 2026-06-20 | Scrapy case 第四批扩展 | 拉取第二真实仓库 Scrapy 到 `repos/Scrapy`，固定 commit；新增 10 个 Scrapy YAML golden case，case 总数从 30 扩展到 40，并通过 validator / mock-golden Oracle / mock-golden E2E 验证。 | 未提交 | `records/02-scrapy-case-expansion.md` |
 
 ## 最近完成
 
@@ -45,6 +46,9 @@
 - 已完成新增 10-case 的 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测，并生成正式报告。
 - 已整理调用链 baseline 共同缺陷分类，并筛选第三批 AstrBot 候选池，暂不引入第二真实仓库。
 - 已完成第三批 AstrBot case 扩展，当前共有 30 个正式 YAML case，并已通过 schema、mock-golden Oracle 和 mock-golden E2E 验证。
+
+- 已拉取第二真实仓库 Scrapy 到本地 `repos/Scrapy`，并在 `repos.yaml` 固定 commit。
+- 已完成 Scrapy 第四批 10 个正式 YAML case，当前 `call-chain-v1` 共 40 个 case。
 
 ## 待推进
 

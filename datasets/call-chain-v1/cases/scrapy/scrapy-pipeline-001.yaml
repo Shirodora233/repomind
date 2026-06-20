@@ -1,0 +1,70 @@
+id: scrapy-pipeline-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.pipelines.ItemPipelineManager.process_item_async
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - cross_file
+  - class_method
+  - async
+notes: >
+  Upstream pipeline caller case. It includes the normal scraper path, a
+  deprecated synchronous wrapper, and the command-line parse helper path.
+oracle_context:
+  files:
+    - path: scrapy/pipelines/__init__.py
+      role: target_definition
+      symbols:
+        - scrapy.pipelines.ItemPipelineManager.process_item_async
+        - scrapy.pipelines.ItemPipelineManager.process_item
+      reason: Defines the target async pipeline method and same-class wrapper caller.
+    - path: scrapy/core/scraper.py
+      role: direct_caller
+      symbols:
+        - scrapy.core.scraper.Scraper.start_itemproc_async
+      reason: Normal item processing path calls process_item_async.
+    - path: scrapy/commands/parse.py
+      role: direct_caller
+      symbols:
+        - scrapy.commands.parse.Command.scraped_data
+      reason: Command helper path schedules process_item_async when pipelines are enabled.
+golden:
+  required_edges:
+    - caller: scrapy.pipelines.ItemPipelineManager.process_item
+      callee: scrapy.pipelines.ItemPipelineManager.process_item_async
+      file: scrapy/pipelines/__init__.py
+      line: 58
+      evidence: "return deferred_from_coro(self.process_item_async(item))"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.scraper.Scraper.start_itemproc_async
+      callee: scrapy.pipelines.ItemPipelineManager.process_item_async
+      file: scrapy/core/scraper.py
+      line: 495
+      evidence: "output = await self.itemproc.process_item_async(item)"
+      confidence_type: static_confirmed
+    - caller: scrapy.commands.parse.Command.scraped_data
+      callee: scrapy.pipelines.ItemPipelineManager.process_item_async
+      file: scrapy/commands/parse.py
+      line: 288
+      evidence: "_schedule_coro(itemproc.process_item_async(item))"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.pipelines.ItemPipelineManager.process_item_async
+      callee: scrapy.middleware.MiddlewareManager._process_chain
+      file: scrapy/pipelines/__init__.py
+      line: 61
+      reason: This is a downstream callee of the target, not an upstream caller of process_item_async.
+      evidence: "return await self._process_chain("
+  runtime_only_edges: []

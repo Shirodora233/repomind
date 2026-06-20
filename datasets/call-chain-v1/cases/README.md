@@ -5,6 +5,7 @@ Case files are grouped by source type.
 ```text
 cases/
   astrbot/  # real-project cases from AstrBot
+  scrapy/   # real-project cases from Scrapy
   micro/    # small synthetic cases for targeted diagnosis
 ```
 

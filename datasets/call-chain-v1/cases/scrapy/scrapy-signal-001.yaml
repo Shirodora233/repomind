@@ -1,0 +1,78 @@
+id: scrapy-signal-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.extensions.corestats.CoreStats.from_crawler
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - callback
+  - event_bus
+notes: >
+  Signal receiver registration case. The target constructs CoreStats and
+  registers bound methods, but those receivers are not invoked by from_crawler.
+oracle_context:
+  files:
+    - path: scrapy/extensions/corestats.py
+      role: target_definition
+      symbols:
+        - scrapy.extensions.corestats.CoreStats.from_crawler
+        - scrapy.extensions.corestats.CoreStats
+        - scrapy.extensions.corestats.CoreStats.spider_opened
+        - scrapy.extensions.corestats.CoreStats.spider_closed
+        - scrapy.extensions.corestats.CoreStats.item_scraped
+        - scrapy.extensions.corestats.CoreStats.item_dropped
+        - scrapy.extensions.corestats.CoreStats.response_received
+      reason: Contains the extension factory, constructor, and registered receiver methods.
+    - path: scrapy/signalmanager.py
+      role: direct_callee
+      symbols:
+        - scrapy.signalmanager.SignalManager.connect
+      reason: Defines the signal manager registration method called by from_crawler.
+golden:
+  required_edges:
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.extensions.corestats.CoreStats
+      file: scrapy/extensions/corestats.py
+      line: 30
+      evidence: "o = cls(crawler.stats)"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.signalmanager.SignalManager.connect
+      file: scrapy/extensions/corestats.py
+      line: 31
+      evidence: "crawler.signals.connect(o.spider_opened, signal=signals.spider_opened)"
+      confidence_type: static_confirmed
+      notes: "Additional connect calls in this method share the same caller-callee edge key."
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.extensions.corestats.CoreStats.spider_opened
+      file: scrapy/extensions/corestats.py
+      line: 31
+      reason: spider_opened is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(o.spider_opened, signal=signals.spider_opened)"
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.extensions.corestats.CoreStats.spider_closed
+      file: scrapy/extensions/corestats.py
+      line: 32
+      reason: spider_closed is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(o.spider_closed, signal=signals.spider_closed)"
+    - caller: scrapy.extensions.corestats.CoreStats.from_crawler
+      callee: scrapy.extensions.corestats.CoreStats.item_scraped
+      file: scrapy/extensions/corestats.py
+      line: 33
+      reason: item_scraped is passed as a signal receiver; it is not invoked by from_crawler.
+      evidence: "crawler.signals.connect(o.item_scraped, signal=signals.item_scraped)"
+  runtime_only_edges: []

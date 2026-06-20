@@ -1,0 +1,81 @@
+id: scrapy-download-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - async
+  - registry
+  - polymorphism
+notes: >
+  Download handler dispatch case. The concrete handler depends on scheme and
+  settings, but the protocol-level download_request call is statically visible.
+oracle_context:
+  files:
+    - path: scrapy/core/downloader/handlers/__init__.py
+      role: target_definition
+      symbols:
+        - scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+        - scrapy.core.downloader.handlers.DownloadHandlers._get_handler
+        - scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+        - scrapy.core.downloader.handlers.DownloadHandlerProtocol.download_request
+      reason: Contains the target dispatch method, lazy handler lookup, and protocol boundary.
+    - path: scrapy/utils/httpobj.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.httpobj.urlparse_cached
+      reason: Defines the URL parsing helper used to select a handler scheme.
+    - path: scrapy/utils/defer.py
+      role: other
+      symbols:
+        - scrapy.utils.defer.maybe_deferred_to_future
+      reason: Defines the old-style handler wrapper accepted as a technical optional edge.
+golden:
+  required_edges:
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+      callee: scrapy.utils.httpobj.urlparse_cached
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 142
+      evidence: "scheme = urlparse_cached(request).scheme"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+      callee: scrapy.core.downloader.handlers.DownloadHandlers._get_handler
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 143
+      evidence: "handler = self._get_handler(scheme)"
+      confidence_type: static_confirmed
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+      callee: scrapy.core.downloader.handlers.DownloadHandlerProtocol.download_request
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 156
+      evidence: "return await handler.download_request(request)"
+      confidence_type: dynamic_possible
+      notes: "Concrete handler class depends on runtime scheme and settings."
+  optional_edges:
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+      callee: scrapy.utils.defer.maybe_deferred_to_future
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 150
+      evidence: "return await maybe_deferred_to_future("
+      confidence_type: static_confirmed
+      notes: "Technical wrapper used only for old-style handlers."
+  excluded_edges:
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+      callee: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 84
+      reason: _load_handler is reached through _get_handler, so it is depth 2 from download_request_async.
+      evidence: "return self._load_handler(scheme)"
+  runtime_only_edges: []

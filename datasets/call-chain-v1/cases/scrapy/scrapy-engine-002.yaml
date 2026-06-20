@@ -1,0 +1,68 @@
+id: scrapy-engine-002
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.engine.ExecutionEngine._schedule_request
+target_type: method
+task_type: find_callees
+direction: downstream
+max_depth: 1
+scope: repo_only
+difficulty: hard
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - class_method
+  - event_bus
+  - callback
+  - polymorphism
+notes: >
+  Scheduler and signal boundary case. The signal manager call is direct, while
+  the scheduler implementation is selected by settings and exposed through the
+  BaseScheduler interface.
+oracle_context:
+  files:
+    - path: scrapy/core/engine.py
+      role: target_definition
+      symbols:
+        - scrapy.core.engine.ExecutionEngine._schedule_request
+      reason: Contains the target scheduling method and its signal dispatch calls.
+    - path: scrapy/signalmanager.py
+      role: direct_callee
+      symbols:
+        - scrapy.signalmanager.SignalManager.send_catch_log
+      reason: Defines the signal manager method called by the target.
+    - path: scrapy/core/scheduler.py
+      role: direct_callee
+      symbols:
+        - scrapy.core.scheduler.BaseScheduler.enqueue_request
+        - scrapy.core.scheduler.Scheduler.enqueue_request
+      reason: Defines the scheduler interface and default implementation used by the engine slot.
+golden:
+  required_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._schedule_request
+      callee: scrapy.signalmanager.SignalManager.send_catch_log
+      file: scrapy/core/engine.py
+      line: 441
+      evidence: "request_scheduled_result = self.signals.send_catch_log("
+      confidence_type: static_confirmed
+      notes: "A second send_catch_log call for request_dropped appears in the same method and shares the same edge key."
+    - caller: scrapy.core.engine.ExecutionEngine._schedule_request
+      callee: scrapy.core.scheduler.BaseScheduler.enqueue_request
+      file: scrapy/core/engine.py
+      line: 450
+      evidence: "if not self._slot.scheduler.enqueue_request(request):"
+      confidence_type: dynamic_possible
+      notes: "Concrete scheduler implementation depends on settings; the BaseScheduler interface is the stable target symbol."
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.core.engine.ExecutionEngine._schedule_request
+      callee: scrapy.signals.request_scheduled
+      file: scrapy/core/engine.py
+      line: 442
+      reason: request_scheduled is a signal object passed to send_catch_log, not a called function.
+      evidence: "signals.request_scheduled,"
+  runtime_only_edges: []

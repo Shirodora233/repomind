@@ -1,0 +1,68 @@
+id: scrapy-engine-001
+dataset_version: call-chain-v1
+repo_key: scrapy
+repo_url: https://github.com/scrapy/scrapy.git
+commit_sha: c9f952c2584f490cd2e5c843980212abc67c2971
+language: python
+target: scrapy.core.engine.ExecutionEngine.crawl
+target_type: method
+task_type: find_callers
+direction: upstream
+max_depth: 1
+scope: repo_only
+difficulty: medium
+include_tests: false
+external_deps: exclude
+features:
+  - direct_call
+  - cross_file
+  - class_method
+notes: >
+  Upstream caller case for request scheduling. It includes the normal scraper
+  path and the interactive shell path, and filters same-name crawler methods.
+oracle_context:
+  files:
+    - path: scrapy/core/engine.py
+      role: target_definition
+      symbols:
+        - scrapy.core.engine.ExecutionEngine.crawl
+      reason: Defines the target engine scheduling method.
+    - path: scrapy/core/scraper.py
+      role: direct_caller
+      symbols:
+        - scrapy.core.scraper.Scraper._process_spidermw_output_async
+      reason: Normal spider-output path schedules Request objects through the engine.
+    - path: scrapy/shell.py
+      role: direct_caller
+      symbols:
+        - scrapy.shell.Shell._schedule
+      reason: Interactive shell path schedules a request through the engine.
+    - path: scrapy/crawler.py
+      role: distractor
+      symbols:
+        - scrapy.crawler.Crawler.crawl
+        - scrapy.crawler.CrawlerRunner.crawl
+      reason: Same-name crawl methods are not upstream callers of ExecutionEngine.crawl.
+golden:
+  required_edges:
+    - caller: scrapy.core.scraper.Scraper._process_spidermw_output_async
+      callee: scrapy.core.engine.ExecutionEngine.crawl
+      file: scrapy/core/scraper.py
+      line: 460
+      evidence: "self.crawler.engine.crawl(request=output)"
+      confidence_type: static_confirmed
+    - caller: scrapy.shell.Shell._schedule
+      callee: scrapy.core.engine.ExecutionEngine.crawl
+      file: scrapy/shell.py
+      line: 197
+      evidence: "self.crawler.engine.crawl(request)"
+      confidence_type: static_confirmed
+  optional_edges: []
+  excluded_edges:
+    - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.core.engine.ExecutionEngine.crawl
+      file: scrapy/crawler.py
+      line: 172
+      reason: Crawler.crawl is a same-name lifecycle method; it does not call ExecutionEngine.crawl.
+      evidence: "def crawl(self, *args: Any, **kwargs: Any) -> Generator[Deferred[Any], Any, None]:"
+  runtime_only_edges: []
