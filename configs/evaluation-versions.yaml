@@ -10,6 +10,27 @@ prompt_versions:
   e2e-agent-system-v0:
     file: prompts/e2e-agent-system-v0.md
     purpose: E2E JSON action loop system prompt.
+  pe-system-v1:
+    file: prompts/pe/system-v1.md
+    purpose: PE v1 shared role, scope, symbol-level edge, and boundary rules.
+  pe-reasoning-checklist-v1:
+    file: prompts/pe/reasoning-checklist-v1.md
+    purpose: Evidence-first checklist without requiring verbose chain-of-thought output.
+  pe-final-task-format-v1:
+    file: prompts/pe/final-task-format-v1.md
+    purpose: Final answer schema and formatting contract for PE v1.
+  pe-few-shot-examples-v1:
+    file: prompts/pe/few-shot-examples-v1.yaml
+    purpose: Synthetic 20-example PE v1 few-shot library.
+  oracle-context-pe-v1:
+    file: prompts/pe/oracle-context-pe-v1.md
+    purpose: Runnable Oracle Context prompt template using PE v1 assets.
+  e2e-task-pe-v1:
+    file: prompts/pe/e2e-task-pe-v1.md
+    purpose: Runnable E2E task prompt template using PE v1 assets.
+  e2e-agent-system-pe-v1:
+    file: prompts/pe/e2e-agent-system-pe-v1.md
+    purpose: Runnable E2E JSON action loop system prompt using PE v1 rules.
 
 tool_versions:
   e2e-tools-v0:
@@ -20,6 +41,44 @@ tool_versions:
       - list_files
       - search_text
       - read_file
+  pe-postprocess-v1:
+    implementation:
+      - scripts/pe_postprocess.py
+    purpose: Deterministic prediction cleanup, filtering, de-duplication, constructor cleanup, and sorting without golden access.
+
+rag_versions:
+  rag-index-v1:
+    script: scripts/rag_index.py
+    schema: rag-index-v1
+    purpose: Build repo code chunk manifests with Python definitions, symbols, and lexical terms.
+  rag-retrieval-v1:
+    script: scripts/rag_retrieve.py
+    schema: rag-retrieval-v1
+    variants:
+      - bm25_only
+      - keyword
+      - qwen3_dense_placeholder
+      - jina_code_dense_placeholder
+      - bge_m3_dense_placeholder
+    purpose: Run lexical retrieval now and reserve dense/hybrid provider interfaces for later RAG experiments.
+  rag-retrieval-eval-v1:
+    script: scripts/rag_eval_retrieval.py
+    schema: rag-retrieval-eval-v1
+    metrics:
+      - Recall@K
+      - MRR
+      - EvidenceFileRecall@K
+      - EvidenceLineRecall@K
+      - DefinitionAccuracy@K
+
+finetune_data_versions:
+  finetune-data-v1:
+    config: configs/experiments/finetune-data-v1.yaml
+    schema: datasets/finetune-v1/schemas/finetune-sample.schema.json
+    builder: scripts/build_finetune_dataset.py
+    validator: scripts/validate_finetune_dataset.py
+    smoke_data: datasets/finetune-v1/smoke/synthetic-micro-smoke.jsonl
+    purpose: Fine-tune JSONL schema, leakage validator, and synthetic micro smoke data before formal training.
 
 agent_strategy_versions:
   e2e-agent-strategy-v0:
@@ -27,6 +86,13 @@ agent_strategy_versions:
     task_prompt: e2e-task-v0
     system_prompt: e2e-agent-system-v0
     tools: e2e-tools-v0
+    protocol: json_action_text_loop
+  e2e-agent-strategy-pe-v1:
+    runner: scripts/run_e2e_agent.py
+    task_prompt: e2e-task-pe-v1
+    system_prompt: e2e-agent-system-pe-v1
+    tools: e2e-tools-v0
+    postprocess: pe-postprocess-v1
     protocol: json_action_text_loop
 
 runner_versions:
@@ -44,6 +110,14 @@ runner_versions:
     runner: scripts/run_e2e_agent.py
     strategy: e2e-agent-strategy-v0
     changes: records structured run-level, case-level, model-step, and tool-step wall-clock timing
+  oracle-context-runner-pe-v1:
+    runner: scripts/run_oracle_context.py
+    prompt: oracle-context-pe-v1
+    postprocess: pe-postprocess-v1
+  e2e-agent-runner-pe-v1:
+    runner: scripts/run_e2e_agent.py
+    strategy: e2e-agent-strategy-pe-v1
+    postprocess: pe-postprocess-v1
 
 scorer_versions:
   call-chain-scorer-v0:

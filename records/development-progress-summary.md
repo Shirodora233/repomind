@@ -14,6 +14,9 @@
 | 主 baseline 模型 | DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local |
 | 当前 scorer | `call-chain-scorer-v1`，strict 主分数 + constructor-normalized 辅助指标 |
 | 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
+| 当前 PE 资产 | `pe-v1` scaffold，含 prompt assets、20 条 synthetic few-shot、`pe_postprocess.py` |
+| 当前 RAG 资产 | `rag-v1` scaffold，含 chunk index、BM25/keyword retrieval、retrieval eval |
+| 当前 Fine-tune 数据 | `finetune-data-v1` smoke schema/builder/validator，20 条 synthetic micro 样本 |
 | 主报告 | `reports/baseline/summary/baseline-summary-v0-20260620.md`（70-case baseline 最终汇总） |
 | 辅助评分报告 | `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md` |
 | 失败诊断报告 | `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md` |
@@ -40,13 +43,16 @@
 | 2026-06-20 | Scorer v1 | `faf9f73` | constructor-normalized 辅助指标与 50-case 对比报告 |
 | 2026-06-20 | Runner timing v1 | `a358ef1` | Oracle / E2E structured wall-clock timing |
 | 2026-06-20 | Caller case 扩展到 70 | `4cde701` | 新增 20 个 `find_callers` case，并完成 DeepSeek / Tencent HY3 / Gemma4 Oracle 与 E2E 复测 |
+| 2026-06-21 | 并行优化阶段准备 | `c25c045` | PE / RAG / FT / 消融配置骨架、阶段记录、多 agent 文件所有权和资源互斥规则 |
+| 2026-06-21 | PE v1 scaffold | `f92d681` | PE prompt assets、20 条 synthetic few-shot、后处理脚本 |
+| 2026-06-21 | RAG v1 scaffold | `ac48b76` | chunk index、BM25/keyword retrieval、retrieval eval |
+| 2026-06-21 | Fine-tune data smoke | `369e31e` | FT 数据 schema、builder、validator、20 条 synthetic micro smoke |
 
 ## 当前待办
 
-- baseline 70-case test set 冻结，后续 PE / RAG 调参使用 stratified pilot subset，最终再回到完整 70-case。
-- PE v1 使用 `configs/experiments/pe-v1.yaml` 中的 20-case pilot subset，先跑 16 组四维组合，再选 4-6 组跑全量。
-- RAG v1 默认使用 `Qwen/Qwen3-Embedding-0.6B + BM25 hybrid`，并对比 Jina code embedding 与 BGE-M3。
-- Fine-tune 先构造数据集和 validator，正式训练需等待本地推理批次结束，避免本地 GPU / Ollama 资源冲突。
+- 先跑 PE prompt / postprocess smoke，并补齐 PE matrix runner，避免手动跑 16 组组合导致配置漂移。
+- RAG 先跑 20-case pilot retrieval benchmark，比较 `bm25_only` 与 `keyword`，再接入 Qwen3/Jina/BGE dense 或 hybrid。
+- Fine-tune 数据先扩到 50 条 smoke+，再规划非 test repo 的 500+ 数据来源；正式训练继续等待本地资源空闲。
 - 消融矩阵等待 PE / RAG / Fine-tune 单项版本冻结后再运行，不在优化前直接跑完整 All。
 
 ## 维护规则

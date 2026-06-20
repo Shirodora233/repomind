@@ -15,11 +15,25 @@ reports/
     model-comparisons/
     diagnostics/
     early-smoke/
+  pe/
+    README.md
+    batches/
+    summary/
+  rag/
+    README.md
+    batches/
+    summary/
+  finetune/
+    README.md
+    batches/
+    summary/
   ablation/
   comparisons/
 ```
 
 `baseline/` 的具体分类和推荐阅读顺序见 `reports/baseline/README.md`。当前 baseline 主结论优先看 `reports/baseline/summary/baseline-summary-v0-20260620.md`；早期 smoke、批次扩展和单模型对比报告只作为追溯材料。
+
+优化阶段报告分别进入 `reports/pe/`、`reports/rag/`、`reports/finetune/`。完整消融矩阵和最优策略选择进入 `reports/ablation/`，并且只在 PE / RAG / Fine-tune 单项版本冻结后再生成。
 
 每份报告建议包含：
 
