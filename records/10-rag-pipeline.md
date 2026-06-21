@@ -84,3 +84,11 @@
   - 总指标：Precision 0.937500、Recall 0.833333、Evidence Accuracy 1.000000；总成本约 0.013078275 USD，wall-clock 17.428 秒。
   - 分 case：`astrbot-hook-001` 达到 P/R/E=1.0；`scrapy-signal-004` 为 Precision 0.875000、Recall 0.700000、Evidence 1.0，漏掉 3 个 `ExecutionEngine` caller，并多返回 `_next_request_from_scheduler`。
   - 结论：RAG-only 闭环已可运行；主要瓶颈从检索覆盖转移到 dense fan-in caller 的生成整合与去重。进入 PE+RAG 或完整消融前，应先跑小规模 RAG-only pilot。
+- 2026-06-21：完成 RAG-only DeepSeek 20-case pilot，正式报告见 `reports/rag/batches/rag-v1-rag-context-deepseek-pilot-20-20260621.md`。
+  - Context pack：`runs/rag-context/rag-v1-pilot-20-context-pack-20260621`。
+  - Run path：`runs/rag-context-runs/rag-v1-deepseek-pilot-20-20260621`。
+  - 模型配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，reasoning disabled。
+  - 主指标：20 cases，Precision 0.573529，Recall 0.557143，Evidence Accuracy 0.948718；constructor-normalized Precision 0.588235，Recall 0.571429。
+  - 诊断指标：排除 2 个 SSL EOF request error 后，18 个成功响应 case 的 Recall 为 0.639344，Evidence Accuracy 0.948718。
+  - 成本与时间：18 个成功 API 响应共 249,618 tokens，OpenRouter observed cost 0.111888960 USD；wall-clock 104.180 秒。
+  - 结论：retrieval 已达到 Recall@10 和 EvidenceFileRecall@10 全覆盖，主要瓶颈转移到 canonical symbol 对齐、callee 过滤、lifecycle excluded edge 控制、dense fan-in 合并和 runner retry。
