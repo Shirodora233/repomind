@@ -63,7 +63,7 @@ def main() -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Assemble runnable PE prompt templates for Oracle and E2E tracks from pe-v1.yaml."
+        description="Assemble runnable PE prompt templates for Oracle and E2E tracks from a PE experiment YAML config."
     )
     parser.add_argument("--config", default=str(DEFAULT_CONFIG), help="PE experiment YAML config.")
     group = parser.add_mutually_exclusive_group(required=True)
@@ -289,7 +289,7 @@ def generated_header(
     if "P" in dims:
         lines.append("- Dimension `P` is not embedded in the prompt; it is applied after runner prediction output.")
     if "F" in dims:
-        lines.append("- Few-shot selection policy: all 20 synthetic representative examples from `prompts/pe/few-shot-examples-v1.yaml`.")
+        lines.append("- Few-shot selection policy: configured synthetic representative examples; never evaluation golden answers.")
     if placeholders:
         lines.append("- Runner placeholders preserved: " + ", ".join(f"`{item}`" for item in placeholders) + ".")
     return "\n".join(lines)
@@ -315,7 +315,7 @@ def few_shot_section(assets: dict[str, Any]) -> str:
         f"Source: `{assets['few_shot_path']}`.",
         "",
         (
-            f"Selection policy: include all {len(examples)} synthetic representative examples. "
+            f"Selection policy: include all {len(examples)} configured synthetic representative examples. "
             "These examples are task-boundary demonstrations, not golden answers for the evaluation cases."
         ),
         "",

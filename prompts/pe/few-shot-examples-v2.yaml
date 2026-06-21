@@ -1,0 +1,653 @@
+version: pe-few-shot-v2
+minimum_examples: 23
+status: precision_revision
+data_policy: synthetic_examples_only_no_golden_answers
+
+coverage_plan:
+  task_type:
+    find_callers: 11
+    find_callees: 12
+  focus:
+    direct_call: 2
+    upstream_callers: 2
+    negative_no_call: 2
+    import_not_call: 1
+    string_not_call: 1
+    test_filtering: 1
+    external_filtering: 1
+    constructor: 2
+    object_method: 2
+    registration_callback_boundary: 2
+    large_fan_in: 2
+    depth_control: 2
+    helper_over_inclusion_negative: 3
+
+examples:
+  - id: fs-direct-callee-001
+    status: representative
+    task_type: find_callees
+    focus: direct_call
+    metadata:
+      target: sample.handlers.UserHandler.save
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/handlers.py
+      lines:
+        - "21 | class UserHandler:"
+        - "24 |     def save(self, user):"
+        - "25 |         return self.service.persist(user)"
+    expected_output:
+      case_id: fs-direct-callee-001
+      edges:
+        - caller: sample.handlers.UserHandler.save
+          callee: sample.services.UserService.persist
+          file: sample/handlers.py
+          line: 25
+          evidence: return self.service.persist(user)
+          confidence_type: static_confirmed
+    teaches:
+      - direct downstream method call
+      - object receiver maps to repo service type
+
+  - id: fs-direct-caller-002
+    status: representative
+    task_type: find_callers
+    focus: upstream_callers
+    metadata:
+      target: sample.services.UserService.persist
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/handlers.py
+      lines:
+        - "25 |         return self.service.persist(user)"
+    expected_output:
+      case_id: fs-direct-caller-002
+      edges:
+        - caller: sample.handlers.UserHandler.save
+          callee: sample.services.UserService.persist
+          file: sample/handlers.py
+          line: 25
+          evidence: return self.service.persist(user)
+          confidence_type: static_confirmed
+    teaches:
+      - upstream direction
+      - same callsite has reversed task interpretation
+
+  - id: fs-import-negative-003
+    status: representative
+    task_type: find_callers
+    focus: import_not_call
+    metadata:
+      target: sample.billing.charge
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/report.py
+      lines:
+        - "4 | from sample.billing import charge"
+        - "18 | def render(invoice):"
+        - "19 |     return invoice.total"
+    expected_output:
+      case_id: fs-import-negative-003
+      edges: []
+    teaches:
+      - import is not a call edge
+
+  - id: fs-string-negative-004
+    status: representative
+    task_type: find_callers
+    focus: string_not_call
+    metadata:
+      target: sample.jobs.rebuild_index
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/config.py
+      lines:
+        - "12 | JOB_NAME = \"rebuild_index\""
+        - "13 | # rebuild_index is triggered elsewhere"
+    expected_output:
+      case_id: fs-string-negative-004
+      edges: []
+    teaches:
+      - strings and comments are not call evidence
+
+  - id: fs-test-filter-005
+    status: representative
+    task_type: find_callers
+    focus: test_filtering
+    metadata:
+      target: sample.services.UserService.persist
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: tests/test_user_service.py
+      lines:
+        - "10 | def test_persist(service, user):"
+        - "11 |     service.persist(user)"
+    expected_output:
+      case_id: fs-test-filter-005
+      edges: []
+    teaches:
+      - tests excluded by default
+
+  - id: fs-constructor-class-symbol-006
+    status: representative
+    task_type: find_callees
+    focus: constructor
+    metadata:
+      target: sample.factory.build_client
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/factory.py
+      lines:
+        - "7 | def build_client(config):"
+        - "8 |     return ApiClient(config)"
+    expected_output:
+      case_id: fs-constructor-class-symbol-006
+      edges:
+        - caller: sample.factory.build_client
+          callee: sample.client.ApiClient
+          file: sample/factory.py
+          line: 8
+          evidence: return ApiClient(config)
+          confidence_type: static_confirmed
+          notes: constructor expression uses class symbol
+    teaches:
+      - ClassName call expression maps to class symbol
+
+  - id: fs-explicit-init-007
+    status: representative
+    task_type: find_callees
+    focus: constructor
+    metadata:
+      target: sample.child.Child.__init__
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/child.py
+      lines:
+        - "11 | class Child(Base):"
+        - "12 |     def __init__(self, name):"
+        - "13 |         super().__init__(name)"
+    expected_output:
+      case_id: fs-explicit-init-007
+      edges:
+        - caller: sample.child.Child.__init__
+          callee: sample.base.Base.__init__
+          file: sample/child.py
+          line: 13
+          evidence: super().__init__(name)
+          confidence_type: static_confirmed
+    teaches:
+      - explicit init calls may use .__init__
+
+  - id: fs-registration-negative-008
+    status: representative
+    task_type: find_callees
+    focus: registration_callback_boundary
+    metadata:
+      target: sample.boot.register_handlers
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/boot.py
+      lines:
+        - "20 | def register_handlers(bus):"
+        - "21 |     bus.on(\"message\", handle_message)"
+    expected_output:
+      case_id: fs-registration-negative-008
+      edges: []
+    teaches:
+      - callback registration is not a direct call to the callback
+
+  - id: fs-callback-direct-call-009
+    status: representative
+    task_type: find_callees
+    focus: registration_callback_boundary
+    metadata:
+      target: sample.bus.dispatch
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/bus.py
+      lines:
+        - "30 | def dispatch(callback, event):"
+        - "31 |     return callback(event)"
+    expected_output:
+      case_id: fs-callback-direct-call-009
+      edges:
+        - caller: sample.bus.dispatch
+          callee: callback
+          file: sample/bus.py
+          line: 31
+          evidence: return callback(event)
+          confidence_type: dynamic_possible
+          notes: direct call expression but concrete target is dynamic
+    teaches:
+      - direct callback invocation can be an edge with dynamic confidence
+
+  - id: fs-object-method-010
+    status: representative
+    task_type: find_callees
+    focus: object_method
+    metadata:
+      target: sample.pipeline.Stage.process
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/pipeline.py
+      lines:
+        - "41 | def process(self, event: MessageEvent):"
+        - "42 |     event.set_extra(\"stage\", self.name)"
+    expected_output:
+      case_id: fs-object-method-010
+      edges:
+        - caller: sample.pipeline.Stage.process
+          callee: sample.events.MessageEvent.set_extra
+          file: sample/pipeline.py
+          line: 42
+          evidence: event.set_extra("stage", self.name)
+          confidence_type: static_confirmed
+    teaches:
+      - repo object methods should not be mistaken for external deps
+
+  - id: fs-external-filter-011
+    status: representative
+    task_type: find_callees
+    focus: external_filtering
+    metadata:
+      target: sample.http.fetch
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/http.py
+      lines:
+        - "9 | def fetch(url):"
+        - "10 |     return requests.get(url)"
+    expected_output:
+      case_id: fs-external-filter-011
+      edges: []
+    teaches:
+      - external dependency calls excluded from main answer
+
+  - id: fs-depth-one-012
+    status: representative
+    task_type: find_callees
+    focus: depth_control
+    metadata:
+      target: sample.a.entry
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/a.py
+      lines:
+        - "1 | def entry():"
+        - "2 |     return mid()"
+      extra_file: sample/b.py
+      extra_lines:
+        - "1 | def mid():"
+        - "2 |     return leaf()"
+    expected_output:
+      case_id: fs-depth-one-012
+      edges:
+        - caller: sample.a.entry
+          callee: sample.a.mid
+          file: sample/a.py
+          line: 2
+          evidence: return mid()
+          confidence_type: static_confirmed
+    teaches:
+      - do not include depth-2 continuation when max_depth is 1
+
+  - id: fs-depth-two-013
+    status: representative
+    task_type: find_callees
+    focus: depth_control
+    metadata:
+      target: sample.a.entry
+      max_depth: 2
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/a.py
+      lines:
+        - "1 | def entry():"
+        - "2 |     return mid()"
+        - "4 | def mid():"
+        - "5 |     return leaf()"
+    expected_output:
+      case_id: fs-depth-two-013
+      edges:
+        - caller: sample.a.entry
+          callee: sample.a.mid
+          file: sample/a.py
+          line: 2
+          evidence: return mid()
+          confidence_type: static_confirmed
+        - caller: sample.a.mid
+          callee: sample.a.leaf
+          file: sample/a.py
+          line: 5
+          evidence: return leaf()
+          confidence_type: static_confirmed
+    teaches:
+      - depth 2 may include one continuation edge
+
+  - id: fs-large-fanin-014
+    status: representative
+    task_type: find_callers
+    focus: large_fan_in
+    metadata:
+      target: sample.signals.emit
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/workers.py
+      lines:
+        - "8 | def start(signal):"
+        - "9 |     signal.emit(\"start\")"
+        - "13 | def stop(signal):"
+        - "14 |     signal.emit(\"stop\")"
+    expected_output:
+      case_id: fs-large-fanin-014
+      edges:
+        - caller: sample.workers.start
+          callee: sample.signals.Signal.emit
+          file: sample/workers.py
+          line: 9
+          evidence: signal.emit("start")
+          confidence_type: static_confirmed
+        - caller: sample.workers.stop
+          callee: sample.signals.Signal.emit
+          file: sample/workers.py
+          line: 14
+          evidence: signal.emit("stop")
+          confidence_type: static_confirmed
+    teaches:
+      - collect all direct callers, not only the first obvious one
+
+  - id: fs-large-fanin-multifile-015
+    status: representative
+    task_type: find_callers
+    focus: large_fan_in
+    metadata:
+      target: sample.cache.invalidate
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/admin.py
+      lines:
+        - "22 | def reset(cache):"
+        - "23 |     cache.invalidate()"
+      extra_file: sample/jobs.py
+      extra_lines:
+        - "18 | def nightly(cache):"
+        - "19 |     cache.invalidate()"
+    expected_output:
+      case_id: fs-large-fanin-multifile-015
+      edges:
+        - caller: sample.admin.reset
+          callee: sample.cache.Cache.invalidate
+          file: sample/admin.py
+          line: 23
+          evidence: cache.invalidate()
+          confidence_type: static_confirmed
+        - caller: sample.jobs.nightly
+          callee: sample.cache.Cache.invalidate
+          file: sample/jobs.py
+          line: 19
+          evidence: cache.invalidate()
+          confidence_type: static_confirmed
+    teaches:
+      - fan-in can span multiple files
+
+  - id: fs-similar-wrapper-negative-016
+    status: representative
+    task_type: find_callers
+    focus: negative_no_call
+    metadata:
+      target: sample.payment.charge_card
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/payment.py
+      lines:
+        - "31 | def charge_card(card, amount):"
+        - "32 |     return gateway.charge(card, amount)"
+        - "35 | def charge_card_later(card, amount):"
+        - "36 |     return QueueJob(\"charge_card\", card.id, amount)"
+    expected_output:
+      case_id: fs-similar-wrapper-negative-016
+      edges: []
+    teaches:
+      - similar names and queued strings are not direct callers
+
+  - id: fs-property-negative-017
+    status: representative
+    task_type: find_callees
+    focus: negative_no_call
+    metadata:
+      target: sample.models.User.display
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/models.py
+      lines:
+        - "50 | def display(self):"
+        - "51 |     return self.profile.name"
+    expected_output:
+      case_id: fs-property-negative-017
+      edges: []
+    teaches:
+      - attribute access alone is not a call
+
+  - id: fs-decorator-boundary-018
+    status: representative
+    task_type: find_callers
+    focus: registration_callback_boundary
+    metadata:
+      target: sample.routes.get_user
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/routes.py
+      lines:
+        - "6 | @router.get(\"/users/{id}\")"
+        - "7 | def get_user(id):"
+        - "8 |     return service.load(id)"
+    expected_output:
+      case_id: fs-decorator-boundary-018
+      edges: []
+    teaches:
+      - decorator registration is not an upstream caller of the function
+
+  - id: fs-framework-handler-callee-019
+    status: representative
+    task_type: find_callees
+    focus: direct_call
+    metadata:
+      target: sample.routes.get_user
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/routes.py
+      lines:
+        - "7 | def get_user(id):"
+        - "8 |     return service.load(id)"
+    expected_output:
+      case_id: fs-framework-handler-callee-019
+      edges:
+        - caller: sample.routes.get_user
+          callee: sample.services.UserService.load
+          file: sample/routes.py
+          line: 8
+          evidence: return service.load(id)
+          confidence_type: static_confirmed
+    teaches:
+      - route handler body calls still count
+
+  - id: fs-sorted-dedup-020
+    status: representative
+    task_type: find_callees
+    focus: dedup_and_sort
+    metadata:
+      target: sample.tasks.run
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/tasks.py
+      lines:
+        - "12 | def run(repo):"
+        - "13 |     repo.prepare()"
+        - "14 |     repo.prepare()"
+        - "15 |     repo.execute()"
+    expected_output:
+      case_id: fs-sorted-dedup-020
+      edges:
+        - caller: sample.tasks.run
+          callee: sample.repo.Repository.execute
+          file: sample/tasks.py
+          line: 15
+          evidence: repo.execute()
+          confidence_type: static_confirmed
+        - caller: sample.tasks.run
+          callee: sample.repo.Repository.prepare
+          file: sample/tasks.py
+          line: 13
+          evidence: repo.prepare()
+          confidence_type: static_confirmed
+    teaches:
+      - duplicate symbol-level edges collapse deterministically
+      - final output sorted by caller, callee, file, line
+
+  - id: fs-agent-builder-helper-negative-021
+    status: precision_revision
+    task_type: find_callees
+    focus: helper_over_inclusion_negative
+    metadata:
+      target: sample.agent_factory.build_main_agent
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/agent_factory.py
+      lines:
+        - "10 | def build_main_agent(settings):"
+        - "11 |     config = load_config(settings)"
+        - "12 |     agent = Agent(config)"
+        - "13 |     return agent"
+        - "16 | def wire_tools(agent):"
+        - "17 |     agent.tools.register(search_tool)"
+        - "20 | def register_events(agent, bus):"
+        - "21 |     bus.on(\"message\", agent.on_message)"
+    expected_output:
+      case_id: fs-agent-builder-helper-negative-021
+      edges:
+        - caller: sample.agent_factory.build_main_agent
+          callee: sample.agent_factory.load_config
+          file: sample/agent_factory.py
+          line: 11
+          evidence: config = load_config(settings)
+          confidence_type: static_confirmed
+        - caller: sample.agent_factory.build_main_agent
+          callee: sample.agent.Agent
+          file: sample/agent_factory.py
+          line: 12
+          evidence: agent = Agent(config)
+          confidence_type: static_confirmed
+          notes: constructor expression uses class symbol
+    teaches:
+      - do not enumerate nearby helper functions that are not called in the target body
+      - registration and event wiring helpers are adjacent code, not target callees
+
+  - id: fs-pipeline-event-method-negative-022
+    status: precision_revision
+    task_type: find_callees
+    focus: helper_over_inclusion_negative
+    metadata:
+      target: sample.pipeline.ProcessStage.process
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/pipeline.py
+      lines:
+        - "30 | class ProcessStage:"
+        - "31 |     def process(self, event: MessageEvent):"
+        - "32 |         trace_id = event.get_extra(\"trace_id\")"
+        - "33 |         return self.handler.handle(event, trace_id)"
+        - "36 |     def after_process(self, event):"
+        - "37 |         event.set_extra(\"processed\", True)"
+    expected_output:
+      case_id: fs-pipeline-event-method-negative-022
+      edges:
+        - caller: sample.pipeline.ProcessStage.process
+          callee: sample.events.MessageEvent.get_extra
+          file: sample/pipeline.py
+          line: 32
+          evidence: trace_id = event.get_extra("trace_id")
+          confidence_type: static_confirmed
+        - caller: sample.pipeline.ProcessStage.process
+          callee: sample.handlers.Handler.handle
+          file: sample/pipeline.py
+          line: 33
+          evidence: return self.handler.handle(event, trace_id)
+          confidence_type: static_confirmed
+    teaches:
+      - count repo object methods directly called by the target body
+      - do not include event methods from adjacent lifecycle methods
+
+  - id: fs-lifecycle-neighbor-caller-negative-023
+    status: precision_revision
+    task_type: find_callers
+    focus: helper_over_inclusion_negative
+    metadata:
+      target: sample.lifecycle.Agent.start
+      max_depth: 1
+      include_tests: false
+      external_deps: exclude
+    context_excerpt:
+      file: sample/lifecycle.py
+      lines:
+        - "40 | def boot(agent):"
+        - "41 |     agent.configure()"
+        - "42 |     agent.start()"
+        - "45 | def register(agent, bus):"
+        - "46 |     bus.on(\"ready\", agent.start)"
+        - "49 | def warmup(agent):"
+        - "50 |     agent.configure()"
+    expected_output:
+      case_id: fs-lifecycle-neighbor-caller-negative-023
+      edges:
+        - caller: sample.lifecycle.boot
+          callee: sample.lifecycle.Agent.start
+          file: sample/lifecycle.py
+          line: 42
+          evidence: agent.start()
+          confidence_type: static_confirmed
+    teaches:
+      - for callers, require an explicit call to the target
+      - callback registration and sibling lifecycle helpers are not callers

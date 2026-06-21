@@ -1,0 +1,152 @@
+version: pe-v2
+stage: prompt_engineering
+status: precision_revision_generated_assets_ready_not_run
+
+baseline_reference:
+  dataset: call-chain-v1
+  test_set_status: frozen
+  baseline_report: reports/baseline/summary/baseline-summary-v0-20260620.md
+  scorer: call-chain-scorer-v1
+  oracle_runner: oracle-context-runner-v1
+  e2e_runner: e2e-agent-runner-v1
+
+optimization_dimensions:
+  system_prompt:
+    id: S
+    goal: tighten direct-call scope and reject nearby helper, import, registration, comment/string, and non-target lifecycle edges
+    template: prompts/pe/system-v2.md
+  few_shot:
+    id: F
+    minimum_examples: 23
+    goal: preserve v1 coverage while adding helper-over-inclusion negative examples for agent builder and pipeline/event method scenes
+    example_library: prompts/pe/few-shot-examples-v2.yaml
+  reasoning_checklist:
+    id: C
+    goal: use an evidence-first direct-call gate without requiring verbose chain-of-thought output
+    template: prompts/pe/reasoning-checklist-v2.md
+  postprocess:
+    id: P
+    goal: reuse deterministic v1 cleanup only; no new heuristic helper filtering and no golden leakage
+    script: scripts/pe_postprocess.py
+
+prompt_assets:
+  system: prompts/pe/system-v2.md
+  few_shot_examples: prompts/pe/few-shot-examples-v2.yaml
+  reasoning_checklist: prompts/pe/reasoning-checklist-v2.md
+  final_task_format: prompts/pe/final-task-format-v2.md
+  oracle_runnable_template: prompts/pe/oracle-context-pe-v2.md
+  e2e_runnable_template: prompts/pe/e2e-task-pe-v2.md
+  e2e_system_prompt: prompts/pe/e2e-agent-system-pe-v2.md
+  generated_dir: prompts/pe/generated
+
+prompt_assembly:
+  script: scripts/assemble_pe_prompts.py
+  output_dir: prompts/pe/generated
+  assembler_version: pe-prompt-assembler-v1
+  base_policy: base and postprocess-only combinations do not generate PE prompt templates
+  few_shot_selection_policy: all_23_synthetic_representative_examples_with_helper_over_inclusion_negatives
+  placeholder_policy:
+    oracle:
+      - "{{CASE_METADATA}}"
+      - "{{ORACLE_CONTEXT}}"
+      - "{{OUTPUT_SCHEMA}}"
+    e2e_task:
+      - "{{CASE_METADATA}}"
+      - "{{TOOL_BUDGET}}"
+      - "{{TOOL_SPECS}}"
+      - "{{OUTPUT_SCHEMA}}"
+    e2e_system: []
+  cli_examples:
+    assemble_single_both: python scripts/assemble_pe_prompts.py --config configs/experiments/pe-v2.yaml --combination S+F+C+P --track both
+    assemble_all_both: python scripts/assemble_pe_prompts.py --config configs/experiments/pe-v2.yaml --all --track both
+
+postprocess:
+  script: scripts/pe_postprocess.py
+  golden_answer_access: forbidden
+  default_policy:
+    scope: repo_only
+    include_tests: false
+    external_deps: exclude
+  operations:
+    - strip_empty_fields
+    - normalize_symbol_call_suffixes
+    - constructor_expression_cleanup
+    - filter_tests_when_excluded
+    - filter_external_paths_when_excluded
+    - filter_non_repo_paths_for_repo_only_scope
+    - remove_exact_duplicates
+    - collapse_symbol_duplicates
+    - sort_by_caller_callee_file_line
+  cli_examples:
+    dry_run_single_file: python scripts/pe_postprocess.py --input runs/example/case/prediction.yaml --dry-run
+    write_single_file: python scripts/pe_postprocess.py --input runs/example/case/prediction.yaml --output runs/example/case/prediction.pe.yaml
+
+runner_usage:
+  oracle_prompt_arg: --prompt prompts/pe/generated/oracle-context-pe-v2-s-f-c-p.md --prompt-version oracle-context-pe-v2-s-f-c-p
+  e2e_prompt_args: --prompt prompts/pe/generated/e2e-task-pe-v2-s-f-c-p.md --system-prompt prompts/pe/generated/e2e-agent-system-pe-v2-s-f-c-p.md --task-prompt-version e2e-task-pe-v2-s-f-c-p --system-prompt-version e2e-agent-system-pe-v2-s-f-c-p
+  note: PE v2 is a minimal precision revision intended for focused validation before any PE+RAG or full ablation.
+
+matrix_runner:
+  script: scripts/run_pe_matrix.py
+  default_mode: dry_run_plan_only
+  plan_dir: runs/pe/plans
+  prompt_assembly_status: implemented_via_generated_templates
+  generated_prompt_status_policy:
+    missing_generated_prompt: requires_prompt_assembly
+    generated_prompt_exists_without_postprocess: ready
+    generated_prompt_exists_with_postprocess: ready_with_postprocess_plan
+  exact_combination_policy:
+    base: use baseline Oracle/E2E prompts and no PE postprocess
+    S_F_C: combinations containing S, F, or C use prompts assembled under prompts/pe/generated before real model runs
+    P: combinations containing P need deterministic postprocess plus re-score orchestration after runner prediction output
+  note: Command plans must mark prompt/postprocess gaps explicitly and must not be reported as completed PE experiments.
+
+pilot:
+  matrix: focused_precision_revision
+  combinations:
+    - base
+    - S+F+C+P
+  case_ids:
+    - astrbot-agent-002
+    - astrbot-pipeline-002
+    - astrbot-agent-001
+    - astrbot-chat-002
+    - astrbot-chat-003
+    - astrbot-hook-001
+    - scrapy-feed-003
+    - scrapy-signal-004
+  coverage:
+    selection_policy: targeted_6_to_8_medium_hard_cases_prioritizing_v1_precision_failures
+    task_type:
+      find_callers: 3
+      find_callees: 5
+    difficulty:
+      easy: 0
+      medium_or_hard: 8
+    repos:
+      astrbot: 6
+      scrapy: 2
+
+full_run:
+  case_set: all_70_cases
+  selection_rule: not authorized for PE v2 until focused Oracle validation shows precision improvement without unacceptable recall loss
+
+models:
+  primary:
+    - provider: openrouter
+      alias: deepseek-v4-pro-direct-no-reasoning
+    - provider: openrouter
+      alias: tencent-hy3-preview-no-reasoning
+  local_optional:
+    - provider: ollama-native
+      alias: gemma4-e2b
+      rule: run only selected best PE variant unless local resource schedule is idle
+
+tracks:
+  oracle: required
+  e2e: required
+
+reporting:
+  batch_dir: reports/pe/batches
+  summary_dir: reports/pe/summary
+  record_file: records/09-pe-optimization.md

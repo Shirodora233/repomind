@@ -99,3 +99,17 @@
   - 成本：共 87 个 API step，754,160 tokens，observed cost 0.036842930 USD。DeepSeek 全部命中 `provider=DeepSeek`；Tencent HY3 经 OpenRouter 路由到 GMICloud / SiliconFlow。
   - 观察：`S+F+C+P` 没有分数收益，但明显增加 prompt tokens；DeepSeek PE E2E tokens 约为 base 的 2.73x，Tencent HY3 约为 1.26x。
   - 结论：PE E2E 链路已验证可运行，但该 smoke 样本过易，不能替代中高难度 E2E pilot；结合 Oracle pilot 结果，当前 PE v1 不应直接进入完整消融，下一步应优先修订 precision。
+- 2026-06-21：完成 PE v2 最小 precision 修订资产与 dry-run 计划，正式报告见 `reports/pe/batches/pe-v2-precision-revision-assets-and-plan-20260621.md`。
+  - 新增 `configs/experiments/pe-v2.yaml`，将 pilot 收缩为 `base` vs `S+F+C+P` 的 8-case focused validation，优先覆盖 `astrbot-agent-002`、`astrbot-pipeline-002` 等 v1 precision 失败场景。
+  - 新增 PE v2 prompt assets：`system-v2.md`、`reasoning-checklist-v2.md`、`final-task-format-v2.md`、`few-shot-examples-v2.yaml`、`oracle-context-pe-v2.md`、`e2e-task-pe-v2.md`、`e2e-agent-system-pe-v2.md`。
+  - `few-shot-examples-v2.yaml` 保留 v1 的 20 条 synthetic 示例，并新增 3 条 helper-over-inclusion negative 示例，覆盖 agent builder、pipeline/event method 和 lifecycle caller 场景；未使用 golden answer。
+  - 生成 v2 runnable prompts：`prompts/pe/generated/oracle-context-pe-v2-s-f-c-p.md`、`prompts/pe/generated/e2e-agent-system-pe-v2-s-f-c-p.md`、`prompts/pe/generated/e2e-task-pe-v2-s-f-c-p.md`。
+  - `scripts/assemble_pe_prompts.py` 仅移除 generated header 中的 v1 few-shot 路径硬编码说明；`scripts/pe_postprocess.py` 未修改，仍是不读 golden 的确定性清理。
+  - Dry-run plan：`runs/pe/plans/pe-v2-focused-8-deepseek-plan-20260621.json`，包含 Oracle/E2E、base/`S+F+C+P` 共 4 条 command template；`models_called=false`。
+  - 最小验证：
+    - `python -m py_compile scripts/assemble_pe_prompts.py scripts/run_pe_matrix.py scripts/pe_postprocess.py`
+    - `python -c "... yaml.safe_load ..."`：`pe-v2 yaml ok 23`
+    - `python scripts/assemble_pe_prompts.py --config configs/experiments/pe-v2.yaml --combination S+F+C+P --track both`
+    - `python scripts/run_pe_matrix.py --config configs/experiments/pe-v2.yaml --dry-run --track both --model-provider openrouter --model-alias deepseek-v4-pro-direct-no-reasoning --combination base/S+F+C+P --format json --output runs/pe/plans/pe-v2-focused-8-deepseek-plan-20260621.json`
+    - plan 检查：`commands=4`、`case_count=8`、`models_called=False`、statuses 为 `ready=2` / `ready_with_postprocess_plan=2`。
+  - 本轮未运行 API，成本和 token 均为 0。当前判断：PE v2 可以进入 focused Oracle validation，但不能进入 PE+RAG / All 或完整 70-case 消融。

@@ -35,3 +35,13 @@ PE 报告必须明确区分四个维度：
 - Postprocess
 
 后处理规则不得读取 golden answer。任何 PE pilot 或 full run 都应记录 prompt/postprocess 版本、case 范围、模型配置、成本、runtime 和失败模式。
+
+## PE v2 Precision Revision
+
+PE v2 是针对 `pe-v1-oracle-pilot-20-deepseek-20260621` 中 precision 下降问题的最小修订，不代表已进入 PE+RAG 或完整消融。
+
+- 配置：`configs/experiments/pe-v2.yaml`
+- Prompt assets：`prompts/pe/system-v2.md`、`prompts/pe/few-shot-examples-v2.yaml`、`prompts/pe/reasoning-checklist-v2.md`、`prompts/pe/final-task-format-v2.md`
+- Generated prompt assets：`prompts/pe/generated/oracle-context-pe-v2-s-f-c-p.md`、`prompts/pe/generated/e2e-agent-system-pe-v2-s-f-c-p.md`、`prompts/pe/generated/e2e-task-pe-v2-s-f-c-p.md`
+
+v2 的核心变化是收紧 direct-call scope：只有返回 caller 的函数/方法体内存在明确调用表达式时才返回该边；不枚举相邻 helper、import、注册项、注释/字符串或非目标 lifecycle edge。`scripts/pe_postprocess.py` 暂未加入新的 helper 过滤启发式，仍只做确定性清理且不读取 golden answer。
