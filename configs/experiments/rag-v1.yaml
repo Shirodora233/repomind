@@ -1,11 +1,11 @@
 version: rag-v1
 stage: rag_pipeline
-status: implementation_skeleton_ready
+status: context_pack_candidate_control_ready
 
 baseline_reference:
   dataset: call-chain-v1
   test_set_status: frozen
-  baseline_report: reports/baseline/summary/baseline-summary-v0-20260620.md
+  baseline_report: reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md
   e2e_runner: e2e-agent-runner-v1
   scorer: call-chain-scorer-v1
 
@@ -89,8 +89,8 @@ retrieval_evaluation:
     - DefinitionAccuracy@K
 
 context_pack:
-  schema_version: rag-context-pack-v1.1
-  packer_version: rag-context-packer-v1.1
+  schema_version: rag-context-pack-v1.2
+  packer_version: rag-context-packer-v1.2
   script: scripts/rag_pack_context.py
   default_output_root: runs/rag-context
   default_retrieval_variant: keyword_multiquery_safe
@@ -109,9 +109,13 @@ context_pack:
     components:
       - source_policy_and_case_constraints
       - canonical_symbol_hints
+      - local_symbol_aliases_from_target_module
+      - receiver_type_hints_from_target_body_annotations
       - target_definition_focus
       - target_module_import_context_from_index
       - direct_call_evidence_candidates
+      - candidate_control_status_and_filtered_examples
+      - signalmanager_receiver_normalization
       - lifecycle_registration_boundary_notes
     no_golden_or_oracle_context_usage: true
   leakage_policy:

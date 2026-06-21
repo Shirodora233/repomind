@@ -115,3 +115,10 @@
   - 修正：`astrbot-agent-001` 的 follow-up、session lock、error-helper 等 target body 内 repo 直接调用补入 required edges。
   - 修正后重评分：上一轮 RAG retry 同 3 case P/R/E=0.333333/0.344828/1.000000；synthesis aid P/R/E=0.750000/0.724138/1.000000。
   - 结论变化：旧结论中“follow-up/session helper 是误报”的部分作废；当前 RAG 下一步应过滤 logger / external 调用，并保留有效 direct repo helpers，同时继续做 `crawler.signals.connect` canonical receiver normalization。
+- 2026-06-21：实现 RAG v1.2 candidate control 与 canonical receiver normalization，并尝试 20-case DeepSeek pilot；正式报告见 `reports/rag/batches/rag-v1-candidate-control-pilot-20-blocked-20260621.md`。
+  - 修改 `scripts/rag_pack_context.py`，将 context pack schema / packer 升到 `rag-context-pack-v1.2` / `rag-context-packer-v1.2`。
+  - 新增 target module local symbol alias、target body receiver type hints、`scrapy.signalmanager.SignalManager.*` receiver normalization、logger/external/container low-value candidate filtering、`candidate_status` 与 `output_symbol_hint` 渲染。
+  - Context pack：`runs/rag-context/rag-v1-candidate-control-pilot-20-20260621`；dry-run：`runs/rag-context-runs/rag-v1-candidate-control-dry-pilot-20-20260621`。
+  - 本地验证：20 个 case 均成功生成 prompt-ready context；最大 estimated context tokens 约 15,332，低于默认 24,000；`scrapy-feed-001` 的 `crawler.signals.connect` 已规范到 `scrapy.signalmanager.SignalManager.connect`；`astrbot-agent-001` 的 logger 与 `dataclasses.replace` 已进入 filtered examples，不进入主候选表。
+  - API attempt：`runs/rag-context-runs/rag-v1-candidate-control-deepseek-pilot-20-20260621`；20/20 case 均因 OpenRouter `HTTP 403 Key limit exceeded (daily limit)` 失败，没有 prediction / score。
+  - 结论：RAG v1.2 输入侧优化已完成，但成效评估尚未完成；key limit 恢复后应复用同一份 context pack 重跑 DeepSeek 20-case pilot，再与上一轮 RAG retry 指标对比。

@@ -31,8 +31,8 @@ from rag_common import load_index, module_name_from_path, project_path, result_p
 
 
 DEFAULT_PROMPT = PROJECT_ROOT / "prompts" / "oracle-context-v0.md"
-CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.1"
-CONTEXT_PACKER_VERSION = "rag-context-packer-v1.1"
+CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.2"
+CONTEXT_PACKER_VERSION = "rag-context-packer-v1.2"
 CALL_EXPR_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\(")
 CALL_SKIP_NAMES = {
     "all",
@@ -59,6 +59,30 @@ CALL_SKIP_NAMES = {
     "tuple",
     "type",
 }
+SIGNAL_MANAGER_METHODS = {"connect", "disconnect", "send_catch_log", "send_catch_log_deferred"}
+LOGGER_METHODS = {"debug", "info", "warning", "warn", "error", "exception", "critical", "log"}
+EXTERNAL_ROOTS = {
+    "asyncio",
+    "base64",
+    "boto3",
+    "contextlib",
+    "dataclasses",
+    "datetime",
+    "fastapi",
+    "google",
+    "logging",
+    "pydispatch",
+    "re",
+    "sys",
+    "tempfile",
+    "twisted",
+    "typing",
+    "urllib",
+    "warnings",
+    "w3lib",
+    "zope",
+}
+LOW_VALUE_CONTAINER_METHODS = {"append", "extend", "get", "inc_value", "remove", "set_value", "setdefault"}
 
 
 def main() -> int:
@@ -347,10 +371,23 @@ def build_synthesis_aid(
         chunks_by_file=chunks_by_file,
     )
     import_aliases = parse_import_aliases(import_context.get("import_source", ""), current_module=module_symbol)
+    local_symbol_aliases = build_local_symbol_aliases(
+        target_file=target_file,
+        target_module_symbol=module_symbol,
+        chunks_by_file=chunks_by_file,
+    )
+    receiver_type_hints = build_receiver_type_hints(
+        case=case,
+        selected_sources=selected_sources,
+        import_aliases=import_aliases,
+        local_symbol_aliases=local_symbol_aliases,
+    )
     direct_calls = build_direct_call_evidence(
         case=case,
         selected_sources=selected_sources,
         import_aliases=import_aliases,
+        local_symbol_aliases=local_symbol_aliases,
+        receiver_type_hints=receiver_type_hints,
         limit=call_limit,
     )
     return {
@@ -385,14 +422,20 @@ def build_synthesis_aid(
             "target_module_path_hint": module_path,
             "constructor_class_symbol_hint": target_parent if target_tail in {"from_crawler", "__init__"} else None,
             "import_aliases_from_target_module": import_aliases,
+            "local_symbols_from_target_module": local_symbol_aliases,
+            "receiver_type_hints": receiver_type_hints,
         },
         "target_definition": definition_focus,
         "target_module_import_context": import_context,
         "direct_call_evidence": {
             "mode": direct_call_mode(task_type, direction),
             "candidate_count": len(direct_calls["candidates"]),
+            "primary_candidate_count": direct_calls["primary_count"],
+            "secondary_candidate_count": direct_calls["secondary_count"],
+            "filtered_candidate_count": direct_calls["filtered_count"],
             "rendered_candidate_count": len(direct_calls["rendered_candidates"]),
             "omitted_candidate_count": direct_calls["omitted_count"],
+            "filtered_candidate_examples": direct_calls["filtered_examples"],
             "candidates": direct_calls["rendered_candidates"],
         },
         "boundary_notes": build_boundary_notes(case),
@@ -528,8 +571,9 @@ def select_import_lines(line_map: dict[int, str]) -> list[tuple[int, str]]:
 def parse_import_aliases(import_source: str, *, current_module: str = "") -> dict[str, str]:
     if not import_source.strip():
         return {}
+    normalized_source = "\n".join(line.lstrip() for line in import_source.splitlines() if line.strip())
     try:
-        tree = ast.parse(import_source)
+        tree = ast.parse(normalized_source)
     except SyntaxError:
         return {}
     aliases: dict[str, str] = {}
@@ -555,6 +599,83 @@ def parse_import_aliases(import_source: str, *, current_module: str = "") -> dic
     return dict(sorted(aliases.items()))
 
 
+def build_local_symbol_aliases(
+    *,
+    target_file: str,
+    target_module_symbol: str,
+    chunks_by_file: dict[str, list[dict[str, Any]]],
+) -> dict[str, str]:
+    if not target_file or not target_module_symbol:
+        return {}
+    symbols_by_tail: dict[str, set[str]] = {}
+    for chunk in chunks_by_file.get(target_file, []):
+        for symbol in chunk.get("defined_symbols") or []:
+            if not isinstance(symbol, str) or not symbol.startswith(f"{target_module_symbol}."):
+                continue
+            tail = symbol.rsplit(".", 1)[-1]
+            if not tail:
+                continue
+            symbols_by_tail.setdefault(tail, set()).add(symbol)
+    return {tail: next(iter(symbols)) for tail, symbols in sorted(symbols_by_tail.items()) if len(symbols) == 1}
+
+
+def build_receiver_type_hints(
+    *,
+    case: dict[str, Any],
+    selected_sources: list[dict[str, Any]],
+    import_aliases: dict[str, str],
+    local_symbol_aliases: dict[str, str],
+) -> dict[str, str]:
+    target = str(case.get("target") or "")
+    target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
+    hints: dict[str, str] = {}
+    if target_parent:
+        hints["self"] = target_parent
+        hints["cls"] = target_parent
+
+    target_lines: list[str] = []
+    for source in selected_sources:
+        chunk = source["chunk"]
+        chunk_start = as_int(chunk.get("start_line"), 1)
+        for offset, line in enumerate(str(source.get("text") or "").splitlines()):
+            line_no = chunk_start + offset
+            if target_span_for_line(chunk, target, line_no) is not None:
+                target_lines.append(line.strip())
+
+    for line in target_lines:
+        for name, type_name in re.findall(
+            r"\b([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_\.]*)",
+            line,
+        ):
+            resolved = resolve_type_symbol(
+                type_name,
+                import_aliases=import_aliases,
+                local_symbol_aliases=local_symbol_aliases,
+            )
+            if resolved:
+                hints.setdefault(name, resolved)
+    return dict(sorted(hints.items()))
+
+
+def resolve_type_symbol(
+    type_name: str,
+    *,
+    import_aliases: dict[str, str],
+    local_symbol_aliases: dict[str, str],
+) -> str | None:
+    if type_name in CALL_SKIP_NAMES or type_name in {"None", "Self"}:
+        return None
+    root = type_name.split(".")[0]
+    suffix = type_name[len(root) :]
+    if root in import_aliases:
+        return f"{import_aliases[root]}{suffix}"
+    if root in local_symbol_aliases:
+        return f"{local_symbol_aliases[root]}{suffix}"
+    if "." in type_name:
+        return type_name
+    return None
+
+
 def resolve_import_from_module(*, module: str, level: int, current_module: str) -> str:
     if level <= 0:
         return module
@@ -569,6 +690,8 @@ def build_direct_call_evidence(
     case: dict[str, Any],
     selected_sources: list[dict[str, Any]],
     import_aliases: dict[str, str],
+    local_symbol_aliases: dict[str, str],
+    receiver_type_hints: dict[str, str],
     limit: int,
 ) -> dict[str, Any]:
     mode = direct_call_mode(str(case.get("task_type") or ""), str(case.get("direction") or ""))
@@ -604,6 +727,8 @@ def build_direct_call_evidence(
                         callee_expression=expr,
                         canonical_hint=target,
                         import_aliases=import_aliases,
+                        local_symbol_aliases=local_symbol_aliases,
+                        receiver_type_hints=receiver_type_hints,
                     )
                     key = candidate_key(candidate)
                     if key not in seen:
@@ -623,8 +748,16 @@ def build_direct_call_evidence(
                         evidence=stripped,
                         caller_hint=target,
                         callee_expression=expr,
-                        canonical_hint=resolve_callee_hint(expr, case, import_aliases),
+                        canonical_hint=resolve_callee_hint(
+                            expr,
+                            case,
+                            import_aliases,
+                            local_symbol_aliases=local_symbol_aliases,
+                            receiver_type_hints=receiver_type_hints,
+                        ),
                         import_aliases=import_aliases,
+                        local_symbol_aliases=local_symbol_aliases,
+                        receiver_type_hints=receiver_type_hints,
                     )
                     key = candidate_key(candidate)
                     if key not in seen:
@@ -638,10 +771,25 @@ def build_direct_call_evidence(
             str(item.get("callee_expression") or ""),
         )
     )
+    rendered_candidates = select_rendered_candidates(candidates, limit=limit)
     return {
         "candidates": candidates,
-        "rendered_candidates": candidates[:limit] if limit else [],
-        "omitted_count": max(0, len(candidates) - limit),
+        "rendered_candidates": rendered_candidates,
+        "primary_count": sum(1 for item in candidates if item.get("candidate_status") == "primary"),
+        "secondary_count": sum(1 for item in candidates if item.get("candidate_status") == "secondary"),
+        "filtered_count": sum(1 for item in candidates if str(item.get("candidate_status") or "").startswith("filtered")),
+        "filtered_examples": [
+            {
+                "callee_expression": item.get("callee_expression"),
+                "callee_canonical_hint": item.get("callee_canonical_hint"),
+                "reason": item.get("candidate_reason"),
+                "file": item.get("file"),
+                "line": item.get("line"),
+            }
+            for item in candidates
+            if str(item.get("candidate_status") or "").startswith("filtered")
+        ][:8],
+        "omitted_count": max(0, len([item for item in candidates if not str(item.get("candidate_status") or "").startswith("filtered")]) - len(rendered_candidates)),
     }
 
 
@@ -657,13 +805,21 @@ def call_candidate_record(
     callee_expression: str,
     canonical_hint: str | None,
     import_aliases: dict[str, str],
+    local_symbol_aliases: dict[str, str],
+    receiver_type_hints: dict[str, str],
 ) -> dict[str, Any]:
+    receiver = receiver_hint(callee_expression)
+    status, reason = classify_candidate(callee_expression, canonical_hint, case)
     return {
         "role": role,
         "caller_hint": caller_hint,
         "callee_expression": callee_expression,
         "callee_canonical_hint": canonical_hint,
-        "receiver_hint": receiver_hint(callee_expression),
+        "output_symbol_hint": preferred_output_symbol(callee_expression, canonical_hint, case),
+        "receiver_hint": receiver,
+        "receiver_type_hint": receiver_type_hints.get(callee_expression.split(".")[0]),
+        "candidate_status": status,
+        "candidate_reason": reason,
         "boundary_role": boundary_role(callee_expression, evidence),
         "registered_callback_arguments": registered_callback_arguments(evidence),
         "file": chunk.get("file"),
@@ -671,7 +827,13 @@ def call_candidate_record(
         "evidence": evidence,
         "retrieval_rank": result.get("rank"),
         "best_query": result.get("best_query"),
-        "normalization_note": normalization_note(callee_expression, case, import_aliases),
+        "normalization_note": normalization_note(
+            callee_expression,
+            case,
+            import_aliases,
+            local_symbol_aliases=local_symbol_aliases,
+            receiver_type_hints=receiver_type_hints,
+        ),
     }
 
 
@@ -749,31 +911,142 @@ def registered_callback_arguments(evidence: str) -> list[str]:
     ][:6]
 
 
-def resolve_callee_hint(expr: str, case: dict[str, Any], import_aliases: dict[str, str]) -> str | None:
+def resolve_callee_hint(
+    expr: str,
+    case: dict[str, Any],
+    import_aliases: dict[str, str],
+    *,
+    local_symbol_aliases: dict[str, str],
+    receiver_type_hints: dict[str, str],
+) -> str | None:
     target = str(case.get("target") or "")
     target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
     if expr == "cls" and target_parent:
         return target_parent
+    signal_hint = resolve_signal_manager_hint(expr, case)
+    if signal_hint:
+        return signal_hint
     root = expr.split(".")[0]
+    suffix = expr[len(root) :]
     if root in import_aliases:
-        suffix = expr[len(root) :]
         return f"{import_aliases[root]}{suffix}"
-    if expr.startswith("self.") and target_parent:
+    if root in receiver_type_hints and suffix and suffix.count(".") == 1:
+        return f"{receiver_type_hints[root]}{suffix}"
+    if root in local_symbol_aliases and not suffix:
+        return local_symbol_aliases[root]
+    if expr.startswith("self.") and target_parent and expr[len("self.") :].count(".") == 0:
         return f"{target_parent}.{expr[len('self.'):]}"
     if "." in expr:
         return expr
-    return import_aliases.get(expr)
+    return import_aliases.get(expr) or local_symbol_aliases.get(expr)
 
 
-def normalization_note(expr: str, case: dict[str, Any], import_aliases: dict[str, str]) -> str:
-    hint = resolve_callee_hint(expr, case, import_aliases)
+def resolve_signal_manager_hint(expr: str, case: dict[str, Any]) -> str | None:
+    tail = call_expr_tail(expr)
+    if tail not in SIGNAL_MANAGER_METHODS:
+        return None
+    receiver = receiver_hint(expr) or ""
+    target = str(case.get("target") or "")
+    if receiver.endswith(".signals") or target.startswith("scrapy.signalmanager.SignalManager."):
+        return f"scrapy.signalmanager.SignalManager.{tail}"
+    return None
+
+
+def normalization_note(
+    expr: str,
+    case: dict[str, Any],
+    import_aliases: dict[str, str],
+    *,
+    local_symbol_aliases: dict[str, str],
+    receiver_type_hints: dict[str, str],
+) -> str:
+    hint = resolve_callee_hint(
+        expr,
+        case,
+        import_aliases,
+        local_symbol_aliases=local_symbol_aliases,
+        receiver_type_hints=receiver_type_hints,
+    )
     if expr == "cls" and hint:
-        return "cls(...) constructor expression; use the class symbol for strict scoring unless an explicit __init__ call is required."
+        return "cls(...) constructor expression; output the class symbol, not Class.__init__, for strict scoring."
+    if resolve_signal_manager_hint(expr, case):
+        return "Signal receiver normalized to scrapy.signalmanager.SignalManager; output the SignalManager method symbol, not the runtime receiver expression."
     if hint and expr != hint:
         return "Canonical hint resolved from target module import aliases or receiver context; verify against source before output."
     if "." not in expr:
         return "Bare function name; do not invent a target-module-qualified symbol unless import context supports it."
     return "Receiver expression; canonical class/module may need verification from surrounding context."
+
+
+def preferred_output_symbol(expr: str, canonical_hint: str | None, case: dict[str, Any]) -> str | None:
+    if expr == "cls":
+        return canonical_hint
+    signal_hint = resolve_signal_manager_hint(expr, case)
+    if signal_hint:
+        return signal_hint
+    return canonical_hint
+
+
+def classify_candidate(expr: str, canonical_hint: str | None, case: dict[str, Any]) -> tuple[str, str]:
+    if canonical_hint and canonical_hint == str(case.get("target") or ""):
+        return "primary", "candidate is a direct call to the requested target symbol"
+    if is_logger_call(expr, canonical_hint):
+        return "filtered_low_value", "logging call; do not return as a scored call-chain edge unless the case explicitly targets logging"
+    if str(case.get("external_deps") or "") == "exclude" and is_external_call(expr, canonical_hint, case):
+        return "filtered_external", "external dependency or stdlib call is out of scope for the main score"
+    if call_expr_tail(expr) in LOW_VALUE_CONTAINER_METHODS and not is_repo_local_symbol(canonical_hint, case):
+        return "filtered_low_value", "container/state helper without repo-local canonical symbol"
+    if canonical_hint and is_repo_local_symbol(canonical_hint, case):
+        return "primary", "repo-local canonical symbol available"
+    if canonical_hint:
+        return "secondary", "canonical hint exists but is not repo-local; verify scope before output"
+    return "secondary", "unresolved receiver expression; verify class/module before output"
+
+
+def is_logger_call(expr: str, canonical_hint: str | None) -> bool:
+    root = expr.split(".")[0]
+    tail = call_expr_tail(expr)
+    canonical = canonical_hint or ""
+    return (
+        root in {"logger", "logging"}
+        and tail in LOGGER_METHODS
+        or ".logger." in canonical
+        or canonical.endswith(tuple(f".{method}" for method in LOGGER_METHODS)) and "logger" in canonical.lower()
+    )
+
+
+def is_external_call(expr: str, canonical_hint: str | None, case: dict[str, Any]) -> bool:
+    root = (canonical_hint or expr).split(".")[0]
+    if root in EXTERNAL_ROOTS:
+        return True
+    if canonical_hint and is_repo_local_symbol(canonical_hint, case):
+        return False
+    return False
+
+
+def is_repo_local_symbol(symbol: str | None, case: dict[str, Any]) -> bool:
+    if not symbol:
+        return False
+    repo_key = str(case.get("repo_key") or "")
+    target_root = str(case.get("target") or "").split(".")[0]
+    roots = {root for root in [repo_key, target_root] if root}
+    return any(symbol == root or symbol.startswith(f"{root}.") for root in roots)
+
+
+def select_rendered_candidates(candidates: list[dict[str, Any]], *, limit: int) -> list[dict[str, Any]]:
+    if limit == 0:
+        return []
+    visible = [item for item in candidates if not str(item.get("candidate_status") or "").startswith("filtered")]
+    visible.sort(
+        key=lambda item: (
+            0 if item.get("candidate_status") == "primary" else 1,
+            as_int(item.get("retrieval_rank"), 999999),
+            str(item.get("file") or ""),
+            as_int(item.get("line"), 999999),
+            str(item.get("callee_expression") or ""),
+        )
+    )
+    return visible[:limit] if limit else visible
 
 
 def direct_call_mode(task_type: str, direction: str) -> str:
@@ -855,8 +1128,8 @@ def render_direct_call_table(candidates: list[dict[str, Any]]) -> str:
     if not candidates:
         return "No direct-call candidates were extracted from the selected chunks."
     rows = [
-        "| Role | Caller Hint | Callee Expression | Canonical Hint | Boundary | File:Line | Evidence |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Status | Role | Caller Hint | Callee Expression | Output Symbol Hint | Boundary | File:Line | Evidence |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for item in candidates:
         rows.append(
@@ -864,10 +1137,11 @@ def render_direct_call_table(candidates: list[dict[str, Any]]) -> str:
             + " | ".join(
                 markdown_cell(value)
                 for value in [
+                    item.get("candidate_status"),
                     item.get("role"),
                     item.get("caller_hint"),
                     item.get("callee_expression"),
-                    item.get("callee_canonical_hint"),
+                    item.get("output_symbol_hint") or item.get("callee_canonical_hint"),
                     item.get("boundary_role"),
                     f"{item.get('file')}:{item.get('line')}",
                     item.get("evidence"),
@@ -892,6 +1166,9 @@ def summarize_synthesis_aid(aid: dict[str, Any] | None, estimated_tokens: int) -
         "import_context_status": import_context.get("status"),
         "direct_call_mode": direct.get("mode"),
         "direct_call_candidate_count": direct.get("candidate_count"),
+        "primary_candidate_count": direct.get("primary_candidate_count"),
+        "secondary_candidate_count": direct.get("secondary_candidate_count"),
+        "filtered_candidate_count": direct.get("filtered_candidate_count"),
         "rendered_candidate_count": direct.get("rendered_candidate_count"),
         "omitted_candidate_count": direct.get("omitted_candidate_count"),
         "golden_used": False,
