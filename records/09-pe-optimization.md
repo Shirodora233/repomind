@@ -92,3 +92,10 @@
   - 结果摘要：`base` P/R/E=0.942857/0.942857/0.969697；`S` Recall=1.0 但 Precision=0.853659；`F` Precision=0.784091；`C` Precision=0.718750；`S+F+C+P` Precision=0.793103、Recall=0.985714。`P` 仅移除重复 symbol edge，未改变分数。
   - 成本：5 个 API 组合共 3,682,821 tokens，observed cost 1.429117274 USD，wall-clock 合计约 629.126 秒。
   - 结论：当前 PE v1 在 Oracle pilot 上没有超过 baseline，主要问题是 prompt 增强后过度枚举相邻 helper edges；进入 PE+RAG / All 消融前应先收紧 PE precision。
+- 2026-06-21：完成 PE v1 E2E 2-case DeepSeek / Tencent smoke，正式报告见 `reports/pe/batches/pe-v1-e2e-smoke-2-deepseek-tencent-20260621.md`。
+  - Run path：`runs/pe/e2e-smoke-2-20260621`。
+  - 覆盖组合：`base` 与 `S+F+C+P`；模型为 `deepseek-v4-pro-direct-no-reasoning` 和 `tencent-hy3-preview-no-reasoning`。
+  - 结果摘要：四个 E2E runs 均成功产出 prediction 和 score；2 个 easy smoke case 上 P/R/E 均为 1.0，retrieval_recall 和 definition_accuracy 均为 1.0。
+  - 成本：共 87 个 API step，754,160 tokens，observed cost 0.036842930 USD。DeepSeek 全部命中 `provider=DeepSeek`；Tencent HY3 经 OpenRouter 路由到 GMICloud / SiliconFlow。
+  - 观察：`S+F+C+P` 没有分数收益，但明显增加 prompt tokens；DeepSeek PE E2E tokens 约为 base 的 2.73x，Tencent HY3 约为 1.26x。
+  - 结论：PE E2E 链路已验证可运行，但该 smoke 样本过易，不能替代中高难度 E2E pilot；结合 Oracle pilot 结果，当前 PE v1 不应直接进入完整消融，下一步应优先修订 precision。
