@@ -16,7 +16,7 @@ DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "datasets" / "finetune-v1" / "smoke" / "syn
 DEFAULT_FULL_SYNTHETIC_OUTPUT_PATH = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-dry.jsonl"
 DEFAULT_FULL_SYNTHETIC_MANIFEST_PATH = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-dry-manifest.json"
 DATASET_VERSION = "finetune-data-v1"
-SYNTHETIC_PATTERN_COUNT = 25
+SYNTHETIC_PATTERN_COUNT = 29
 
 SYSTEM_MESSAGE = (
     "Return repo-local symbol-level call edges as strict JSON. "
@@ -142,6 +142,7 @@ def make_sample(
     direction: str,
     target: str,
     target_type: str,
+    max_depth: int = 1,
     required_edges: list[dict[str, Any]] | None = None,
     optional_edges: list[dict[str, Any]] | None = None,
     excluded_edges: list[dict[str, Any]] | None = None,
@@ -178,7 +179,7 @@ def make_sample(
         },
         "notes": notes,
     }
-    input_obj = base_input(repo, target, task_type, direction, 1, context)
+    input_obj = base_input(repo, target, task_type, direction, max_depth, context)
     instruction = (
         "Identify only real repo-local symbol-level call edges for the target. "
         "Return no required edge for imports, strings, comments, tests excluded by scope, "
@@ -210,7 +211,7 @@ def make_sample(
         "direction": direction,
         "target": target,
         "target_type": target_type,
-        "max_depth": 1,
+        "max_depth": max_depth,
         "instruction": instruction,
         "input": input_obj,
         "output": output,
@@ -1054,6 +1055,298 @@ def synthetic_sample(index: int) -> dict[str, Any]:
                 }
             ],
             tags=["positive_call_edges", "async", "async_call_edges", "callee_direction_cases"],
+        )
+
+    if pattern == 24:
+        required = [
+            edge(
+                f"{module}.dashboard.sessions.stop_session",
+                f"{module}.db.sessions.SessionStore.get_session",
+                f"{module}/dashboard/sessions.py",
+                121,
+                "session = await store.get_session(session_id)",
+            ),
+            edge(
+                f"{module}.dashboard.sessions.stop_session",
+                f"{module}.dashboard.sessions.SessionServiceError",
+                f"{module}/dashboard/sessions.py",
+                123,
+                "raise SessionServiceError(f'Session {session_id} not found')",
+                "static_confirmed",
+                "Class construction is represented by the class symbol.",
+            ),
+            edge(
+                f"{module}.dashboard.sessions.stop_session",
+                f"{module}.dashboard.sessions.build_origin",
+                f"{module}/dashboard/sessions.py",
+                124,
+                "origin = build_origin(session)",
+            ),
+            edge(
+                f"{module}.dashboard.sessions.stop_session",
+                f"{module}.events.active.ActiveEventRegistry.request_stop_all",
+                f"{module}/dashboard/sessions.py",
+                125,
+                "stopped = registry.request_stop_all(origin)",
+            ),
+        ]
+        excluded = [
+            excluded_edge(
+                f"{module}.dashboard.sessions.stop_session",
+                f"{module}.events.active.ActiveEventRegistry.stop_all",
+                "The target requests a cooperative stop; it does not call the hard stop helper.",
+                f"{module}/dashboard/sessions.py",
+                125,
+                "stopped = registry.request_stop_all(origin)",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.dashboard.sessions.stop_session",
+            target_type="function",
+            required_edges=required,
+            excluded_edges=excluded,
+            context=[
+                {
+                    "path": f"{module}/dashboard/sessions.py",
+                    "role": "target_definition",
+                    "content": (
+                        " 120 | async def stop_session(store, registry, session_id):\n"
+                        " 121 |     session = await store.get_session(session_id)\n"
+                        " 122 |     if session is None:\n"
+                        " 123 |         raise SessionServiceError(f'Session {session_id} not found')\n"
+                        " 124 |     origin = build_origin(session)\n"
+                        " 125 |     stopped = registry.request_stop_all(origin)\n"
+                        " 126 |     return {'stopped': stopped}\n"
+                    ),
+                }
+            ],
+            tags=[
+                "positive_call_edges",
+                "callee_direction_cases",
+                "multi_edge_outputs",
+                "line_numbered_evidence_cases",
+                "constructor_symbol_cases",
+                "object_method_calls",
+            ],
+        )
+
+    if pattern == 25:
+        required = [
+            edge(
+                f"{module}.dashboard.providers.create_provider",
+                f"{module}.dashboard.schemas.ProviderRequest.to_config",
+                f"{module}/dashboard/providers.py",
+                275,
+                "await service.create_provider(payload.to_config())",
+            ),
+            edge(
+                f"{module}.dashboard.providers.create_provider",
+                f"{module}.dashboard.services.ProviderConfigService.create_provider",
+                f"{module}/dashboard/providers.py",
+                275,
+                "await service.create_provider(payload.to_config())",
+            ),
+            edge(
+                f"{module}.dashboard.services.ProviderConfigService.create_provider",
+                f"{module}.providers.manager.ProviderManager.create_provider",
+                f"{module}/dashboard/services.py",
+                1606,
+                "await self.provider_manager.create_provider(config)",
+            ),
+            edge(
+                f"{module}.dashboard.providers.create_provider",
+                f"{module}.dashboard.responses.ok",
+                f"{module}/dashboard/providers.py",
+                276,
+                "return ok(message='created')",
+            ),
+        ]
+        excluded = [
+            excluded_edge(
+                f"{module}.providers.manager.ProviderManager.create_provider",
+                f"{module}.providers.manager.ProviderManager.load_provider",
+                "This call is one hop deeper than max_depth=2 from the route handler.",
+                f"{module}/providers/manager.py",
+                876,
+                "await self.load_provider(new_config)",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.dashboard.providers.create_provider",
+            target_type="route",
+            max_depth=2,
+            required_edges=required,
+            excluded_edges=excluded,
+            context=[
+                {
+                    "path": f"{module}/dashboard/providers.py",
+                    "role": "target_definition",
+                    "content": (
+                        " 270 | async def create_provider(payload, service):\n"
+                        " 275 |     await service.create_provider(payload.to_config())\n"
+                        " 276 |     return ok(message='created')\n"
+                    ),
+                },
+                {
+                    "path": f"{module}/dashboard/services.py",
+                    "role": "callee_candidate",
+                    "content": (
+                        "1602 | class ProviderConfigService:\n"
+                        "1603 |     async def create_provider(self, config):\n"
+                        "1606 |         await self.provider_manager.create_provider(config)\n"
+                    ),
+                },
+                {
+                    "path": f"{module}/providers/manager.py",
+                    "role": "callee_candidate",
+                    "content": (
+                        " 862 | class ProviderManager:\n"
+                        " 863 |     async def create_provider(self, new_config):\n"
+                        " 876 |         await self.load_provider(new_config)\n"
+                    ),
+                },
+            ],
+            tags=[
+                "positive_call_edges",
+                "callee_direction_cases",
+                "multi_edge_outputs",
+                "depth_2_call_chains",
+                "line_numbered_evidence_cases",
+                "evidence_output_cases",
+            ],
+        )
+
+    if pattern == 26:
+        required = [
+            edge(
+                f"{module}.crawler.CrawlerRunner.crawl",
+                f"{module}.crawler.CrawlerRunner._crawl",
+                f"{module}/crawler.py",
+                454,
+                "return self._crawl(crawler, *args, **kwargs)",
+            )
+        ]
+        excluded = [
+            excluded_edge(
+                f"{module}.crawler.AsyncCrawlerRunner.crawl",
+                f"{module}.crawler.CrawlerRunner._crawl",
+                "The async runner calls AsyncCrawlerRunner._crawl, not the target CrawlerRunner._crawl.",
+                f"{module}/crawler.py",
+                570,
+                "return self._crawl(crawler, *args, **kwargs)",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callers",
+            direction="upstream",
+            target=f"{module}.crawler.CrawlerRunner._crawl",
+            target_type="method",
+            required_edges=required,
+            excluded_edges=excluded,
+            context=[
+                {
+                    "path": f"{module}/crawler.py",
+                    "role": "target_definition",
+                    "content": (
+                        " 421 | class CrawlerRunner:\n"
+                        " 422 |     def crawl(self, crawler, *args, **kwargs):\n"
+                        " 454 |         return self._crawl(crawler, *args, **kwargs)\n"
+                        " 457 |     def _crawl(self, crawler, *args, **kwargs):\n"
+                        " 458 |         d = crawler.crawl(*args, **kwargs)\n"
+                        " 494 | class AsyncCrawlerRunner:\n"
+                        " 521 |     def crawl(self, crawler, *args, **kwargs):\n"
+                        " 570 |         return self._crawl(crawler, *args, **kwargs)\n"
+                    ),
+                }
+            ],
+            tags=[
+                "positive_call_edges",
+                "caller_direction_cases",
+                "same_name_distractors",
+                "line_numbered_evidence_cases",
+                "evidence_output_cases",
+            ],
+        )
+
+    if pattern == 27:
+        required = [
+            edge(
+                f"{module}.download.handlers.DownloadHandlers._load_handler",
+                f"{module}.utils.misc.load_object",
+                f"{module}/download/handlers.py",
+                91,
+                "handler_cls = load_object(path)",
+            ),
+            edge(
+                f"{module}.download.handlers.DownloadHandlers._load_handler",
+                f"{module}.utils.python.global_object_name",
+                f"{module}/download/handlers.py",
+                95,
+                "f'{global_object_name(handler_cls)} is deprecated'",
+            ),
+            edge(
+                f"{module}.download.handlers.DownloadHandlers._load_handler",
+                f"{module}.utils.misc.build_from_crawler",
+                f"{module}/download/handlers.py",
+                103,
+                "handler = build_from_crawler(handler_cls, self.crawler)",
+            ),
+        ]
+        excluded = [
+            excluded_edge(
+                f"{module}.download.handlers.DownloadHandlers._load_handler",
+                f"{module}.download.handlers.DownloadHandlerProtocol.download_request",
+                "The target inspects the method attribute; it does not call download_request.",
+                f"{module}/download/handlers.py",
+                120,
+                "if not inspect.iscoroutinefunction(handler.download_request):",
+            )
+        ]
+        return make_sample(
+            index=index,
+            repo=repo,
+            split=split,
+            task_type="find_callees",
+            direction="downstream",
+            target=f"{module}.download.handlers.DownloadHandlers._load_handler",
+            target_type="method",
+            required_edges=required,
+            excluded_edges=excluded,
+            context=[
+                {
+                    "path": f"{module}/download/handlers.py",
+                    "role": "target_definition",
+                    "content": (
+                        "  86 | def _load_handler(self, path):\n"
+                        "  91 |     handler_cls = load_object(path)\n"
+                        "  95 |     warnings.warn(f'{global_object_name(handler_cls)} is deprecated')\n"
+                        " 103 |     handler = build_from_crawler(handler_cls, self.crawler)\n"
+                        " 120 |     if not inspect.iscoroutinefunction(handler.download_request):\n"
+                        " 121 |         warnings.warn('sync handler')\n"
+                    ),
+                }
+            ],
+            tags=[
+                "positive_call_edges",
+                "callee_direction_cases",
+                "multi_edge_outputs",
+                "factory_return_cases",
+                "line_numbered_evidence_cases",
+                "evidence_output_cases",
+            ],
         )
 
     excluded = [

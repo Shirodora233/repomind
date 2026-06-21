@@ -58,7 +58,7 @@ If a future data build derives examples from evaluation test repos, those exampl
 
 ## Smoke+ Data
 
-The current builder target is a 50-sample synthetic micro smoke+ set with `source_type=synthetic_micro`. It is deterministic and GPU-free. It exists to validate:
+The current builder target is a 58-sample synthetic micro smoke+ set with `source_type=synthetic_micro`. It is deterministic and GPU-free. It exists to validate:
 
 - JSONL parsing.
 - Required fields and schema shape.
@@ -69,7 +69,7 @@ The current builder target is a 50-sample synthetic micro smoke+ set with `sourc
 - Test repo leakage checks.
 - Required sample type coverage from `configs/experiments/finetune-data-v1.yaml`.
 
-The 50-sample smoke+ set covers direct positive edges, object methods, constructor class symbols, explicit `__init__`, async calls, large fan-in, tests-excluded negatives, external dependency boundaries, decorator registration, callback registration, runtime-only boundaries, factory-return / polymorphism boundaries, same-name distractors, import/string non-calls, no-callers, and no-callees.
+The 58-sample smoke+ set covers direct positive edges, object methods, constructor class symbols, explicit `__init__`, async calls, large fan-in, tests-excluded negatives, external dependency boundaries, decorator registration, callback registration, runtime-only boundaries, factory-return / polymorphism boundaries, same-name distractors, import/string non-calls, no-callers, no-callees, multi-edge required outputs, depth-2 call chains, and line-numbered evidence examples. The last three categories were added after the first real-case Gemma4 adapter smoke showed low recall on multi-edge/depth-2 cases and one evidence/line mismatch.
 
 Generate it with:
 

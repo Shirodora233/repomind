@@ -34,8 +34,8 @@ target_model:
 
 data_requirements:
   minimum_examples: 500
-  smoke_examples_target: 50
-  smoke_examples_allowed_range: [10, 50]
+  smoke_examples_target: 58
+  smoke_examples_allowed_range: [10, 58]
   format: jsonl
   required_sample_types:
     - positive_call_edges
@@ -49,6 +49,9 @@ data_requirements:
     - caller_direction_cases
     - callee_direction_cases
     - evidence_output_cases
+    - multi_edge_outputs
+    - depth_2_call_chains
+    - line_numbered_evidence_cases
     - object_method_calls
     - async_call_edges
     - large_fan_in_cases
@@ -122,7 +125,7 @@ source_plan:
       must_not_enter_training_export: true
   builder_targets:
     smoke:
-      default_count: 50
+      default_count: 58
       writes_checked_in_jsonl: true
     full_synthetic:
       default_count: 500
@@ -130,7 +133,7 @@ source_plan:
       commit_large_jsonl: false
 
 gates:
-  smoke_dataset_examples: 50
+  smoke_dataset_examples: 58
   full_dataset_examples: 500
   validate_before_training: true
   smoke_train_before_formal_train: true
