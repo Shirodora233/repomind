@@ -275,3 +275,15 @@
 - 解决方式：不要把失败批次作为正式指标来源。优先确认该组合是否真的需要额外 API；例如 `P` 只是 deterministic postprocess，不应单独重跑模型。若必须继续跑，等待限额重置或由用户调整 key daily limit 后，用相同 context pack / prompt / model config 重新运行，必要时用 `--case-id` 只补跑未完成 case，并在报告中写明 split / resume 原因。限额提高后可使用 runner 的 `--concurrency` 并发执行在线 API 批跑，但并发数必须显式记录在 run_config 和正式报告中。
 - 后续注意：正式批量实验前先用 dry-run 估算 prompt token 规模；PE/RAG 大 prompt 组合优先按小批次运行并及时汇总成本。报告必须区分“有效 API 成本”和“失败 diagnostic 成本”，并保留 direct provider / no-fallback 配置不变。提高并发只解决墙钟时间，不降低 token 成本，也可能更快触发 provider/key 限额。
 - 相关文件：`configs/experiments/pe-v2.yaml`、`reports/pe/batches/pe-v2-expanded-oracle-25-deepseek-20260621.md`、`reports/rag/batches/rag-v1-candidate-control-deepseek-pilot-20-concurrency4-20260621.md`、`records/09-pe-optimization.md`、`records/10-rag-pipeline.md`
+
+## summarize_call_chain_runs 默认全量 case，子集实验必须显式传 case-id
+
+- 首次发现阶段：RAG Pipeline 优化阶段
+- 状态：active
+- 最后复核：2026-06-21
+- 现象：为 RAG v1.3 20-case pilot 生成 validation JSON 时，如果只传 `--run` 而不传 20 个 `--case-id`，`scripts/summarize_call_chain_runs.py` 会默认加载全量 call-chain v1 cases。未运行的 case 被计入 missing prediction，导致 recall 被错误拉低，例如同一 RAG v1.3 20-case run 的正确 recall 为 0.669643，未过滤口径会被错误汇总为 0.323276。
+- 影响：正式报告、RAG/PE 对比和后续消融如果误用未过滤 summary，会把“未参与实验的 case”当成失败样本，严重污染指标。
+- 原因：该脚本的设计是默认汇总全量数据集，适合 full run；子集实验需要调用方显式传 `--case-id` 或 `--cases`。脚本本身不会根据 prediction 文件自动推断 expected case set。
+- 解决方式：当前处理方式是所有 subset run 汇总时显式传入完整 `--case-id` 列表，并在 report 中记录 filtered validation path。误生成的未过滤 `runs/validation/rag-v1.2-candidate-control-deepseek-pilot-20-20260621.json` 和 `runs/validation/rag-v1.3-candidate-builder-deepseek-pilot-20-20260621.json` 已删除，仅保留带 `filtered` 后缀的同口径汇总。
+- 后续注意：凡是 2-case smoke、6-case focused、20/25-case pilot 或模型子集对比，都必须检查 summary `case_count` 与实验 case 数一致。若未来继续频繁跑子集，建议给 `summarize_call_chain_runs.py` 增加 `--expected-from-run` 或在发现 predictions 远少于 loaded cases 时输出 warning。
+- 相关文件：`scripts/summarize_call_chain_runs.py`、`reports/rag/batches/rag-v1.3-candidate-builder-deepseek-pilot-20-20260621.md`、`records/10-rag-pipeline.md`

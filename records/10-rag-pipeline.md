@@ -136,3 +136,11 @@
   - 合并结果：同 6 case 上，RAG v1.3 merged P/R/E=0.781818/0.614286/1.000000；RAG v1.2 同 6 case 重评分为 0.700000/0.600000/0.904762。Excluded hits 从 1 降到 0，unmatched predictions 从 17 降到 12。
   - 成本：合并口径包含首轮截断请求和单 case 补跑，共 7 个 raw responses，165,479 tokens，observed cost 0.065130578 USD，wall-clock 86.643 秒，observed provider 为 DeepSeek 7/7。
   - 结论：v1.3 candidate table 是正向结果，可进入 20-case RAG-only pilot；但进入前应先处理 candidate duplicate、object-method/helper extra edge，以及按候选数量动态提高 `max_tokens` 的问题，暂不直接进入完整消融。
+- 2026-06-21：完成 RAG v1.3 candidate builder DeepSeek 20-case pilot，正式报告见 `reports/rag/batches/rag-v1.3-candidate-builder-deepseek-pilot-20-20260621.md`。
+  - Context pack：`runs/rag-context/rag-v1.3-candidate-builder-pilot-20-20260621`；dry-run：`runs/rag-context-runs/rag-v1.3-candidate-builder-pilot-20-dry-20260621`；API run：`runs/rag-context-runs/rag-v1.3-candidate-builder-deepseek-pilot-20-20260621`。
+  - 运行配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，reasoning disabled，`--max-tokens 8000 --max-retries 2 --concurrency 4 --warmup-cases 2`。20/20 response 均 `finish_reason=stop`，request errors 0，parse errors 0。
+  - 口径修正：`summarize_call_chain_runs.py` 必须传入 20 个 `--case-id` 才能做同口径汇总；误生成的未过滤 validation JSON 已删除，正式汇总保存在 `runs/validation/*-filtered-20260621.json`。
+  - 结果：RAG v1.3 P/R/E=0.789474/0.669643/0.973333；RAG v1.2 同 20 case 为 0.757576/0.669643/0.920000。Predicted edges 从 99 降到 95，unmatched 从 23 降到 20，excluded hits 从 1 降到 0。
+  - 分项：`find_callers` precision 从 0.838710 提升到 1.000000，recall 保持 0.928571；`find_callees` recall 保持 0.583333，但 precision 从 0.720588 小降到 0.710145，evidence accuracy 从 0.897959 提升到 0.979592。
+  - 成本：20 个 raw responses，376,602 tokens，observed cost 0.117472852 USD，wall-clock 75.491 秒，observed provider 为 DeepSeek 20/20。
+  - 结论：v1.3 可以作为下一轮 RAG-only 主线；进入 PE+RAG / All 消融前，应先处理 duplicate predictions、继承/基类 method owner 归一化、`self.db` / singleton registry receiver canonicalization，以及 AstrBot object-method extra edge 边界。
