@@ -129,3 +129,10 @@
   - 结果：20/20 case 成功，request errors 0，Precision 0.757576，Recall 0.669643，Evidence Accuracy 0.920000；wall-clock 41.956 秒，354,924 tokens，observed cost 0.160534575 USD，observed provider 为 DeepSeek 20/20。
   - 与上一轮 RAG retry run 按 corrected golden 重评分相比，Precision 从 0.607143 提升到 0.757576，Recall 从 0.455357 提升到 0.669643，Excluded hits 从 3 降到 1；Evidence Accuracy 从 0.980392 降到 0.920000。
   - 结论：并发 runner 可用于后续在线 API 批跑；RAG v1.2 candidate control 有效提升 edge precision / recall，但仍需继续处理 high fan-out callee 漏报、对象接收者 canonicalization、find_callers 边界过宽和 duplicate predictions。
+- 2026-06-21：实现并评估 RAG v1.3 candidate edge table focused 6-case DeepSeek pilot，正式报告见 `reports/rag/batches/rag-v1.3-candidate-builder-focused-6-deepseek-20260621.md`。
+  - 工程提交：`c2d776c`，将 `scripts/rag_pack_context.py` 与 `configs/experiments/rag-v1.yaml` 升级到 `rag-context-pack-v1.3` / `rag-context-packer-v1.3`，新增逐 case `edge_candidates.json` 和 prompt 内 `Candidate Edge Table`。
+  - Context pack：`runs/rag-context/rag-v1.3-candidate-builder-focused-6-20260621`；首轮 API run：`runs/rag-context-runs/rag-v1.3-candidate-builder-focused-6-deepseek-20260621`；`astrbot-agent-001` 因 `max_tokens=5000` 截断补跑到 `runs/rag-context-runs/rag-v1.3-candidate-builder-focused-6-deepseek-20260621-agent001-max8000`。
+  - 候选表策略：`find_callers` 中同名 receiver 但类型未证明的候选降为 `secondary`；`scrapy-crawler-006` 的 9 个同名候选全部降级，避免 v1.2 的 command caller false positives。
+  - 合并结果：同 6 case 上，RAG v1.3 merged P/R/E=0.781818/0.614286/1.000000；RAG v1.2 同 6 case 重评分为 0.700000/0.600000/0.904762。Excluded hits 从 1 降到 0，unmatched predictions 从 17 降到 12。
+  - 成本：合并口径包含首轮截断请求和单 case 补跑，共 7 个 raw responses，165,479 tokens，observed cost 0.065130578 USD，wall-clock 86.643 秒，observed provider 为 DeepSeek 7/7。
+  - 结论：v1.3 candidate table 是正向结果，可进入 20-case RAG-only pilot；但进入前应先处理 candidate duplicate、object-method/helper extra edge，以及按候选数量动态提高 `max_tokens` 的问题，暂不直接进入完整消融。
