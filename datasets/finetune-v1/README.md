@@ -2,7 +2,7 @@
 
 This directory contains the versioned fine-tuning data format for the call-chain task.
 
-The current checked-in implementation includes a smoke+ skeleton, a 500+ source planning entry, and one frozen 500-sample synthetic readiness export for controlled Gemma4 E2B QLoRA smoke/pilot training. The frozen export is not a mixed real-project formal dataset.
+The current checked-in implementation includes a smoke+ skeleton, a 500+ source planning entry, and two frozen 500-sample synthetic exports for controlled Gemma4 E2B QLoRA smoke/pilot training. These frozen exports are not mixed real-project formal datasets.
 
 ## Layout
 
@@ -19,6 +19,11 @@ datasets/finetune-v1/
       README.md
       freeze-manifest.json
       full-synthetic-readiness.jsonl
+      validation-summary.json
+    full-synthetic-augmented-v2-20260621/
+      README.md
+      freeze-manifest.json
+      full-synthetic-augmented-v2.jsonl
       validation-summary.json
 ```
 
@@ -85,7 +90,36 @@ python scripts/validate_finetune_dataset.py --jsonl datasets/finetune-v1/smoke/s
 
 The validator prints a dataset-level summary covering sample count, split counts, source type counts, required tag coverage, and repo split group counts.
 
-## Frozen Synthetic Readiness Export
+## Frozen Synthetic Exports
+
+### Augmented v2 Export
+
+The latest frozen synthetic export is:
+
+```text
+datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/full-synthetic-augmented-v2.jsonl
+```
+
+Its freeze manifest is:
+
+```text
+datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/freeze-manifest.json
+```
+
+Key properties:
+
+- SHA256: `09601acfabebab623f543d76366b186f2da0bbc9143a69ffaff00e476802781a`.
+- Samples: 500.
+- Train / dev: 400 / 100.
+- Source type: `synthetic_micro`.
+- Repo split isolation: passed.
+- Required sample type coverage: 24 / 24.
+- Evidence-complete samples: 500 / 500.
+- Added coverage for multi-edge outputs, depth-2 chains, caller-body evidence, and line-numbered evidence.
+
+Training configs must use only `split=train`; the dev split is retained for diagnostics and should not be mixed into training.
+
+### Initial Synthetic Readiness Export
 
 The frozen 500-sample synthetic readiness export is:
 

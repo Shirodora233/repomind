@@ -16,7 +16,7 @@
 | 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
 | 当前 PE 资产 | `pe-v1` prompt assets、20 条 synthetic few-shot、`pe_postprocess.py`、matrix planner v2、34 个 generated prompts |
 | 当前 RAG 资产 | `rag-v1` chunk index、BM25/keyword retrieval、`keyword_multiquery_safe`、context packer、RAG context runner、retrieval eval |
-| 当前 Fine-tune 资产 | `finetune-data-v1` smoke+ 58 条 targeted synthetic、frozen synthetic 500 条（train 400 / dev 100）、Gemma4 E2B QLoRA v6 adapter、真实仓库 4-case base-vs-adapter smoke |
+| 当前 Fine-tune 资产 | `finetune-data-v1` smoke+ 58 条 targeted synthetic、frozen synthetic v1/v2 各 500 条（train 400 / dev 100）、Gemma4 E2B QLoRA v6 adapter、真实仓库 4-case base-vs-adapter smoke |
 | 主报告 | `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`（修正 golden 后在线模型正式 baseline v1 主对照） |
 | Fine-tune 报告 | `reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-v6-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-realcase-base-vs-adapter-smoke-20260621.md` |
 | 历史 baseline | `reports/baseline/summary/baseline-summary-v0-20260620.md`（历史 baseline v0，已冻结，不再作为正式对照） |

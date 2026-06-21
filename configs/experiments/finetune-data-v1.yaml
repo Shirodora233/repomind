@@ -9,6 +9,9 @@ dataset:
   frozen_full_synthetic_jsonl: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl
   frozen_full_synthetic_manifest: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json
   frozen_full_synthetic_validation_summary: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/validation-summary.json
+  frozen_augmented_v2_jsonl: datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/full-synthetic-augmented-v2.jsonl
+  frozen_augmented_v2_manifest: datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/freeze-manifest.json
+  frozen_augmented_v2_validation_summary: datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/validation-summary.json
   source_plan: datasets/finetune-v1/source-plan.md
   full_synthetic_manifest_default: runs/finetune/full-synthetic-dry-manifest.json
   current_smoke_source_type: synthetic_micro
@@ -91,10 +94,11 @@ leakage_rules:
     - scrapy/scrapy
 
 source_plan:
-  status: full_synthetic_readiness_frozen_mixed_source_not_frozen
+  status: full_synthetic_augmented_v2_frozen_mixed_source_not_frozen
   path: datasets/finetune-v1/source-plan.md
   formal_training_started: false
   full_synthetic_readiness_frozen: true
+  full_synthetic_augmented_v2_frozen: true
   mixed_source_formal_dataset_frozen: false
   full_dataset_frozen: false
   freeze_gate_train_dev_examples: 500

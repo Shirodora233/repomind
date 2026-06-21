@@ -1,0 +1,155 @@
+version: finetune-gemma4-e2b-qlora-frozen-synth-v2
+stage: fine_tune_data_and_training
+status: frozen_config_ready_for_controlled_pilot
+
+purpose:
+  description: Gemma4 E2B QLoRA training config for the augmented frozen synthetic v2 dataset.
+  scope: controlled_synthetic_pilot
+  not_formal_mixed_source_dataset: true
+  change_from_v1: Adds synthetic coverage for multi-edge outputs, depth-2 chains, find_callers caller-body evidence, line-numbered evidence, and dynamic loader multi-edge outputs after the first real-case adapter smoke.
+
+dataset:
+  freeze_id: finetune-v1-full-synthetic-augmented-v2-20260621
+  jsonl: datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/full-synthetic-augmented-v2.jsonl
+  jsonl_sha256: 09601acfabebab623f543d76366b186f2da0bbc9143a69ffaff00e476802781a
+  validation_summary: datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/validation-summary.json
+  validation_summary_sha256: cc77dcc92fb9647a38bcca9e27323f1cc919387bd19aa72bdd886dcec4079e1d
+  freeze_manifest: datasets/finetune-v1/frozen/full-synthetic-augmented-v2-20260621/freeze-manifest.json
+  train_split: train
+  dev_split: dev
+  counts:
+    total: 500
+    train: 400
+    dev: 100
+  source_type_counts:
+    synthetic_micro: 500
+  quality_gates:
+    validator_passed: true
+    repo_split_isolation: passed
+    required_sample_type_coverage: 24/24
+    evidence_complete_samples: 500
+    duplicate_sample_id_count: 0
+    duplicate_content_count: 0
+  augmented_tag_counts:
+    multi_edge_outputs: 51
+    depth_2_call_chains: 17
+    line_numbered_evidence_cases: 68
+    evidence_output_cases: 86
+  leakage_rules:
+    split_by_repo: true
+    blocked_train_dev_repos:
+      - AstrBotDevs/AstrBot
+      - scrapy/scrapy
+    derived_from_current_test_repos: false
+
+model:
+  base_model: google/gemma-4-E2B-it
+  model_type: gemma4
+  weights_source: huggingface_cache
+  hf_snapshot: E:\AI\repomind-ft\hf_home\hub\models--google--gemma-4-E2B-it\snapshots\70af34e20bd4b7a91f0de6b22675850c43922a03
+  model_safetensors_blob_sha256_name: 2db5482b20d746879bb3ef79b5203e9075a2e2b98f54ec7c2f281c1477ddc550
+  tokenizer_vocab_size_observed: 262144
+
+environment:
+  os: windows
+  env_root: E:\AI\repomind-ft
+  activation_script: E:\AI\repomind-ft\activate-gemma4-e2b-ft.ps1
+  conda_env: E:\AI\repomind-ft\conda_envs\gemma4-e2b-ft
+  output_root: E:\AI\repomind-ft\outputs
+  expected_gpu: NVIDIA GeForce RTX 4060 Laptop GPU 8GB
+  offline_env:
+    HF_HUB_OFFLINE: "1"
+    TRANSFORMERS_OFFLINE: "1"
+
+runner:
+  script: scripts/run_finetune_smoke.py
+  runner_version: finetune-smoke-runner-v6
+  split_argument_required: true
+  split: train
+  eval_split: dev
+  label_mode: assistant_only
+  use_chat_template: true
+  device_map: single-gpu
+  trust_remote_code: true
+
+qlora:
+  load_in_4bit: true
+  quant_type: nf4
+  double_quant: true
+  compute_dtype: bfloat16
+  gradient_checkpointing: true
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.05
+    target_modules:
+      - q_proj
+      - k_proj
+      - v_proj
+      - o_proj
+      - gate_proj
+      - up_proj
+      - down_proj
+    exclude_modules: "regex:.*(vision_tower|audio_tower).*"
+
+training_defaults:
+  max_samples: 400
+  max_eval_samples: 100
+  max_seq_length: 512
+  max_steps: 100
+  eval_steps: 20
+  logging_steps: 5
+  learning_rate: 0.0002
+  lr_scheduler_type: linear
+  warmup_steps: 0
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 1
+  seed: null
+  output_dir: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v2-100step-20260621
+  note: Use assistant-only labels, Gemma chat template, and language-model-only LoRA targets. Keep the first v2 pilot comparable to the v1 v6 100-step run.
+
+command_template: >-
+  python scripts\run_finetune_smoke.py
+  --dataset datasets\finetune-v1\frozen\full-synthetic-augmented-v2-20260621\full-synthetic-augmented-v2.jsonl
+  --model google/gemma-4-E2B-it
+  --output-dir E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v2-100step-20260621
+  --max-samples 400
+  --split train
+  --max-eval-samples 100
+  --eval-split dev
+  --max-seq-length 512
+  --max-steps 100
+  --eval-steps 20
+  --logging-steps 5
+  --label-mode assistant_only
+  --use-chat-template
+  --learning-rate 0.0002
+  --lr-scheduler-type linear
+  --warmup-steps 0
+  --target-modules q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+  --exclude-modules 'regex:.*(vision_tower|audio_tower).*'
+  --per-device-eval-batch-size 1
+  --gradient-accumulation-steps 1
+  --device-map single-gpu
+
+resource_gates:
+  no_local_ollama_model_loaded: required
+  no_local_inference_batch_running: required
+  no_gpu_embedding_or_rerank_running: required
+  confirm_nvidia_smi_before_start: required
+
+recording_requirements:
+  before_run:
+    - git status --short
+    - git rev-parse --short HEAD
+    - dataset SHA256 verification
+    - nvidia-smi snapshot
+    - ollama ps
+  after_run:
+    - training_summary.json
+    - overfit_monitor.json
+    - adapter directory listing
+    - adapter SHA256
+    - GPU release check
+    - records/11-finetune-data-and-training.md update
