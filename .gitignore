@@ -12,6 +12,7 @@ configs/*.local.yml
 .cache/
 tmp/
 runs/
+output/
 __pycache__/
 *.py[cod]
 *.log
