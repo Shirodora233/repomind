@@ -80,6 +80,11 @@
 - 根 README 和提交说明已指向项目 GitHub、Hugging Face 微调模型和主文档阅读顺序。
 - `output/` 作为本地导出目录被 Git 忽略，不纳入正式提交；正式 Markdown 报告仍以 `reports/` 为准。
 
+### 2026-06-21：补强最终总结对验收要求的显式映射
+
+- 更新 `reports/overall-summary-20260621.md`，新增验收要求对照表、PE 四维独立量化表、RAG pipeline 完整度表和完整消融矩阵状态表。
+- 本次补强不改变实验结论：DeepSeek Base E2E 仍是当前最强主对照；PE+RAG 是局部正向路线；Fine-tune 产物保留但不进入当前最优组合。
+
 ## 验证结果
 
 已完成以下验证：
