@@ -31,8 +31,8 @@ from rag_common import load_index, module_name_from_path, project_path, result_p
 
 
 DEFAULT_PROMPT = PROJECT_ROOT / "prompts" / "oracle-context-v0.md"
-CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.2"
-CONTEXT_PACKER_VERSION = "rag-context-packer-v1.2"
+CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.3"
+CONTEXT_PACKER_VERSION = "rag-context-packer-v1.3"
 CALL_EXPR_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\(")
 CALL_SKIP_NAMES = {
     "all",
@@ -99,8 +99,8 @@ def main() -> int:
     parser.add_argument(
         "--synthesis-aid-call-limit",
         type=int,
-        default=40,
-        help="Max direct-call candidate rows rendered in the deterministic synthesis aid.",
+        default=60,
+        help="Max direct-call / candidate-edge rows rendered in the deterministic synthesis aid.",
     )
     parser.add_argument("--out-dir", help="Output directory. Defaults to runs/rag-context/rag-v1-<timestamp>.")
     parser.add_argument("--format", choices=["table", "json"], default="table")
@@ -255,6 +255,7 @@ def pack_case(
     synthesis_aid: dict[str, Any] | None = None
     synthesis_aid_tokens = 0
     synthesis_aid_path: Path | None = None
+    edge_candidates_path: Path | None = None
     if include_synthesis_aid:
         synthesis_aid = build_synthesis_aid(
             case=case,
@@ -266,6 +267,7 @@ def pack_case(
         synthesis_aid_tokens = estimate_tokens(synthesis_aid_text, chars_per_token=chars_per_token)
         context_parts = [synthesis_aid_text, *context_parts]
         synthesis_aid_path = case_dir / "synthesis_aid.json"
+        edge_candidates_path = case_dir / "edge_candidates.json"
 
     context_text = "\n\n".join(part for part in context_parts if part)
     prompt_text = render_prompt(prompt_template, case, context_text)
@@ -274,6 +276,8 @@ def pack_case(
     write_yaml(metadata_path, rag_case_metadata_for_prompt(case))
     if synthesis_aid is not None and synthesis_aid_path is not None:
         write_json(synthesis_aid_path, synthesis_aid)
+    if synthesis_aid is not None and edge_candidates_path is not None:
+        write_json(edge_candidates_path, synthesis_aid.get("candidate_edge_table") or {})
 
     included_files = sorted({str(item.get("file") or "") for item in selected_chunks if item.get("file")})
     aid_summary = summarize_synthesis_aid(synthesis_aid, synthesis_aid_tokens) if synthesis_aid else None
@@ -294,6 +298,7 @@ def pack_case(
         "prompt_file": project_relative(prompt_path),
         "case_metadata_file": project_relative(metadata_path),
         "synthesis_aid_file": project_relative(synthesis_aid_path) if synthesis_aid_path else None,
+        "edge_candidates_file": project_relative(edge_candidates_path) if edge_candidates_path else None,
         "synthesis_aid": aid_summary,
         "prompt_template": project_relative(prompt_template_path),
         "prompt_version": prompt_version,
@@ -390,6 +395,10 @@ def build_synthesis_aid(
         receiver_type_hints=receiver_type_hints,
         limit=call_limit,
     )
+    candidate_edge_table = build_candidate_edge_table(
+        case=case,
+        direct_call_candidates=direct_calls["rendered_candidates"],
+    )
     return {
         "source_policy": {
             "note": "Deterministic helper derived only from case metadata, retrieval results, and index chunks.",
@@ -438,6 +447,7 @@ def build_synthesis_aid(
             "filtered_candidate_examples": direct_calls["filtered_examples"],
             "candidates": direct_calls["rendered_candidates"],
         },
+        "candidate_edge_table": candidate_edge_table,
         "boundary_notes": build_boundary_notes(case),
     }
 
@@ -628,8 +638,9 @@ def build_receiver_type_hints(
 ) -> dict[str, str]:
     target = str(case.get("target") or "")
     target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
+    mode = direct_call_mode(str(case.get("task_type") or ""), str(case.get("direction") or ""))
     hints: dict[str, str] = {}
-    if target_parent:
+    if target_parent and mode != "callers_to_target":
         hints["self"] = target_parent
         hints["cls"] = target_parent
 
@@ -810,6 +821,13 @@ def call_candidate_record(
 ) -> dict[str, Any]:
     receiver = receiver_hint(callee_expression)
     status, reason = classify_candidate(callee_expression, canonical_hint, case)
+    if role == "caller_to_target_candidate":
+        status, reason = classify_caller_to_target_candidate(
+            callee_expression,
+            canonical_hint,
+            case,
+            receiver_type_hints=receiver_type_hints,
+        )
     return {
         "role": role,
         "caller_hint": caller_hint,
@@ -835,6 +853,56 @@ def call_candidate_record(
             receiver_type_hints=receiver_type_hints,
         ),
     }
+
+
+def build_candidate_edge_table(
+    *,
+    case: dict[str, Any],
+    direct_call_candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    for index, item in enumerate(direct_call_candidates, start=1):
+        status = str(item.get("candidate_status") or "")
+        if status.startswith("filtered"):
+            continue
+        caller = str(item.get("caller_hint") or "")
+        callee = str(item.get("output_symbol_hint") or item.get("callee_canonical_hint") or item.get("callee_expression") or "")
+        rows.append(
+            {
+                "candidate_id": f"edge-{index:03d}",
+                "status": status or "secondary",
+                "return_policy": candidate_return_policy(status),
+                "caller_symbol_hint": caller,
+                "callee_symbol_hint": callee,
+                "callee_expression": item.get("callee_expression"),
+                "file": item.get("file"),
+                "line": item.get("line"),
+                "evidence": item.get("evidence"),
+                "boundary_role": item.get("boundary_role"),
+                "registered_callback_arguments": item.get("registered_callback_arguments") or [],
+                "normalization_note": item.get("normalization_note"),
+                "verification_note": item.get("candidate_reason"),
+            }
+        )
+    return {
+        "builder_version": "rag-edge-candidate-builder-v1.3",
+        "source": "retrieval/index-derived direct call evidence only; no golden or oracle_context fields used",
+        "case_id": case.get("id"),
+        "task_type": case.get("task_type"),
+        "target": case.get("target"),
+        "candidate_count": len(rows),
+        "primary_candidate_count": sum(1 for row in rows if row.get("status") == "primary"),
+        "secondary_candidate_count": sum(1 for row in rows if row.get("status") == "secondary"),
+        "rows": rows,
+    }
+
+
+def candidate_return_policy(status: str) -> str:
+    if status == "primary":
+        return "preferred if the evidence line is inside the returned caller body and scope/depth constraints match"
+    if status == "secondary":
+        return "return only after verifying receiver, canonical symbol, scope, and direct-call evidence"
+    return "do not return unless explicitly justified by source evidence"
 
 
 def extract_call_expressions(line: str) -> list[str]:
@@ -1003,6 +1071,34 @@ def classify_candidate(expr: str, canonical_hint: str | None, case: dict[str, An
     return "secondary", "unresolved receiver expression; verify class/module before output"
 
 
+def classify_caller_to_target_candidate(
+    expr: str,
+    canonical_hint: str | None,
+    case: dict[str, Any],
+    *,
+    receiver_type_hints: dict[str, str],
+) -> tuple[str, str]:
+    target = str(case.get("target") or "")
+    if canonical_hint != target:
+        return "secondary", "same method name but canonical target is not resolved; verify before output"
+    receiver = receiver_hint(expr)
+    if not receiver:
+        return "primary", "bare call expression matched the requested target tail"
+    signal_hint = resolve_signal_manager_hint(expr, case)
+    if signal_hint == target:
+        return "primary", "signal manager receiver normalized to the requested target symbol"
+    target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
+    root = expr.split(".")[0]
+    resolved_receiver = receiver_type_hints.get(root)
+    if resolved_receiver and target_parent and (
+        resolved_receiver == target_parent
+        or resolved_receiver.startswith(f"{target_parent}.")
+        or target_parent.startswith(f"{resolved_receiver}.")
+    ):
+        return "primary", "receiver type hint resolves to the requested target parent"
+    return "secondary", "same method tail but receiver type is not proven; verify receiver before returning"
+
+
 def is_logger_call(expr: str, canonical_hint: str | None) -> bool:
     root = expr.split(".")[0]
     tail = call_expr_tail(expr)
@@ -1110,12 +1206,18 @@ def render_synthesis_aid(aid: dict[str, Any]) -> str:
         parts.extend(["", "```python", str(import_context["line_numbered_imports"]), "```"])
 
     direct = aid.get("direct_call_evidence") or {}
+    candidate_table = aid.get("candidate_edge_table") or {}
     parts.extend(
         [
             "",
             "### Direct Call Evidence Candidates",
             f"```yaml\n{dump_yaml({key: value for key, value in direct.items() if key != 'candidates'}).strip()}\n```",
             render_direct_call_table(direct.get("candidates") or []),
+            "",
+            "### Candidate Edge Table",
+            "Use this table as the first pass for final edges. It is generated from retrieved source evidence, not from golden answers. Prefer primary rows, verify secondary rows, and do not invent edges outside the evidence.",
+            f"```yaml\n{dump_yaml({key: value for key, value in candidate_table.items() if key != 'rows'}).strip()}\n```",
+            render_candidate_edge_table(candidate_table.get("rows") or []),
             "",
             "### Boundary Notes",
             f"```yaml\n{dump_yaml(aid.get('boundary_notes') or []).strip()}\n```",
@@ -1152,10 +1254,38 @@ def render_direct_call_table(candidates: list[dict[str, Any]]) -> str:
     return "\n".join(rows)
 
 
+def render_candidate_edge_table(rows_data: list[dict[str, Any]]) -> str:
+    if not rows_data:
+        return "No candidate edges were extracted from the selected chunks."
+    rows = [
+        "| ID | Status | Caller Hint | Callee Hint | Return Policy | File:Line | Evidence |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for item in rows_data:
+        rows.append(
+            "| "
+            + " | ".join(
+                markdown_cell(value)
+                for value in [
+                    item.get("candidate_id"),
+                    item.get("status"),
+                    item.get("caller_symbol_hint"),
+                    item.get("callee_symbol_hint"),
+                    item.get("return_policy"),
+                    f"{item.get('file')}:{item.get('line')}",
+                    item.get("evidence"),
+                ]
+            )
+            + " |"
+        )
+    return "\n".join(rows)
+
+
 def summarize_synthesis_aid(aid: dict[str, Any] | None, estimated_tokens: int) -> dict[str, Any] | None:
     if aid is None:
         return None
     direct = aid.get("direct_call_evidence") or {}
+    candidate_table = aid.get("candidate_edge_table") or {}
     definition = aid.get("target_definition") or {}
     import_context = aid.get("target_module_import_context") or {}
     return {
@@ -1171,6 +1301,9 @@ def summarize_synthesis_aid(aid: dict[str, Any] | None, estimated_tokens: int) -
         "filtered_candidate_count": direct.get("filtered_candidate_count"),
         "rendered_candidate_count": direct.get("rendered_candidate_count"),
         "omitted_candidate_count": direct.get("omitted_candidate_count"),
+        "edge_candidate_count": candidate_table.get("candidate_count"),
+        "edge_primary_candidate_count": candidate_table.get("primary_candidate_count"),
+        "edge_secondary_candidate_count": candidate_table.get("secondary_candidate_count"),
         "golden_used": False,
         "oracle_context_used": False,
     }
