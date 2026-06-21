@@ -105,3 +105,9 @@
   - 验证命令：`python -m py_compile scripts\rag_common.py scripts\rag_pack_context.py scripts\run_rag_context.py`；`python scripts\rag_pack_context.py --retrieval runs\rag-retrieval\rag-v1-pilot-20-keyword-multiquery-safe-20260621 --case-id astrbot-agent-001 --case-id scrapy-feed-001 --case-id scrapy-signal-004 --out-dir runs\rag-context\rag-v1-synthesis-aid-smoke-20260621`；`python scripts\run_rag_context.py --provider dry-run --context-pack runs\rag-context\rag-v1-synthesis-aid-smoke-20260621 --case-id astrbot-agent-001 --case-id scrapy-feed-001 --case-id scrapy-signal-004 --out-dir runs\rag-context-runs\rag-v1-synthesis-aid-dry-smoke-20260621`。
   - Smoke 结果：3 个 case 均成功 pack / dry-run；estimated context tokens 分别约 14024、9040、8552，仍低于默认 24000；leakage grep 未发现 `required_edges:` / `excluded_edges:` / `runtime_only_edges:` / `oracle_context:` 字段；本轮没有调用 API、没有启动 embedding/GPU。
   - 结论：该改动不改变 retrieval 指标，属于 generation synthesis 输入优化。可进入 3-case RAG-only API smoke；是否进入新的 20-case pilot 需先确认小规模 DeepSeek 输出是否减少 canonical/local-module 误配、lifecycle excluded hits 和 fan-in 漏报。
+- 2026-06-21：完成 RAG synthesis aid DeepSeek 3-case API smoke，正式报告见 `reports/rag/batches/rag-v1-synthesis-aid-deepseek-smoke-3-20260621.md`。
+  - Context pack：`runs/rag-context/rag-v1-synthesis-aid-maincheck-20260621`；run path：`runs/rag-context-runs/rag-v1-synthesis-aid-deepseek-smoke-3-20260621`。
+  - 模型配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，`--max-retries 2`；3 个 API case response 均 attempt 1 成功。
+  - 结果摘要：相同 3 case 上，上一轮 RAG retry 为 P/R/E=0.266667/0.470588/1.000000；synthesis aid 后为 0.464286/0.764706/1.000000；constructor-normalized recall 从 0.529412 提升到 0.823529。
+  - 成本：54,605 tokens，observed cost 0.025195374 USD，wall-clock 30.635 秒。
+  - 结论：synthesis aid 对 recall 有明确帮助，但 precision 仍被 `astrbot-agent-001` helper/log/follow_up extra edges 拖低；暂不直接进入新的 20-case pilot，下一步应先做 candidate 控制和 canonical receiver normalization。
