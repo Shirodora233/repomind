@@ -1,0 +1,56 @@
+{
+  "dataset_freeze_id": "finetune-v1-full-synthetic-readiness-20260621",
+  "status": "frozen_for_gemma4_e2b_qlora_pilot",
+  "frozen_at": "2026-06-21",
+  "source": {
+    "builder_target": "full_synthetic",
+    "source_run_jsonl": "runs/finetune/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl",
+    "source_run_validation_summary": "runs/finetune/full-synthetic-readiness-20260621/validation-summary.json",
+    "source_type": "synthetic_micro"
+  },
+  "files": {
+    "jsonl": {
+      "path": "datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl",
+      "sha256": "d700c9a739899087e28191f2d5ebe5fa83981b5a925d2a103970f302b3a970d1",
+      "bytes": 2381880
+    },
+    "validation_summary": {
+      "path": "datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/validation-summary.json",
+      "sha256": "949a15c5e6a971c3bf6faed843c6bd29eea47c24ebe017ffe892b7f45e5eb147"
+    }
+  },
+  "validation": {
+    "command": "python scripts/validate_finetune_dataset.py --jsonl datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl --json-out datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/validation-summary.json",
+    "result": "passed",
+    "samples": 500,
+    "split_counts": {
+      "train": 400,
+      "dev": 100
+    },
+    "source_type_counts": {
+      "synthetic_micro": 500
+    },
+    "repo_split_isolation": "passed",
+    "required_sample_type_coverage": "21/21",
+    "positive_required_samples": 240,
+    "negative_samples": 160,
+    "boundary_only_non_negative_samples": 100,
+    "dynamic_boundary_samples": 100,
+    "evidence_complete_samples": 500,
+    "duplicate_sample_id_count": 0,
+    "duplicate_content_count": 0
+  },
+  "leakage_rules": {
+    "split_by_repo": true,
+    "blocked_train_dev_repos": [
+      "AstrBotDevs/AstrBot",
+      "scrapy/scrapy"
+    ],
+    "derived_from_current_test_repos": false
+  },
+  "usage_notes": [
+    "Use train split only for training; keep dev split for validation or held-out diagnostics.",
+    "This frozen export is synthetic readiness data. It is suitable for controlled QLoRA smoke/pilot training but is not a mixed real-project formal dataset.",
+    "Do not overwrite this JSONL in place. Create a new frozen dataset id if samples change."
+  ]
+}

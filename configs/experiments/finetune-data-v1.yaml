@@ -1,11 +1,14 @@
 version: finetune-data-v1
 stage: fine_tune_data_and_training
-status: smoke_plus_ready_full_500_source_planning_entry_ready
+status: smoke_plus_ready_full_synthetic_frozen_and_training_config_ready
 
 dataset:
   root: datasets/finetune-v1
   schema: datasets/finetune-v1/schemas/finetune-sample.schema.json
   smoke_jsonl: datasets/finetune-v1/smoke/synthetic-micro-smoke.jsonl
+  frozen_full_synthetic_jsonl: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl
+  frozen_full_synthetic_manifest: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json
+  frozen_full_synthetic_validation_summary: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/validation-summary.json
   source_plan: datasets/finetune-v1/source-plan.md
   full_synthetic_manifest_default: runs/finetune/full-synthetic-dry-manifest.json
   current_smoke_source_type: synthetic_micro
@@ -85,9 +88,11 @@ leakage_rules:
     - scrapy/scrapy
 
 source_plan:
-  status: planned_not_frozen
+  status: full_synthetic_readiness_frozen_mixed_source_not_frozen
   path: datasets/finetune-v1/source-plan.md
   formal_training_started: false
+  full_synthetic_readiness_frozen: true
+  mixed_source_formal_dataset_frozen: false
   full_dataset_frozen: false
   freeze_gate_train_dev_examples: 500
   planned_split_counts:

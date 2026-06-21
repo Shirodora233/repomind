@@ -15,7 +15,8 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATASET = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-readiness-20260621" / "full-synthetic-readiness.jsonl"
 DEFAULT_OUTPUT_ROOT = Path(os.environ.get("REPOMIND_FT_ROOT", r"E:\AI\repomind-ft")) / "outputs"
-RUNNER_VERSION = "finetune-smoke-runner-v1"
+DEFAULT_TARGET_MODULES = "q_proj.linear,k_proj.linear,v_proj.linear,o_proj.linear,gate_proj.linear,up_proj.linear,down_proj.linear"
+RUNNER_VERSION = "finetune-smoke-runner-v3"
 
 
 @dataclass
@@ -29,6 +30,7 @@ def main() -> int:
     parser.add_argument("--model", default="google/gemma-4-E2B-it", help="Hugging Face model id or local model directory.")
     parser.add_argument("--output-dir", default="", help="Adapter/checkpoint output directory. Defaults under E:/AI/repomind-ft/outputs.")
     parser.add_argument("--max-samples", type=int, default=32)
+    parser.add_argument("--split", choices=("train", "dev", "test", "all"), default="train")
     parser.add_argument("--max-seq-length", type=int, default=1024)
     parser.add_argument("--max-steps", type=int, default=5)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
@@ -37,9 +39,15 @@ def main() -> int:
     parser.add_argument("--lora-r", type=int, default=8)
     parser.add_argument("--lora-alpha", type=int, default=16)
     parser.add_argument("--lora-dropout", type=float, default=0.05)
-    parser.add_argument("--target-modules", default="q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj")
+    parser.add_argument("--target-modules", default=DEFAULT_TARGET_MODULES)
     parser.add_argument("--gradient-checkpointing", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--load-in-4bit", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--device-map",
+        choices=("auto", "single-gpu", "none"),
+        default="auto",
+        help="Model placement strategy. Use single-gpu to force all modules onto cuda:0 for 4-bit smoke tests.",
+    )
     parser.add_argument("--trust-remote-code", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--dry-run", action="store_true", help="Validate inputs and write config without loading the model.")
     args = parser.parse_args()
@@ -53,7 +61,7 @@ def main() -> int:
     dataset_path = Path(args.dataset)
     if not dataset_path.exists():
         raise FileNotFoundError(f"dataset not found: {dataset_path}")
-    examples = load_examples(dataset_path, args.max_samples)
+    examples = load_examples(dataset_path, args.max_samples, args.split)
     write_text(output_dir / "sample_preview.txt", "\n\n---\n\n".join(example.text for example in examples[:3]))
 
     env_snapshot = collect_environment_snapshot()
@@ -100,16 +108,18 @@ def resolve_output_dir(args: argparse.Namespace) -> Path:
     return DEFAULT_OUTPUT_ROOT / f"gemma4-e2b-qlora-smoke-{stamp}-{safe_model}"
 
 
-def load_examples(path: Path, max_samples: int) -> list[TrainingExample]:
+def load_examples(path: Path, max_samples: int, split: str) -> list[TrainingExample]:
     examples: list[TrainingExample] = []
     with path.open("r", encoding="utf-8") as handle:
         for line in handle:
             if len(examples) >= max_samples:
                 break
             sample = json.loads(line)
+            if split != "all" and sample.get("split") != split:
+                continue
             examples.append(TrainingExample(text=format_sample(sample)))
     if not examples:
-        raise ValueError(f"{path}: no examples loaded")
+        raise ValueError(f"{path}: no examples loaded for split={split}")
     return examples
 
 
@@ -160,7 +170,7 @@ def run_training(
 
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
-        device_map="auto" if torch.cuda.is_available() else None,
+        device_map=resolve_device_map(args, torch.cuda.is_available()),
         quantization_config=quantization_config,
         torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
         trust_remote_code=args.trust_remote_code,
@@ -270,6 +280,7 @@ def build_run_config(args: argparse.Namespace, output_dir: Path, started_at: str
         "model": args.model,
         "output_dir": str(output_dir),
         "max_samples": args.max_samples,
+        "split": args.split,
         "max_seq_length": args.max_seq_length,
         "max_steps": args.max_steps,
         "learning_rate": args.learning_rate,
@@ -283,9 +294,18 @@ def build_run_config(args: argparse.Namespace, output_dir: Path, started_at: str
         },
         "gradient_checkpointing": args.gradient_checkpointing,
         "load_in_4bit": args.load_in_4bit,
+        "device_map": args.device_map,
         "trust_remote_code": args.trust_remote_code,
         "dry_run": args.dry_run,
     }
+
+
+def resolve_device_map(args: argparse.Namespace, cuda_available: bool) -> str | dict[str, int] | None:
+    if not cuda_available or args.device_map == "none":
+        return None
+    if args.device_map == "single-gpu":
+        return {"": 0}
+    return "auto"
 
 
 def collect_environment_snapshot() -> dict[str, Any]:

@@ -207,11 +207,35 @@
 ## Hugging Face Gemma4 E2B 大权重下载未完成会阻塞 fine-tune smoke
 
 - 首次发现阶段：Fine-tune 数据与训练阶段
-- 状态：active
+- 状态：resolved
 - 最后复核：2026-06-21
 - 现象：运行 `scripts/run_finetune_smoke.py` 加载 `google/gemma-4-E2B-it` 时，runner 已写出 `run_config.json`、`environment_snapshot.json` 和 `sample_preview.txt`，stdout 停在 Transformers 初始化 / HF unauthenticated warning 附近，未产生 `adapter/` 或 completed `training_summary.json`。Hugging Face cache 下出现多个同一 blob 的 `.incomplete` 文件，其中一个约 7.19GB、一个约 1.20GB、一个 0B。
 - 影响：训练其实尚未开始；如果只看外部 Python 进程存在或 GPU 环境可用，容易误记为 fine-tune smoke 正在训练或已成功。
 - 原因：`google/gemma-4-E2B-it` 的 `model.safetensors` 约 10.25GB，当前网络 / HF Hub 下载路径会长时间停在大文件下载或续传阶段。频繁在 default HF / Xet 与 `HF_HUB_DISABLE_XET=1` 间切换会产生不同 suffix 的 `.incomplete` 文件，可能浪费已有进度。
-- 解决方式：尚未完全解决。当前处理是停止无进展训练进程，保留 partial cache，不删除 `.incomplete` 文件；正式记录为下载阻塞，不把本轮计为训练成功。下一次应先做独立预下载步骤，等 `model.safetensors` 完整落盘后再启动 Trainer。
-- 后续注意：如用户可提供 `HF_TOKEN`，应优先设置以避免 unauthenticated rate limit。预下载时选择一种策略并持续运行，不要频繁切换 `HF_HUB_DISABLE_XET`。报告中必须检查 `adapter/`、completed `training_summary.json` 和训练 metrics；三者缺失时不能进入 fine-tune only 评测或消融。
+- 解决方式：已改为独立预下载，不在 Trainer 启动阶段隐式下载。使用已激活的 E 盘微调环境运行 `hf download google/gemma-4-E2B-it --include model.safetensors --cache-dir E:\AI\repomind-ft\hf_home\hub`，保持 default HF / Xet 策略，不设置 `HF_HUB_DISABLE_XET`。下载完成后，snapshot `E:\AI\repomind-ft\hf_home\hub\models--google--gemma-4-E2B-it\snapshots\70af34e20bd4b7a91f0de6b22675850c43922a03` 中出现 `model.safetensors` 链接，目标 blob `2db5482b20d746879bb3ef79b5203e9075a2e2b98f54ec7c2f281c1477ddc550` 大小为 `10246621918` bytes。离线校验 `AutoConfig.from_pretrained(..., local_files_only=True)`、`AutoTokenizer.from_pretrained(..., local_files_only=True)` 和 `safetensors.safe_open()` 通过；随后删除 3 个过期 `.incomplete` 文件，释放 `11668780911` bytes。
+- 后续注意：如用户可提供 `HF_TOKEN`，仍建议设置以提高限额。预下载时选择一种策略并持续运行，不要频繁切换 default HF / Xet 与 `HF_HUB_DISABLE_XET`。正式训练前仍必须检查 `adapter/`、completed `training_summary.json` 和训练 metrics；仅权重下载完成不等于 fine-tune 成功。
 - 相关文件：`scripts/run_finetune_smoke.py`、`reports/finetune/batches/finetune-qlora-smoke-runner-and-download-blocker-20260621.md`、`records/11-finetune-data-and-training.md`
+
+## Gemma4 E2B QLoRA smoke 需要 single-gpu device map 与内层 linear target
+
+- 首次发现阶段：Fine-tune 数据与训练阶段
+- 状态：resolved
+- 最后复核：2026-06-21
+- 现象：权重完成预下载后，运行 `scripts/run_finetune_smoke.py` 的真实 QLoRA smoke 仍会先后失败两次。第一次使用默认 `device_map=auto` 时，Transformers / Accelerate 判断显存不足并把部分 4-bit 模块 dispatch 到 CPU / disk，bitsandbytes 抛出 `Some modules are dispatched on the CPU or the disk`。第二次强制单卡加载后，PEFT 注入 LoRA 时遇到 `Target module Gemma4ClippableLinear(...) is not supported`。
+- 影响：如果只完成权重下载就直接跑默认 smoke，训练仍无法进入稳定 Trainer step；错误容易被误判为显存完全不够或 PEFT / bitsandbytes 不兼容 Gemma4。
+- 原因：RTX 4060 Laptop 8GB 在 Windows 桌面环境下可用显存很紧，`device_map=auto` 会保守地做 CPU / disk 混放，而 4-bit bitsandbytes 不接受这种混放。Gemma4 的 projection / MLP 层外面包了 `Gemma4ClippableLinear`，PEFT LoRA 不能直接替换外层 wrapper，但可以命中内部的 `Linear4bit` 子层。
+- 解决方式：`scripts/run_finetune_smoke.py` 已更新为 `finetune-smoke-runner-v2`，新增 `--device-map auto|single-gpu|none`，并把默认 LoRA target modules 改为 `q_proj.linear,k_proj.linear,v_proj.linear,o_proj.linear,gate_proj.linear,up_proj.linear,down_proj.linear`。在当前机器上可用命令为：`python scripts\run_finetune_smoke.py --dataset runs\finetune\full-synthetic-readiness-20260621\full-synthetic-readiness.jsonl --model google/gemma-4-E2B-it --output-dir E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-smoke-20260621-linear-targets-1step --max-samples 4 --max-seq-length 128 --max-steps 1 --gradient-accumulation-steps 1 --device-map single-gpu`。该 run 已完成，`training_summary.json` 显示 `status=completed`，adapter 已保存。
+- 后续注意：8GB 显存运行 Gemma4 E2B QLoRA 仍然贴边，正式训练前应确认没有本地推理、embedding、rerank 或其他 GPU 任务并发运行。smoke 期间观测到显存约 `7865/8188 MiB`、GPU 100%；如后续扩大 `max_seq_length`、batch size、LoRA rank 或 gradient accumulation，需逐步放大并记录 OOM 边界。不要把 `device_map=auto` 失败直接解释成模型完全不能在本机训练。
+- 相关文件：`scripts/run_finetune_smoke.py`、`records/11-finetune-data-and-training.md`
+
+## Fine-tune runner 必须显式过滤 train/dev split
+
+- 首次发现阶段：Fine-tune 数据与训练阶段
+- 状态：resolved
+- 最后复核：2026-06-21
+- 现象：冻结 `full-synthetic-readiness-20260621` 数据集时发现 JSONL 按样本顺序交错包含 `train` 与 `dev`，生成规则为每 5 条约 1 条 dev。早期 `scripts/run_finetune_smoke.py` 只按文件顺序读取前 `max_samples` 条，没有 split 过滤；因此 10-step pilot 的前 32 条中会包含少量 dev 样本。
+- 影响：smoke / pilot 可以接受这种诊断性混合，但正式训练如果继续按文件顺序取样，会污染 dev split，使后续 dev 诊断和消融指标不可解释。
+- 原因：最初 runner 只用于环境 smoke，尚未承担 frozen train/dev 数据集的正式训练入口，所以没有 `--split` 参数。
+- 解决方式：`scripts/run_finetune_smoke.py` 已升级为 `finetune-smoke-runner-v3`，新增 `--split train|dev|test|all`，默认 `train`。`run_config.json` 会记录 split；如需复现旧 smoke 行为，可显式传 `--split all`。
+- 后续注意：冻结训练配置必须写明 `--split train`。dev split 只用于诊断或后续评估，不应进入训练样本。
+- 相关文件：`scripts/run_finetune_smoke.py`、`configs/experiments/finetune-gemma4-e2b-qlora-frozen-synth-v1.yaml`、`datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json`

@@ -1,0 +1,5435 @@
+{
+  "direction_counts": {
+    "downstream": 280,
+    "upstream": 220
+  },
+  "duplicate_summary": {
+    "duplicate_content_count": 0,
+    "duplicate_sample_id_count": 0
+  },
+  "dynamic_boundary_summary": {
+    "boundary_type_counts": {
+      "callback_registration": 60,
+      "decorator_wrapper": 20,
+      "dynamic_import": 20,
+      "factory_return": 20,
+      "none": 400,
+      "plugin_loading": 20,
+      "polymorphism": 20,
+      "registry_lookup": 40,
+      "runtime_config": 40
+    },
+    "dynamic_boundary_samples": 100,
+    "non_dynamic_samples": 400
+  },
+  "edge_bucket_counts": {
+    "excluded_edges": 140,
+    "optional_edges": 60,
+    "required_edges": 340,
+    "runtime_only_edges": 60
+  },
+  "error_count": 0,
+  "errors": [],
+  "evidence_completeness": {
+    "edge_labels_missing_evidence": 0,
+    "edge_labels_requiring_evidence": 600,
+    "edge_labels_with_evidence": 600,
+    "evidence_complete_samples": 500,
+    "evidence_incomplete_samples": 0,
+    "missing_evidence_refs": [],
+    "samples_missing_evidence": 0,
+    "samples_with_evidence": 500
+  },
+  "file_count": 1,
+  "missing_required_sample_types": [],
+  "positive_negative_summary": {
+    "boundary_only_non_negative_samples": 100,
+    "negative_samples": 160,
+    "negative_type_counts": {
+      "external_boundary": 20,
+      "import_only": 20,
+      "no_callees": 20,
+      "no_callers": 20,
+      "same_name_distractor": 40,
+      "string_or_comment_only": 20,
+      "tests_excluded": 20
+    },
+    "positive_required_samples": 240
+  },
+  "repo_split_group_counts": {
+    "dev": 100,
+    "train": 100
+  },
+  "repo_split_groups": {
+    "repomind-synthetic/dev-micro-00": {
+      "repos": [
+        "repomind-synthetic/dev-micro-00"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-01": {
+      "repos": [
+        "repomind-synthetic/dev-micro-01"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-02": {
+      "repos": [
+        "repomind-synthetic/dev-micro-02"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-03": {
+      "repos": [
+        "repomind-synthetic/dev-micro-03"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-04": {
+      "repos": [
+        "repomind-synthetic/dev-micro-04"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-05": {
+      "repos": [
+        "repomind-synthetic/dev-micro-05"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-06": {
+      "repos": [
+        "repomind-synthetic/dev-micro-06"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-07": {
+      "repos": [
+        "repomind-synthetic/dev-micro-07"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-08": {
+      "repos": [
+        "repomind-synthetic/dev-micro-08"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-09": {
+      "repos": [
+        "repomind-synthetic/dev-micro-09"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-10": {
+      "repos": [
+        "repomind-synthetic/dev-micro-10"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-11": {
+      "repos": [
+        "repomind-synthetic/dev-micro-11"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-12": {
+      "repos": [
+        "repomind-synthetic/dev-micro-12"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-13": {
+      "repos": [
+        "repomind-synthetic/dev-micro-13"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-14": {
+      "repos": [
+        "repomind-synthetic/dev-micro-14"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-15": {
+      "repos": [
+        "repomind-synthetic/dev-micro-15"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-16": {
+      "repos": [
+        "repomind-synthetic/dev-micro-16"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-17": {
+      "repos": [
+        "repomind-synthetic/dev-micro-17"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-18": {
+      "repos": [
+        "repomind-synthetic/dev-micro-18"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-19": {
+      "repos": [
+        "repomind-synthetic/dev-micro-19"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-20": {
+      "repos": [
+        "repomind-synthetic/dev-micro-20"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-21": {
+      "repos": [
+        "repomind-synthetic/dev-micro-21"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-22": {
+      "repos": [
+        "repomind-synthetic/dev-micro-22"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-23": {
+      "repos": [
+        "repomind-synthetic/dev-micro-23"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-24": {
+      "repos": [
+        "repomind-synthetic/dev-micro-24"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-25": {
+      "repos": [
+        "repomind-synthetic/dev-micro-25"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-26": {
+      "repos": [
+        "repomind-synthetic/dev-micro-26"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-27": {
+      "repos": [
+        "repomind-synthetic/dev-micro-27"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-28": {
+      "repos": [
+        "repomind-synthetic/dev-micro-28"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-29": {
+      "repos": [
+        "repomind-synthetic/dev-micro-29"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-30": {
+      "repos": [
+        "repomind-synthetic/dev-micro-30"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-31": {
+      "repos": [
+        "repomind-synthetic/dev-micro-31"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-32": {
+      "repos": [
+        "repomind-synthetic/dev-micro-32"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-33": {
+      "repos": [
+        "repomind-synthetic/dev-micro-33"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-34": {
+      "repos": [
+        "repomind-synthetic/dev-micro-34"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-35": {
+      "repos": [
+        "repomind-synthetic/dev-micro-35"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-36": {
+      "repos": [
+        "repomind-synthetic/dev-micro-36"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-37": {
+      "repos": [
+        "repomind-synthetic/dev-micro-37"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-38": {
+      "repos": [
+        "repomind-synthetic/dev-micro-38"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-39": {
+      "repos": [
+        "repomind-synthetic/dev-micro-39"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-40": {
+      "repos": [
+        "repomind-synthetic/dev-micro-40"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-41": {
+      "repos": [
+        "repomind-synthetic/dev-micro-41"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-42": {
+      "repos": [
+        "repomind-synthetic/dev-micro-42"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-43": {
+      "repos": [
+        "repomind-synthetic/dev-micro-43"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-44": {
+      "repos": [
+        "repomind-synthetic/dev-micro-44"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-45": {
+      "repos": [
+        "repomind-synthetic/dev-micro-45"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-46": {
+      "repos": [
+        "repomind-synthetic/dev-micro-46"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-47": {
+      "repos": [
+        "repomind-synthetic/dev-micro-47"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-48": {
+      "repos": [
+        "repomind-synthetic/dev-micro-48"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-49": {
+      "repos": [
+        "repomind-synthetic/dev-micro-49"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-50": {
+      "repos": [
+        "repomind-synthetic/dev-micro-50"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-51": {
+      "repos": [
+        "repomind-synthetic/dev-micro-51"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-52": {
+      "repos": [
+        "repomind-synthetic/dev-micro-52"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-53": {
+      "repos": [
+        "repomind-synthetic/dev-micro-53"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-54": {
+      "repos": [
+        "repomind-synthetic/dev-micro-54"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-55": {
+      "repos": [
+        "repomind-synthetic/dev-micro-55"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-56": {
+      "repos": [
+        "repomind-synthetic/dev-micro-56"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-57": {
+      "repos": [
+        "repomind-synthetic/dev-micro-57"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-58": {
+      "repos": [
+        "repomind-synthetic/dev-micro-58"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-59": {
+      "repos": [
+        "repomind-synthetic/dev-micro-59"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-60": {
+      "repos": [
+        "repomind-synthetic/dev-micro-60"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-61": {
+      "repos": [
+        "repomind-synthetic/dev-micro-61"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-62": {
+      "repos": [
+        "repomind-synthetic/dev-micro-62"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-63": {
+      "repos": [
+        "repomind-synthetic/dev-micro-63"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-64": {
+      "repos": [
+        "repomind-synthetic/dev-micro-64"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-65": {
+      "repos": [
+        "repomind-synthetic/dev-micro-65"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-66": {
+      "repos": [
+        "repomind-synthetic/dev-micro-66"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-67": {
+      "repos": [
+        "repomind-synthetic/dev-micro-67"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-68": {
+      "repos": [
+        "repomind-synthetic/dev-micro-68"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-69": {
+      "repos": [
+        "repomind-synthetic/dev-micro-69"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-70": {
+      "repos": [
+        "repomind-synthetic/dev-micro-70"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-71": {
+      "repos": [
+        "repomind-synthetic/dev-micro-71"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-72": {
+      "repos": [
+        "repomind-synthetic/dev-micro-72"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-73": {
+      "repos": [
+        "repomind-synthetic/dev-micro-73"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-74": {
+      "repos": [
+        "repomind-synthetic/dev-micro-74"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-75": {
+      "repos": [
+        "repomind-synthetic/dev-micro-75"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-76": {
+      "repos": [
+        "repomind-synthetic/dev-micro-76"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-77": {
+      "repos": [
+        "repomind-synthetic/dev-micro-77"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-78": {
+      "repos": [
+        "repomind-synthetic/dev-micro-78"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-79": {
+      "repos": [
+        "repomind-synthetic/dev-micro-79"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-80": {
+      "repos": [
+        "repomind-synthetic/dev-micro-80"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-81": {
+      "repos": [
+        "repomind-synthetic/dev-micro-81"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-82": {
+      "repos": [
+        "repomind-synthetic/dev-micro-82"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-83": {
+      "repos": [
+        "repomind-synthetic/dev-micro-83"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-84": {
+      "repos": [
+        "repomind-synthetic/dev-micro-84"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-85": {
+      "repos": [
+        "repomind-synthetic/dev-micro-85"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-86": {
+      "repos": [
+        "repomind-synthetic/dev-micro-86"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-87": {
+      "repos": [
+        "repomind-synthetic/dev-micro-87"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-88": {
+      "repos": [
+        "repomind-synthetic/dev-micro-88"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-89": {
+      "repos": [
+        "repomind-synthetic/dev-micro-89"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-90": {
+      "repos": [
+        "repomind-synthetic/dev-micro-90"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-91": {
+      "repos": [
+        "repomind-synthetic/dev-micro-91"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-92": {
+      "repos": [
+        "repomind-synthetic/dev-micro-92"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-93": {
+      "repos": [
+        "repomind-synthetic/dev-micro-93"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-94": {
+      "repos": [
+        "repomind-synthetic/dev-micro-94"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-95": {
+      "repos": [
+        "repomind-synthetic/dev-micro-95"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-96": {
+      "repos": [
+        "repomind-synthetic/dev-micro-96"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-97": {
+      "repos": [
+        "repomind-synthetic/dev-micro-97"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-98": {
+      "repos": [
+        "repomind-synthetic/dev-micro-98"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/dev-micro-99": {
+      "repos": [
+        "repomind-synthetic/dev-micro-99"
+      ],
+      "sample_count": 1,
+      "splits": [
+        "dev"
+      ]
+    },
+    "repomind-synthetic/train-micro-00": {
+      "repos": [
+        "repomind-synthetic/train-micro-00"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-01": {
+      "repos": [
+        "repomind-synthetic/train-micro-01"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-02": {
+      "repos": [
+        "repomind-synthetic/train-micro-02"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-03": {
+      "repos": [
+        "repomind-synthetic/train-micro-03"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-04": {
+      "repos": [
+        "repomind-synthetic/train-micro-04"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-05": {
+      "repos": [
+        "repomind-synthetic/train-micro-05"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-06": {
+      "repos": [
+        "repomind-synthetic/train-micro-06"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-07": {
+      "repos": [
+        "repomind-synthetic/train-micro-07"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-08": {
+      "repos": [
+        "repomind-synthetic/train-micro-08"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-09": {
+      "repos": [
+        "repomind-synthetic/train-micro-09"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-10": {
+      "repos": [
+        "repomind-synthetic/train-micro-10"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-11": {
+      "repos": [
+        "repomind-synthetic/train-micro-11"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-12": {
+      "repos": [
+        "repomind-synthetic/train-micro-12"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-13": {
+      "repos": [
+        "repomind-synthetic/train-micro-13"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-14": {
+      "repos": [
+        "repomind-synthetic/train-micro-14"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-15": {
+      "repos": [
+        "repomind-synthetic/train-micro-15"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-16": {
+      "repos": [
+        "repomind-synthetic/train-micro-16"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-17": {
+      "repos": [
+        "repomind-synthetic/train-micro-17"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-18": {
+      "repos": [
+        "repomind-synthetic/train-micro-18"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-19": {
+      "repos": [
+        "repomind-synthetic/train-micro-19"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-20": {
+      "repos": [
+        "repomind-synthetic/train-micro-20"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-21": {
+      "repos": [
+        "repomind-synthetic/train-micro-21"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-22": {
+      "repos": [
+        "repomind-synthetic/train-micro-22"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-23": {
+      "repos": [
+        "repomind-synthetic/train-micro-23"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-24": {
+      "repos": [
+        "repomind-synthetic/train-micro-24"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-25": {
+      "repos": [
+        "repomind-synthetic/train-micro-25"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-26": {
+      "repos": [
+        "repomind-synthetic/train-micro-26"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-27": {
+      "repos": [
+        "repomind-synthetic/train-micro-27"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-28": {
+      "repos": [
+        "repomind-synthetic/train-micro-28"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-29": {
+      "repos": [
+        "repomind-synthetic/train-micro-29"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-30": {
+      "repos": [
+        "repomind-synthetic/train-micro-30"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-31": {
+      "repos": [
+        "repomind-synthetic/train-micro-31"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-32": {
+      "repos": [
+        "repomind-synthetic/train-micro-32"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-33": {
+      "repos": [
+        "repomind-synthetic/train-micro-33"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-34": {
+      "repos": [
+        "repomind-synthetic/train-micro-34"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-35": {
+      "repos": [
+        "repomind-synthetic/train-micro-35"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-36": {
+      "repos": [
+        "repomind-synthetic/train-micro-36"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-37": {
+      "repos": [
+        "repomind-synthetic/train-micro-37"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-38": {
+      "repos": [
+        "repomind-synthetic/train-micro-38"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-39": {
+      "repos": [
+        "repomind-synthetic/train-micro-39"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-40": {
+      "repos": [
+        "repomind-synthetic/train-micro-40"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-41": {
+      "repos": [
+        "repomind-synthetic/train-micro-41"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-42": {
+      "repos": [
+        "repomind-synthetic/train-micro-42"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-43": {
+      "repos": [
+        "repomind-synthetic/train-micro-43"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-44": {
+      "repos": [
+        "repomind-synthetic/train-micro-44"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-45": {
+      "repos": [
+        "repomind-synthetic/train-micro-45"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-46": {
+      "repos": [
+        "repomind-synthetic/train-micro-46"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-47": {
+      "repos": [
+        "repomind-synthetic/train-micro-47"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-48": {
+      "repos": [
+        "repomind-synthetic/train-micro-48"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-49": {
+      "repos": [
+        "repomind-synthetic/train-micro-49"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-50": {
+      "repos": [
+        "repomind-synthetic/train-micro-50"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-51": {
+      "repos": [
+        "repomind-synthetic/train-micro-51"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-52": {
+      "repos": [
+        "repomind-synthetic/train-micro-52"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-53": {
+      "repos": [
+        "repomind-synthetic/train-micro-53"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-54": {
+      "repos": [
+        "repomind-synthetic/train-micro-54"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-55": {
+      "repos": [
+        "repomind-synthetic/train-micro-55"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-56": {
+      "repos": [
+        "repomind-synthetic/train-micro-56"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-57": {
+      "repos": [
+        "repomind-synthetic/train-micro-57"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-58": {
+      "repos": [
+        "repomind-synthetic/train-micro-58"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-59": {
+      "repos": [
+        "repomind-synthetic/train-micro-59"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-60": {
+      "repos": [
+        "repomind-synthetic/train-micro-60"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-61": {
+      "repos": [
+        "repomind-synthetic/train-micro-61"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-62": {
+      "repos": [
+        "repomind-synthetic/train-micro-62"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-63": {
+      "repos": [
+        "repomind-synthetic/train-micro-63"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-64": {
+      "repos": [
+        "repomind-synthetic/train-micro-64"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-65": {
+      "repos": [
+        "repomind-synthetic/train-micro-65"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-66": {
+      "repos": [
+        "repomind-synthetic/train-micro-66"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-67": {
+      "repos": [
+        "repomind-synthetic/train-micro-67"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-68": {
+      "repos": [
+        "repomind-synthetic/train-micro-68"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-69": {
+      "repos": [
+        "repomind-synthetic/train-micro-69"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-70": {
+      "repos": [
+        "repomind-synthetic/train-micro-70"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-71": {
+      "repos": [
+        "repomind-synthetic/train-micro-71"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-72": {
+      "repos": [
+        "repomind-synthetic/train-micro-72"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-73": {
+      "repos": [
+        "repomind-synthetic/train-micro-73"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-74": {
+      "repos": [
+        "repomind-synthetic/train-micro-74"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-75": {
+      "repos": [
+        "repomind-synthetic/train-micro-75"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-76": {
+      "repos": [
+        "repomind-synthetic/train-micro-76"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-77": {
+      "repos": [
+        "repomind-synthetic/train-micro-77"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-78": {
+      "repos": [
+        "repomind-synthetic/train-micro-78"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-79": {
+      "repos": [
+        "repomind-synthetic/train-micro-79"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-80": {
+      "repos": [
+        "repomind-synthetic/train-micro-80"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-81": {
+      "repos": [
+        "repomind-synthetic/train-micro-81"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-82": {
+      "repos": [
+        "repomind-synthetic/train-micro-82"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-83": {
+      "repos": [
+        "repomind-synthetic/train-micro-83"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-84": {
+      "repos": [
+        "repomind-synthetic/train-micro-84"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-85": {
+      "repos": [
+        "repomind-synthetic/train-micro-85"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-86": {
+      "repos": [
+        "repomind-synthetic/train-micro-86"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-87": {
+      "repos": [
+        "repomind-synthetic/train-micro-87"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-88": {
+      "repos": [
+        "repomind-synthetic/train-micro-88"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-89": {
+      "repos": [
+        "repomind-synthetic/train-micro-89"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-90": {
+      "repos": [
+        "repomind-synthetic/train-micro-90"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-91": {
+      "repos": [
+        "repomind-synthetic/train-micro-91"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-92": {
+      "repos": [
+        "repomind-synthetic/train-micro-92"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-93": {
+      "repos": [
+        "repomind-synthetic/train-micro-93"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-94": {
+      "repos": [
+        "repomind-synthetic/train-micro-94"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-95": {
+      "repos": [
+        "repomind-synthetic/train-micro-95"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-96": {
+      "repos": [
+        "repomind-synthetic/train-micro-96"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-97": {
+      "repos": [
+        "repomind-synthetic/train-micro-97"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-98": {
+      "repos": [
+        "repomind-synthetic/train-micro-98"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    },
+    "repomind-synthetic/train-micro-99": {
+      "repos": [
+        "repomind-synthetic/train-micro-99"
+      ],
+      "sample_count": 4,
+      "splits": [
+        "train"
+      ]
+    }
+  },
+  "repo_split_isolation": {
+    "passed": true,
+    "violations": []
+  },
+  "reports": [
+    {
+      "errors": [],
+      "id": "ft-full-synth-001",
+      "line": 1,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-002",
+      "line": 2,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-003",
+      "line": 3,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-004",
+      "line": 4,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-005",
+      "line": 5,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-006",
+      "line": 6,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-007",
+      "line": 7,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-008",
+      "line": 8,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-009",
+      "line": 9,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-010",
+      "line": 10,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-011",
+      "line": 11,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-012",
+      "line": 12,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-013",
+      "line": 13,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-014",
+      "line": 14,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-015",
+      "line": 15,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-016",
+      "line": 16,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-017",
+      "line": 17,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-018",
+      "line": 18,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-019",
+      "line": 19,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-020",
+      "line": 20,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-021",
+      "line": 21,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-022",
+      "line": 22,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-023",
+      "line": 23,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-024",
+      "line": 24,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-025",
+      "line": 25,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-026",
+      "line": 26,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-027",
+      "line": 27,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-028",
+      "line": 28,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-029",
+      "line": 29,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-030",
+      "line": 30,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-031",
+      "line": 31,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-032",
+      "line": 32,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-033",
+      "line": 33,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-034",
+      "line": 34,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-035",
+      "line": 35,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-036",
+      "line": 36,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-037",
+      "line": 37,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-038",
+      "line": 38,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-039",
+      "line": 39,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-040",
+      "line": 40,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-041",
+      "line": 41,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-042",
+      "line": 42,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-043",
+      "line": 43,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-044",
+      "line": 44,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-045",
+      "line": 45,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-046",
+      "line": 46,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-047",
+      "line": 47,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-048",
+      "line": 48,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-049",
+      "line": 49,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-050",
+      "line": 50,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-051",
+      "line": 51,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-052",
+      "line": 52,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-053",
+      "line": 53,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-054",
+      "line": 54,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-055",
+      "line": 55,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-056",
+      "line": 56,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-057",
+      "line": 57,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-058",
+      "line": 58,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-059",
+      "line": 59,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-060",
+      "line": 60,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-061",
+      "line": 61,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-062",
+      "line": 62,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-063",
+      "line": 63,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-064",
+      "line": 64,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-065",
+      "line": 65,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-066",
+      "line": 66,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-067",
+      "line": 67,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-068",
+      "line": 68,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-069",
+      "line": 69,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-070",
+      "line": 70,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-071",
+      "line": 71,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-072",
+      "line": 72,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-073",
+      "line": 73,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-074",
+      "line": 74,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-075",
+      "line": 75,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-076",
+      "line": 76,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-077",
+      "line": 77,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-078",
+      "line": 78,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-079",
+      "line": 79,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-080",
+      "line": 80,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-081",
+      "line": 81,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-082",
+      "line": 82,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-083",
+      "line": 83,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-084",
+      "line": 84,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-085",
+      "line": 85,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-086",
+      "line": 86,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-087",
+      "line": 87,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-088",
+      "line": 88,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-089",
+      "line": 89,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-090",
+      "line": 90,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-091",
+      "line": 91,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-092",
+      "line": 92,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-093",
+      "line": 93,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-094",
+      "line": 94,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-095",
+      "line": 95,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-096",
+      "line": 96,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-097",
+      "line": 97,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-098",
+      "line": 98,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-099",
+      "line": 99,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-100",
+      "line": 100,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-101",
+      "line": 101,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-102",
+      "line": 102,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-103",
+      "line": 103,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-104",
+      "line": 104,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-105",
+      "line": 105,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-106",
+      "line": 106,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-107",
+      "line": 107,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-108",
+      "line": 108,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-109",
+      "line": 109,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-110",
+      "line": 110,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-111",
+      "line": 111,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-112",
+      "line": 112,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-113",
+      "line": 113,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-114",
+      "line": 114,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-115",
+      "line": 115,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-116",
+      "line": 116,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-117",
+      "line": 117,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-118",
+      "line": 118,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-119",
+      "line": 119,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-120",
+      "line": 120,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-121",
+      "line": 121,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-122",
+      "line": 122,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-123",
+      "line": 123,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-124",
+      "line": 124,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-125",
+      "line": 125,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-126",
+      "line": 126,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-127",
+      "line": 127,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-128",
+      "line": 128,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-129",
+      "line": 129,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-130",
+      "line": 130,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-131",
+      "line": 131,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-132",
+      "line": 132,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-133",
+      "line": 133,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-134",
+      "line": 134,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-135",
+      "line": 135,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-136",
+      "line": 136,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-137",
+      "line": 137,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-138",
+      "line": 138,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-139",
+      "line": 139,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-140",
+      "line": 140,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-141",
+      "line": 141,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-142",
+      "line": 142,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-143",
+      "line": 143,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-144",
+      "line": 144,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-145",
+      "line": 145,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-146",
+      "line": 146,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-147",
+      "line": 147,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-148",
+      "line": 148,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-149",
+      "line": 149,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-150",
+      "line": 150,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-151",
+      "line": 151,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-152",
+      "line": 152,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-153",
+      "line": 153,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-154",
+      "line": 154,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-155",
+      "line": 155,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-156",
+      "line": 156,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-157",
+      "line": 157,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-158",
+      "line": 158,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-159",
+      "line": 159,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-160",
+      "line": 160,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-161",
+      "line": 161,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-162",
+      "line": 162,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-163",
+      "line": 163,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-164",
+      "line": 164,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-165",
+      "line": 165,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-166",
+      "line": 166,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-167",
+      "line": 167,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-168",
+      "line": 168,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-169",
+      "line": 169,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-170",
+      "line": 170,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-171",
+      "line": 171,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-172",
+      "line": 172,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-173",
+      "line": 173,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-174",
+      "line": 174,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-175",
+      "line": 175,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-176",
+      "line": 176,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-177",
+      "line": 177,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-178",
+      "line": 178,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-179",
+      "line": 179,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-180",
+      "line": 180,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-181",
+      "line": 181,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-182",
+      "line": 182,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-183",
+      "line": 183,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-184",
+      "line": 184,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-185",
+      "line": 185,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-186",
+      "line": 186,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-187",
+      "line": 187,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-188",
+      "line": 188,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-189",
+      "line": 189,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-190",
+      "line": 190,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-191",
+      "line": 191,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-192",
+      "line": 192,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-193",
+      "line": 193,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-194",
+      "line": 194,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-195",
+      "line": 195,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-196",
+      "line": 196,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-197",
+      "line": 197,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-198",
+      "line": 198,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-199",
+      "line": 199,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-200",
+      "line": 200,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-201",
+      "line": 201,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-202",
+      "line": 202,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-203",
+      "line": 203,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-204",
+      "line": 204,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-205",
+      "line": 205,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-206",
+      "line": 206,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-207",
+      "line": 207,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-208",
+      "line": 208,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-209",
+      "line": 209,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-210",
+      "line": 210,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-211",
+      "line": 211,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-212",
+      "line": 212,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-213",
+      "line": 213,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-214",
+      "line": 214,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-215",
+      "line": 215,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-216",
+      "line": 216,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-217",
+      "line": 217,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-218",
+      "line": 218,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-219",
+      "line": 219,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-220",
+      "line": 220,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-221",
+      "line": 221,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-222",
+      "line": 222,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-223",
+      "line": 223,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-224",
+      "line": 224,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-225",
+      "line": 225,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-226",
+      "line": 226,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-227",
+      "line": 227,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-228",
+      "line": 228,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-229",
+      "line": 229,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-230",
+      "line": 230,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-231",
+      "line": 231,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-232",
+      "line": 232,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-233",
+      "line": 233,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-234",
+      "line": 234,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-235",
+      "line": 235,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-236",
+      "line": 236,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-237",
+      "line": 237,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-238",
+      "line": 238,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-239",
+      "line": 239,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-240",
+      "line": 240,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-241",
+      "line": 241,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-242",
+      "line": 242,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-243",
+      "line": 243,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-244",
+      "line": 244,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-245",
+      "line": 245,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-246",
+      "line": 246,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-247",
+      "line": 247,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-248",
+      "line": 248,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-249",
+      "line": 249,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-250",
+      "line": 250,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-251",
+      "line": 251,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-252",
+      "line": 252,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-253",
+      "line": 253,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-254",
+      "line": 254,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-255",
+      "line": 255,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-256",
+      "line": 256,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-257",
+      "line": 257,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-258",
+      "line": 258,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-259",
+      "line": 259,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-260",
+      "line": 260,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-261",
+      "line": 261,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-262",
+      "line": 262,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-263",
+      "line": 263,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-264",
+      "line": 264,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-265",
+      "line": 265,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-266",
+      "line": 266,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-267",
+      "line": 267,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-268",
+      "line": 268,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-269",
+      "line": 269,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-270",
+      "line": 270,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-271",
+      "line": 271,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-272",
+      "line": 272,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-273",
+      "line": 273,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-274",
+      "line": 274,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-275",
+      "line": 275,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-276",
+      "line": 276,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-277",
+      "line": 277,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-278",
+      "line": 278,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-279",
+      "line": 279,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-280",
+      "line": 280,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-281",
+      "line": 281,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-282",
+      "line": 282,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-283",
+      "line": 283,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-284",
+      "line": 284,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-285",
+      "line": 285,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-286",
+      "line": 286,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-287",
+      "line": 287,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-288",
+      "line": 288,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-289",
+      "line": 289,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-290",
+      "line": 290,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-291",
+      "line": 291,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-292",
+      "line": 292,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-293",
+      "line": 293,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-294",
+      "line": 294,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-295",
+      "line": 295,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-296",
+      "line": 296,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-297",
+      "line": 297,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-298",
+      "line": 298,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-299",
+      "line": 299,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-300",
+      "line": 300,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-301",
+      "line": 301,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-302",
+      "line": 302,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-303",
+      "line": 303,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-304",
+      "line": 304,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-305",
+      "line": 305,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-306",
+      "line": 306,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-307",
+      "line": 307,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-308",
+      "line": 308,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-309",
+      "line": 309,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-310",
+      "line": 310,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-311",
+      "line": 311,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-312",
+      "line": 312,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-313",
+      "line": 313,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-314",
+      "line": 314,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-315",
+      "line": 315,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-316",
+      "line": 316,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-317",
+      "line": 317,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-318",
+      "line": 318,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-319",
+      "line": 319,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-320",
+      "line": 320,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-321",
+      "line": 321,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-322",
+      "line": 322,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-323",
+      "line": 323,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-324",
+      "line": 324,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-325",
+      "line": 325,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-326",
+      "line": 326,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-327",
+      "line": 327,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-328",
+      "line": 328,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-329",
+      "line": 329,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-330",
+      "line": 330,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-331",
+      "line": 331,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-332",
+      "line": 332,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-333",
+      "line": 333,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-334",
+      "line": 334,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-335",
+      "line": 335,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-336",
+      "line": 336,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-337",
+      "line": 337,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-338",
+      "line": 338,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-339",
+      "line": 339,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-340",
+      "line": 340,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-341",
+      "line": 341,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-342",
+      "line": 342,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-343",
+      "line": 343,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-344",
+      "line": 344,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-345",
+      "line": 345,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-346",
+      "line": 346,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-347",
+      "line": 347,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-348",
+      "line": 348,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-349",
+      "line": 349,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-350",
+      "line": 350,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-351",
+      "line": 351,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-352",
+      "line": 352,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-353",
+      "line": 353,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-354",
+      "line": 354,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-355",
+      "line": 355,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-356",
+      "line": 356,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-357",
+      "line": 357,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-358",
+      "line": 358,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-359",
+      "line": 359,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-360",
+      "line": 360,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-361",
+      "line": 361,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-362",
+      "line": 362,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-363",
+      "line": 363,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-364",
+      "line": 364,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-365",
+      "line": 365,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-366",
+      "line": 366,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-367",
+      "line": 367,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-368",
+      "line": 368,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-369",
+      "line": 369,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-370",
+      "line": 370,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-371",
+      "line": 371,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-372",
+      "line": 372,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-373",
+      "line": 373,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-374",
+      "line": 374,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-375",
+      "line": 375,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-376",
+      "line": 376,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-377",
+      "line": 377,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-378",
+      "line": 378,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-379",
+      "line": 379,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-380",
+      "line": 380,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-381",
+      "line": 381,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-382",
+      "line": 382,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-383",
+      "line": 383,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-384",
+      "line": 384,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-385",
+      "line": 385,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-386",
+      "line": 386,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-387",
+      "line": 387,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-388",
+      "line": 388,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-389",
+      "line": 389,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-390",
+      "line": 390,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-391",
+      "line": 391,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-392",
+      "line": 392,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-393",
+      "line": 393,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-394",
+      "line": 394,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-395",
+      "line": 395,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-396",
+      "line": 396,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-397",
+      "line": 397,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-398",
+      "line": 398,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-399",
+      "line": 399,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-400",
+      "line": 400,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-401",
+      "line": 401,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-402",
+      "line": 402,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-403",
+      "line": 403,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-404",
+      "line": 404,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-405",
+      "line": 405,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-406",
+      "line": 406,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-407",
+      "line": 407,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-408",
+      "line": 408,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-409",
+      "line": 409,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-410",
+      "line": 410,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-411",
+      "line": 411,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-412",
+      "line": 412,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-413",
+      "line": 413,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-414",
+      "line": 414,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-415",
+      "line": 415,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-416",
+      "line": 416,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-417",
+      "line": 417,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-418",
+      "line": 418,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-419",
+      "line": 419,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-420",
+      "line": 420,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-421",
+      "line": 421,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-422",
+      "line": 422,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-423",
+      "line": 423,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-424",
+      "line": 424,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-425",
+      "line": 425,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-426",
+      "line": 426,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-427",
+      "line": 427,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-428",
+      "line": 428,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-429",
+      "line": 429,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-430",
+      "line": 430,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-431",
+      "line": 431,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-432",
+      "line": 432,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-433",
+      "line": 433,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-434",
+      "line": 434,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-435",
+      "line": 435,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-436",
+      "line": 436,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-437",
+      "line": 437,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-438",
+      "line": 438,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-439",
+      "line": 439,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-440",
+      "line": 440,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-441",
+      "line": 441,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-442",
+      "line": 442,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-443",
+      "line": 443,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-444",
+      "line": 444,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-445",
+      "line": 445,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-446",
+      "line": 446,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-447",
+      "line": 447,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-448",
+      "line": 448,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-449",
+      "line": 449,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-450",
+      "line": 450,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-451",
+      "line": 451,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-452",
+      "line": 452,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-453",
+      "line": 453,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-454",
+      "line": 454,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-455",
+      "line": 455,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-456",
+      "line": 456,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-457",
+      "line": 457,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-458",
+      "line": 458,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-459",
+      "line": 459,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-460",
+      "line": 460,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-461",
+      "line": 461,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-462",
+      "line": 462,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-463",
+      "line": 463,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-464",
+      "line": 464,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-465",
+      "line": 465,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-466",
+      "line": 466,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-467",
+      "line": 467,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-468",
+      "line": 468,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-469",
+      "line": 469,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-470",
+      "line": 470,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-471",
+      "line": 471,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-472",
+      "line": 472,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-473",
+      "line": 473,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-474",
+      "line": 474,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-475",
+      "line": 475,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-476",
+      "line": 476,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-477",
+      "line": 477,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-478",
+      "line": 478,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-479",
+      "line": 479,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-480",
+      "line": 480,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-481",
+      "line": 481,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-482",
+      "line": 482,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-483",
+      "line": 483,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-484",
+      "line": 484,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-485",
+      "line": 485,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-486",
+      "line": 486,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-487",
+      "line": 487,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-488",
+      "line": 488,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-489",
+      "line": 489,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-490",
+      "line": 490,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-491",
+      "line": 491,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-492",
+      "line": 492,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-493",
+      "line": 493,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-494",
+      "line": 494,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-495",
+      "line": 495,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-496",
+      "line": 496,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-497",
+      "line": 497,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-498",
+      "line": 498,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-499",
+      "line": 499,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    },
+    {
+      "errors": [],
+      "id": "ft-full-synth-500",
+      "line": 500,
+      "path": "E:\\Project\\tencent_mini\\repomind\\datasets\\finetune-v1\\frozen\\full-synthetic-readiness-20260621\\full-synthetic-readiness.jsonl",
+      "warnings": []
+    }
+  ],
+  "required_sample_types": [
+    "positive_call_edges",
+    "negative_non_call_cases",
+    "same_name_distractors",
+    "import_or_string_not_call",
+    "callback_registration_boundary",
+    "runtime_only_boundary",
+    "constructor_symbol_cases",
+    "explicit_init_calls",
+    "caller_direction_cases",
+    "callee_direction_cases",
+    "evidence_output_cases",
+    "object_method_calls",
+    "async_call_edges",
+    "large_fan_in_cases",
+    "tests_excluded",
+    "external_boundary",
+    "decorator_registration",
+    "factory_return_cases",
+    "polymorphism_cases",
+    "no_callers",
+    "no_callees"
+  ],
+  "sample_count": 500,
+  "source_type_counts": {
+    "synthetic_micro": 500
+  },
+  "split_counts": {
+    "dev": 100,
+    "train": 400
+  },
+  "tag_counts": {
+    "async": 40,
+    "async_call_edges": 40,
+    "callback_registration_boundary": 60,
+    "callee_direction_cases": 140,
+    "caller_direction_cases": 60,
+    "class_method": 20,
+    "constructor_symbol_cases": 60,
+    "decorator_registration": 20,
+    "direct_call": 20,
+    "dynamic_boundary": 100,
+    "evidence_output_cases": 40,
+    "explicit_init_calls": 20,
+    "external_boundary": 20,
+    "factory_return_cases": 20,
+    "import_or_string_not_call": 60,
+    "large_fan_in_cases": 20,
+    "negative_non_call_cases": 160,
+    "no_callees": 20,
+    "no_callers": 20,
+    "object_method_calls": 100,
+    "polymorphism_cases": 20,
+    "positive_call_edges": 240,
+    "runtime_only_boundary": 40,
+    "same_name_distractors": 40,
+    "tests_excluded": 20
+  },
+  "task_type_counts": {
+    "find_callees": 280,
+    "find_callers": 220
+  },
+  "warning_count": 0,
+  "warnings": []
+}

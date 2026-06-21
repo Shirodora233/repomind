@@ -2,7 +2,7 @@
 
 This directory contains the versioned fine-tuning data format for the call-chain task.
 
-The current checked-in implementation is a smoke+ skeleton plus a 500+ source planning entry. It can generate and validate a 50-sample synthetic micro JSONL dataset without using local Ollama, GPU inference, or any formal training job. The 500+ dataset is planned but not frozen.
+The current checked-in implementation includes a smoke+ skeleton, a 500+ source planning entry, and one frozen 500-sample synthetic readiness export for controlled Gemma4 E2B QLoRA smoke/pilot training. The frozen export is not a mixed real-project formal dataset.
 
 ## Layout
 
@@ -14,6 +14,12 @@ datasets/finetune-v1/
     finetune-sample.schema.json
   smoke/
     synthetic-micro-smoke.jsonl
+  frozen/
+    full-synthetic-readiness-20260621/
+      README.md
+      freeze-manifest.json
+      full-synthetic-readiness.jsonl
+      validation-summary.json
 ```
 
 ## JSONL Sample Contract
@@ -79,11 +85,37 @@ python scripts/validate_finetune_dataset.py --jsonl datasets/finetune-v1/smoke/s
 
 The validator prints a dataset-level summary covering sample count, split counts, source type counts, required tag coverage, and repo split group counts.
 
+## Frozen Synthetic Readiness Export
+
+The frozen 500-sample synthetic readiness export is:
+
+```text
+datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl
+```
+
+Its freeze manifest is:
+
+```text
+datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json
+```
+
+Key properties:
+
+- SHA256: `d700c9a739899087e28191f2d5ebe5fa83981b5a925d2a103970f302b3a970d1`.
+- Samples: 500.
+- Train / dev: 400 / 100.
+- Source type: `synthetic_micro`.
+- Repo split isolation: passed.
+- Required sample type coverage: 21 / 21.
+- Evidence-complete samples: 500 / 500.
+
+Training configs must use only `split=train`; the dev split is retained for diagnostics and should not be mixed into training.
+
 ## 500+ Planning Entry
 
 The formal 500+ data source plan is tracked in `source-plan.md`. It defines a planned 400 train / 100 dev / 40 holdout shape, with the training export requiring at least 500 train/dev examples before formal training.
 
-The plan is not frozen. The concrete real-project repo list still needs pinned local source snapshots, extraction notes, and validation evidence before any training starts.
+The mixed-source formal plan is not frozen. The concrete real-project repo list still needs pinned local source snapshots, extraction notes, and validation evidence before any training starts.
 
 Current hard leakage rule:
 

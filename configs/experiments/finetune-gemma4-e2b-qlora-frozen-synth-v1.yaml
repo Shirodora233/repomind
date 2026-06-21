@@ -1,0 +1,129 @@
+version: finetune-gemma4-e2b-qlora-frozen-synth-v1
+stage: fine_tune_data_and_training
+status: frozen_config_ready_for_next_training_run
+
+purpose:
+  description: Gemma4 E2B QLoRA training config for the frozen synthetic readiness dataset.
+  scope: controlled_synthetic_pilot
+  not_formal_mixed_source_dataset: true
+
+dataset:
+  freeze_id: finetune-v1-full-synthetic-readiness-20260621
+  jsonl: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/full-synthetic-readiness.jsonl
+  jsonl_sha256: d700c9a739899087e28191f2d5ebe5fa83981b5a925d2a103970f302b3a970d1
+  validation_summary: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/validation-summary.json
+  validation_summary_sha256: 949a15c5e6a971c3bf6faed843c6bd29eea47c24ebe017ffe892b7f45e5eb147
+  freeze_manifest: datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json
+  train_split: train
+  dev_split: dev
+  counts:
+    total: 500
+    train: 400
+    dev: 100
+  source_type_counts:
+    synthetic_micro: 500
+  quality_gates:
+    validator_passed: true
+    repo_split_isolation: passed
+    required_sample_type_coverage: 21/21
+    evidence_complete_samples: 500
+    duplicate_sample_id_count: 0
+    duplicate_content_count: 0
+  leakage_rules:
+    split_by_repo: true
+    blocked_train_dev_repos:
+      - AstrBotDevs/AstrBot
+      - scrapy/scrapy
+    derived_from_current_test_repos: false
+
+model:
+  base_model: google/gemma-4-E2B-it
+  model_type: gemma4
+  weights_source: huggingface_cache
+  hf_snapshot: E:\AI\repomind-ft\hf_home\hub\models--google--gemma-4-E2B-it\snapshots\70af34e20bd4b7a91f0de6b22675850c43922a03
+  model_safetensors_blob_sha256_name: 2db5482b20d746879bb3ef79b5203e9075a2e2b98f54ec7c2f281c1477ddc550
+  tokenizer_vocab_size_observed: 262144
+
+environment:
+  os: windows
+  env_root: E:\AI\repomind-ft
+  activation_script: E:\AI\repomind-ft\activate-gemma4-e2b-ft.ps1
+  conda_env: E:\AI\repomind-ft\conda_envs\gemma4-e2b-ft
+  output_root: E:\AI\repomind-ft\outputs
+  expected_gpu: NVIDIA GeForce RTX 4060 Laptop GPU 8GB
+  offline_env:
+    HF_HUB_OFFLINE: "1"
+    TRANSFORMERS_OFFLINE: "1"
+
+runner:
+  script: scripts/run_finetune_smoke.py
+  runner_version: finetune-smoke-runner-v3
+  split_argument_required: true
+  split: train
+  device_map: single-gpu
+  trust_remote_code: true
+
+qlora:
+  load_in_4bit: true
+  quant_type: nf4
+  double_quant: true
+  compute_dtype: bfloat16
+  gradient_checkpointing: true
+  lora:
+    r: 8
+    alpha: 16
+    dropout: 0.05
+    target_modules:
+      - q_proj.linear
+      - k_proj.linear
+      - v_proj.linear
+      - o_proj.linear
+      - gate_proj.linear
+      - up_proj.linear
+      - down_proj.linear
+
+training_defaults:
+  max_samples: 400
+  max_seq_length: 128
+  max_steps: 100
+  learning_rate: 0.0002
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 1
+  seed: null
+  output_dir: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1
+  note: Increase max_steps or max_seq_length only after a successful controlled run; 8GB VRAM is close to the limit.
+
+command_template: >-
+  python scripts\run_finetune_smoke.py
+  --dataset datasets\finetune-v1\frozen\full-synthetic-readiness-20260621\full-synthetic-readiness.jsonl
+  --model google/gemma-4-E2B-it
+  --output-dir E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1
+  --max-samples 400
+  --split train
+  --max-seq-length 128
+  --max-steps 100
+  --gradient-accumulation-steps 1
+  --device-map single-gpu
+
+resource_gates:
+  no_local_ollama_model_loaded: required
+  no_local_inference_batch_running: required
+  no_gpu_embedding_or_rerank_running: required
+  confirm_nvidia_smi_before_start: required
+
+recording_requirements:
+  before_run:
+    - git status --short
+    - git rev-parse --short HEAD
+    - dataset SHA256 verification
+    - nvidia-smi snapshot
+    - ollama ps
+  after_run:
+    - training_summary.json
+    - adapter directory listing
+    - GPU release check
+    - records/11-finetune-data-and-training.md update
+
+known_pilot_outputs:
+  one_step_smoke: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-smoke-20260621-linear-targets-1step
+  ten_step_pilot: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-pilot-20260621-10step
