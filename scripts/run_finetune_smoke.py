@@ -15,8 +15,9 @@ from typing import Any
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATASET = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-readiness-20260621" / "full-synthetic-readiness.jsonl"
 DEFAULT_OUTPUT_ROOT = Path(os.environ.get("REPOMIND_FT_ROOT", r"E:\AI\repomind-ft")) / "outputs"
-DEFAULT_TARGET_MODULES = "q_proj.linear,k_proj.linear,v_proj.linear,o_proj.linear,gate_proj.linear,up_proj.linear,down_proj.linear"
-RUNNER_VERSION = "finetune-smoke-runner-v5"
+DEFAULT_TARGET_MODULES = "q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"
+DEFAULT_EXCLUDE_MODULES = "regex:.*(vision_tower|audio_tower).*"
+RUNNER_VERSION = "finetune-smoke-runner-v6"
 
 
 @dataclass
@@ -50,6 +51,7 @@ def main() -> int:
     parser.add_argument("--lora-alpha", type=int, default=16)
     parser.add_argument("--lora-dropout", type=float, default=0.05)
     parser.add_argument("--target-modules", default=DEFAULT_TARGET_MODULES)
+    parser.add_argument("--exclude-modules", default=DEFAULT_EXCLUDE_MODULES)
     parser.add_argument("--gradient-checkpointing", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--load-in-4bit", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument(
@@ -223,9 +225,15 @@ def run_training(
     if args.gradient_checkpointing and hasattr(model, "gradient_checkpointing_enable"):
         model.gradient_checkpointing_enable()
     if args.load_in_4bit:
-        model = prepare_model_for_kbit_training(model)
+        gradient_checkpointing_kwargs = {"use_reentrant": False} if args.gradient_checkpointing else None
+        model = prepare_model_for_kbit_training(
+            model,
+            use_gradient_checkpointing=args.gradient_checkpointing,
+            gradient_checkpointing_kwargs=gradient_checkpointing_kwargs,
+        )
 
-    target_modules = [item.strip() for item in args.target_modules.split(",") if item.strip()]
+    target_modules = parse_module_selector(args.target_modules)
+    exclude_modules = parse_module_selector(args.exclude_modules)
     lora_config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
@@ -233,6 +241,7 @@ def run_training(
         bias="none",
         task_type="CAUSAL_LM",
         target_modules=target_modules,
+        exclude_modules=exclude_modules,
     )
     model = get_peft_model(model, lora_config)
 
@@ -560,7 +569,8 @@ def build_run_config(args: argparse.Namespace, output_dir: Path, started_at: str
             "r": args.lora_r,
             "alpha": args.lora_alpha,
             "dropout": args.lora_dropout,
-            "target_modules": [item.strip() for item in args.target_modules.split(",") if item.strip()],
+            "target_modules": parse_module_selector(args.target_modules),
+            "exclude_modules": parse_module_selector(args.exclude_modules),
         },
         "gradient_checkpointing": args.gradient_checkpointing,
         "load_in_4bit": args.load_in_4bit,
@@ -572,6 +582,15 @@ def build_run_config(args: argparse.Namespace, output_dir: Path, started_at: str
 
 def normalize_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
     return {key: float(value) if isinstance(value, (int, float)) else value for key, value in metrics.items()}
+
+
+def parse_module_selector(value: str) -> list[str] | str | None:
+    cleaned = value.strip()
+    if not cleaned or cleaned.lower() == "none":
+        return None
+    if cleaned.startswith("regex:"):
+        return cleaned[len("regex:") :]
+    return [item.strip() for item in cleaned.split(",") if item.strip()]
 
 
 def build_overfit_monitor(

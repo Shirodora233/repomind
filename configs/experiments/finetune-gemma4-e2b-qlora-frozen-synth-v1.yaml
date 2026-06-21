@@ -57,7 +57,7 @@ environment:
 
 runner:
   script: scripts/run_finetune_smoke.py
-  runner_version: finetune-smoke-runner-v5
+  runner_version: finetune-smoke-runner-v6
   split_argument_required: true
   split: train
   eval_split: dev
@@ -77,13 +77,14 @@ qlora:
     alpha: 16
     dropout: 0.05
     target_modules:
-      - q_proj.linear
-      - k_proj.linear
-      - v_proj.linear
-      - o_proj.linear
-      - gate_proj.linear
-      - up_proj.linear
-      - down_proj.linear
+      - q_proj
+      - k_proj
+      - v_proj
+      - o_proj
+      - gate_proj
+      - up_proj
+      - down_proj
+    exclude_modules: "regex:.*(vision_tower|audio_tower).*"
 
 training_defaults:
   max_samples: 400
@@ -100,7 +101,7 @@ training_defaults:
   gradient_accumulation_steps: 1
   seed: null
   output_dir: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1
-  note: Use assistant-only labels and Gemma chat template. Avoid max_seq_length=128 because the first train samples are about 429-430 tokens and 128 truncates the assistant answer.
+  note: Use assistant-only labels, Gemma chat template, and language-model-only LoRA targets. Avoid max_seq_length=128 because the first train samples are about 429-430 tokens and 128 truncates the assistant answer.
 
 command_template: >-
   python scripts\run_finetune_smoke.py
@@ -119,6 +120,8 @@ command_template: >-
   --use-chat-template
   --lr-scheduler-type linear
   --warmup-steps 0
+  --target-modules q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj
+  --exclude-modules 'regex:.*(vision_tower|audio_tower).*'
   --per-device-eval-batch-size 1
   --gradient-accumulation-steps 1
   --device-map single-gpu
@@ -148,3 +151,5 @@ known_pilot_outputs:
   ten_step_pilot: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-pilot-20260621-10step
   hundred_step_with_dev_eval: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1-100step-20260621
   two_sample_overfit_full_length_20step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-overfit-2sample-448-20step-20260621-1155
+  v6_language_target_update_sanity_1step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-update-sanity-v6-langtarget-2sample-448-1step-20260621-1335
+  v6_language_target_overfit_20step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-overfit-v6-langtarget-2sample-512-20step-20260621-1340
