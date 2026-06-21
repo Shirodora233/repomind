@@ -203,3 +203,15 @@
 - 解决方式：`scripts/run_oracle_context.py` 新增 `--max-retries` 和 `--retry-backoff-seconds`，并实现 `call_openai_compatible_with_retry()`；`scripts/run_rag_context.py` 复用该 helper。每个 case 会写入 `request_attempts.json`，`timing.json` 中也记录 `model_attempts`，`run_config.json` 记录 retry 配置。默认 `--max-retries=0` 保持旧行为；正式在线实验建议显式设置 `--max-retries 2 --retry-backoff-seconds 2`。
 - 后续注意：retry 只用于 request-level failure，不重试 parse error 或低分输出。报告中需要同时记录 full batch score、request error 数、retry attempts；如果使用 rerun 或 successful-response diagnostic score，必须明确说明口径。
 - 相关文件：`scripts/run_oracle_context.py`、`scripts/run_rag_context.py`
+
+## Hugging Face Gemma4 E2B 大权重下载未完成会阻塞 fine-tune smoke
+
+- 首次发现阶段：Fine-tune 数据与训练阶段
+- 状态：active
+- 最后复核：2026-06-21
+- 现象：运行 `scripts/run_finetune_smoke.py` 加载 `google/gemma-4-E2B-it` 时，runner 已写出 `run_config.json`、`environment_snapshot.json` 和 `sample_preview.txt`，stdout 停在 Transformers 初始化 / HF unauthenticated warning 附近，未产生 `adapter/` 或 completed `training_summary.json`。Hugging Face cache 下出现多个同一 blob 的 `.incomplete` 文件，其中一个约 7.19GB、一个约 1.20GB、一个 0B。
+- 影响：训练其实尚未开始；如果只看外部 Python 进程存在或 GPU 环境可用，容易误记为 fine-tune smoke 正在训练或已成功。
+- 原因：`google/gemma-4-E2B-it` 的 `model.safetensors` 约 10.25GB，当前网络 / HF Hub 下载路径会长时间停在大文件下载或续传阶段。频繁在 default HF / Xet 与 `HF_HUB_DISABLE_XET=1` 间切换会产生不同 suffix 的 `.incomplete` 文件，可能浪费已有进度。
+- 解决方式：尚未完全解决。当前处理是停止无进展训练进程，保留 partial cache，不删除 `.incomplete` 文件；正式记录为下载阻塞，不把本轮计为训练成功。下一次应先做独立预下载步骤，等 `model.safetensors` 完整落盘后再启动 Trainer。
+- 后续注意：如用户可提供 `HF_TOKEN`，应优先设置以避免 unauthenticated rate limit。预下载时选择一种策略并持续运行，不要频繁切换 `HF_HUB_DISABLE_XET`。报告中必须检查 `adapter/`、completed `training_summary.json` 和训练 metrics；三者缺失时不能进入 fine-tune only 评测或消融。
+- 相关文件：`scripts/run_finetune_smoke.py`、`reports/finetune/batches/finetune-qlora-smoke-runner-and-download-blocker-20260621.md`、`records/11-finetune-data-and-training.md`
