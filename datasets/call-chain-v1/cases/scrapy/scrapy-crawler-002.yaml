@@ -77,6 +77,13 @@ golden:
       evidence: "yield deferred_from_coro(self.engine.open_spider_async())"
       confidence_type: static_confirmed
     - caller: scrapy.crawler.Crawler.crawl
+      callee: scrapy.utils.defer.deferred_from_coro
+      file: scrapy/crawler.py
+      line: 192
+      evidence: "yield deferred_from_coro(self.engine.open_spider_async())"
+      confidence_type: static_confirmed
+      notes: "The same symbol-level wrapper edge also appears around start_async on line 193 and close_async on line 197."
+    - caller: scrapy.crawler.Crawler.crawl
       callee: scrapy.core.engine.ExecutionEngine.start_async
       file: scrapy/crawler.py
       line: 193
@@ -89,14 +96,7 @@ golden:
       evidence: "yield deferred_from_coro(self.engine.close_async())"
       confidence_type: static_confirmed
       notes: "Static exception-path cleanup edge."
-  optional_edges:
-    - caller: scrapy.crawler.Crawler.crawl
-      callee: scrapy.utils.defer.deferred_from_coro
-      file: scrapy/crawler.py
-      line: 192
-      evidence: "yield deferred_from_coro(self.engine.open_spider_async())"
-      confidence_type: static_confirmed
-      notes: "Technical wrapper edge; accepted but not required for the main semantic score."
+  optional_edges: []
   excluded_edges:
     - caller: scrapy.crawler.Crawler.crawl
       callee: scrapy.spiders.Spider.from_crawler

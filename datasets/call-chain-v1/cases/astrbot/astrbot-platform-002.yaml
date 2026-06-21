@@ -20,8 +20,9 @@ features:
   - registry
   - factory
 notes: >
-  Dynamic platform loading case. Import statements and registry reads should
-  not be counted as direct call edges, while local helper calls remain required.
+  Dynamic platform loading case. Import statements and plain registry map reads
+  should not be counted as direct call edges, while local helper calls and
+  registry method calls remain required.
 oracle_context:
   files:
     - path: astrbot/core/platform/manager.py
@@ -44,6 +45,11 @@ oracle_context:
         - astrbot.core.platform.register.platform_cls_map
         - astrbot.core.platform.register.register_platform_adapter
       reason: Defines the platform class registry read by the target.
+    - path: astrbot/core/star/star_handler.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.star.star_handler.StarHandlerRegistry.get_handlers_by_event_type
+      reason: Defines the event-handler registry method called after platform startup.
     - path: astrbot/core/platform/sources/lark/lark_adapter.py
       role: distractor
       symbols:
@@ -74,6 +80,12 @@ golden:
       file: astrbot/core/platform/manager.py
       line: 216
       evidence: "self._start_platform_task("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.platform.manager.PlatformManager.load_platform
+      callee: astrbot.core.star.star_handler.StarHandlerRegistry.get_handlers_by_event_type
+      file: astrbot/core/platform/manager.py
+      line: 220
+      evidence: "star_handlers_registry.get_handlers_by_event_type("
       confidence_type: static_confirmed
   optional_edges: []
   excluded_edges:

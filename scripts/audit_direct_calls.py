@@ -19,8 +19,20 @@ from call_chain_common import (
 )
 
 
-AUDITOR_VERSION = "direct-call-auditor-v1"
+AUDITOR_VERSION = "direct-call-auditor-v2"
 IGNORED_IMPORTED_ATTRIBUTE_ROOTS = {"logger", "LLM_METADATAS"}
+CANONICAL_PREFIX_ALIASES = {
+    "astrbot.core.star.star_handler.star_handlers_registry": "astrbot.core.star.star_handler.StarHandlerRegistry",
+    "astrbot.core.utils.active_event_registry.active_event_registry": "astrbot.core.utils.active_event_registry.ActiveEventRegistry",
+    "astrbot.core.sp": "astrbot.core.utils.shared_preferences.SharedPreferences",
+}
+CANONICAL_EXACT_ALIASES = {
+    "astrbot.core.platform.sources.telegram.tg_adapter.TelegramPlatformAdapter.commit_event": "astrbot.core.platform.platform.Platform.commit_event",
+    "scrapy.crawler.CrawlerRunner.create_crawler": "scrapy.crawler.CrawlerRunnerBase.create_crawler",
+}
+IGNORED_RESOLVED_CALLEES = {
+    "astrbot.core.platform.sources.lark.server.LarkWebhookServer.callback": "runtime callback slot; concrete callable is optional/runtime dependent",
+}
 
 
 def module_name_for_file(repo_path: Path, rel_path: str) -> str:
@@ -124,7 +136,33 @@ def call_name(func: ast.expr, aliases: dict[str, str], current_class: str | None
     return ast.unparse(func), None
 
 
+def canonicalize_resolved_symbol(symbol: str | None) -> str | None:
+    if not symbol:
+        return None
+    if symbol in CANONICAL_EXACT_ALIASES:
+        return CANONICAL_EXACT_ALIASES[symbol]
+    for prefix, canonical_prefix in CANONICAL_PREFIX_ALIASES.items():
+        if symbol == prefix:
+            return canonical_prefix
+        if symbol.startswith(f"{prefix}."):
+            return f"{canonical_prefix}{symbol[len(prefix):]}"
+    return symbol
+
+
 def audit_case(case: dict[str, Any], repos: dict[str, Any]) -> dict[str, Any]:
+    if case.get("task_type") != "find_callees":
+        return {
+            "case_id": case["id"],
+            "target": case["target"],
+            "target_file": None,
+            "auditor_version": AUDITOR_VERSION,
+            "skipped": True,
+            "skip_reason": "only find_callees target-body direct-call audit is supported",
+            "calls": [],
+            "repo_resolved_missing_from_required": [],
+            "repo_resolved_missing_count": 0,
+        }
+
     repo_path = repo_path_for_case(case, repos)
     target_file = case["oracle_context"]["files"][0]["path"]
     for file_item in case["oracle_context"]["files"]:
@@ -149,20 +187,22 @@ def audit_case(case: dict[str, Any], repos: dict[str, Any]) -> dict[str, Any]:
     }
 
     calls: list[dict[str, Any]] = []
-    for node in ast.walk(target_node):
-        if not isinstance(node, ast.Call):
-            continue
+    for node in iter_call_nodes_without_nested_defs(target_node):
         text_name, resolved = call_name(node.func, aliases, current_class)
+        canonical_resolved = canonicalize_resolved_symbol(resolved)
         segment = ast.get_source_segment(source, node) or ""
         first_line = " ".join(segment.strip().split())
         is_repo_resolved = bool(resolved and any(resolved.startswith(root) for root in repo_roots))
+        ignored_reason = IGNORED_RESOLVED_CALLEES.get(resolved or "")
         calls.append(
             {
                 "line": node.lineno,
                 "name": text_name,
                 "resolved": resolved,
+                "canonical_resolved": canonical_resolved,
                 "repo_resolved": is_repo_resolved,
-                "in_required_golden": bool(resolved and resolved in golden_callees),
+                "in_required_golden": bool(canonical_resolved and canonical_resolved in golden_callees),
+                "ignored_reason": ignored_reason,
                 "evidence": first_line[:240],
             }
         )
@@ -170,7 +210,9 @@ def audit_case(case: dict[str, Any], repos: dict[str, Any]) -> dict[str, Any]:
     missing_resolved = [
         item
         for item in calls
-        if item["repo_resolved"] and item["resolved"] not in golden_callees
+        if item["repo_resolved"]
+        and not item["ignored_reason"]
+        and item["canonical_resolved"] not in golden_callees
     ]
     return {
         "case_id": case["id"],
@@ -181,6 +223,41 @@ def audit_case(case: dict[str, Any], repos: dict[str, Any]) -> dict[str, Any]:
         "repo_resolved_missing_from_required": missing_resolved,
         "repo_resolved_missing_count": len(missing_resolved),
     }
+
+
+def iter_call_nodes_without_nested_defs(target_node: ast.AST) -> list[ast.Call]:
+    calls: list[ast.Call] = []
+
+    class Visitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self._root = True
+
+        def visit_root_body(self, body: list[ast.stmt]) -> None:
+            self._root = False
+            for stmt in body:
+                self.visit(stmt)
+            self._root = True
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            if self._root:
+                self.visit_root_body(node.body)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            if self._root:
+                self.visit_root_body(node.body)
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            return
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            return
+
+        def visit_Call(self, node: ast.Call) -> None:
+            calls.append(node)
+            self.generic_visit(node)
+
+    Visitor().visit(target_node)
+    return calls
 
 
 def repo_root_prefixes(repo: dict[str, Any]) -> list[str]:
@@ -221,6 +298,9 @@ def main() -> int:
             f"{report['case_id']}: "
             f"{report['repo_resolved_missing_count']} repo-resolved calls missing from required_edges"
         )
+        if report.get("skipped"):
+            print(f"  skipped: {report['skip_reason']}")
+            continue
         for item in report["repo_resolved_missing_from_required"]:
             print(f"  L{item['line']}: {item['resolved']} | {item['evidence']}")
     return 0

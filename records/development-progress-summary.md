@@ -9,7 +9,7 @@
 | 数据集 | `call-chain-v1`，70 个 YAML case；AstrBot 44 个，Scrapy 26 个 |
 | 主要任务 | `find_callees` 43 个，`find_callers` 27 个 |
 | 难度分布 | easy 10 个，medium 36 个，hard 24 个 |
-| Golden edges | required 184 条，optional 10 条，excluded 90 条，runtime-only 3 条 |
+| Golden edges | required 232 条，optional 8 条，excluded 90 条，runtime-only 3 条 |
 | 主评测轨道 | Oracle Context 与 Agentic Retrieval / E2E |
 | 主 baseline 模型 | DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local |
 | 当前 scorer | `call-chain-scorer-v1`，strict 主分数 + constructor-normalized 辅助指标 |
@@ -17,7 +17,7 @@
 | 当前 PE 资产 | `pe-v1` prompt assets、20 条 synthetic few-shot、`pe_postprocess.py`、matrix planner v2、34 个 generated prompts |
 | 当前 RAG 资产 | `rag-v1` chunk index、BM25/keyword retrieval、`keyword_multiquery_safe`、context packer、RAG context runner、retrieval eval |
 | 当前 Fine-tune 数据 | `finetune-data-v1` smoke+ 50 条 synthetic micro 样本，已新增 500+ source plan 与 dry-run manifest 入口 |
-| 主报告 | `reports/baseline/summary/baseline-summary-v0-20260620.md`（70-case baseline 最终汇总） |
+| 主报告 | `reports/baseline/summary/baseline-summary-v0-20260620.md`（历史 baseline v0，已冻结，不再作为正式对照） |
 | 辅助评分报告 | `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md` |
 | 失败诊断报告 | `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md` |
 | 数据集正式说明 | `docs/datasets/call-chain-v1.md` |
@@ -56,11 +56,13 @@
 | 2026-06-21 | RAG context packer | `fb8e3fb` | retrieval -> prompt-ready context，移除 `oracle_context` / `golden` metadata 泄漏 |
 | 2026-06-21 | RAG context runner | `1d50f7d` | RAG-only generation runner dry-run 入口，复用 scorer 与 model provider 配置 |
 | 2026-06-21 | RAG-only DeepSeek smoke | `d11dfdc` | 2-case RAG context runner smoke，P=0.9375 / R=0.8333 / E=1.0，成本约 0.0131 USD |
+| 2026-06-21 | Golden high-risk audit 与 baseline 冻结 | 本轮提交 | 修复 7 个 high-risk case，`required_edges=232`；旧 baseline v0 冻结为历史，正式对照需基于修正后 golden 重跑 |
 
 ## 当前待办
 
 - PE：可进入小规模 Oracle / E2E smoke 或 pilot 运行；真实模型结果出来前，不把 PE 维度贡献写成结论。
 - RAG：下一步应把 RAG-only 从 2-case smoke 扩到 20-case pilot，验证生成侧漏边模式是否稳定。
+- Baseline：旧版 v0 已冻结；正式优化/消融对照需在修正后 golden 上重跑，不再继续维护旧 summary 为主对照。
 - Fine-tune：正式训练前仍需冻结 500+ train/dev 数据；当前只有 source plan 与 synthetic dry-run 入口，未启动训练。
 - 消融矩阵：等待 PE smoke/pilot、RAG-only E2E、Fine-tune 数据冻结或训练 smoke 形成单项稳定版本后再运行。
 

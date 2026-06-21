@@ -36,6 +36,11 @@ oracle_context:
         - scrapy.utils.misc.load_object
         - scrapy.utils.misc.build_from_crawler
       reason: Defines the dynamic load and construction helpers used by the target.
+    - path: scrapy/utils/python.py
+      role: direct_callee
+      symbols:
+        - scrapy.utils.python.global_object_name
+      reason: Defines the warning helper called for deprecated handler signatures.
 golden:
   required_edges:
     - caller: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
@@ -50,6 +55,13 @@ golden:
       line: 103
       evidence: "dh = build_from_crawler("
       confidence_type: static_confirmed
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers._load_handler
+      callee: scrapy.utils.python.global_object_name
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 95
+      evidence: "f\"{global_object_name(dhcls)} doesn't define a 'lazy' attribute.\""
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 122 for dh.download_request."
   optional_edges: []
   excluded_edges:
     - caller: scrapy.core.downloader.handlers.DownloadHandlers._load_handler

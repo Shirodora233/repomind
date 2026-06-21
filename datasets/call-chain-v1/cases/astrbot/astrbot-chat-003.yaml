@@ -18,6 +18,7 @@ features:
   - class_method
   - async
   - cross_file
+  - constructor
 notes: >
   WebChat side-thread creation case with several direct service/database/helper
   calls. It stresses over-report filtering and max_depth control.
@@ -31,6 +32,7 @@ oracle_context:
         - astrbot.dashboard.services.chat_service.find_turn_range
         - astrbot.dashboard.services.chat_service.build_thread_unified_msg_origin
         - astrbot.dashboard.services.chat_service.serialize_thread
+        - astrbot.dashboard.services.chat_service.ChatServiceError
       reason: Contains the target and local helper callees.
     - path: astrbot/core/db/__init__.py
       role: type_definition
@@ -47,6 +49,13 @@ oracle_context:
       reason: Defines the conversation method used to create the side-thread conversation.
 golden:
   required_edges:
+    - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
+      callee: astrbot.dashboard.services.chat_service.ChatServiceError
+      file: astrbot/dashboard/services/chat_service.py
+      line: 1216
+      evidence: "raise ChatServiceError(\"Missing key: session_id\")"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol. The same symbol-level edge also appears on validation and not-found branches at lines 1218, 1220, 1225, 1229, 1231, 1241, 1243, 1245, 1249, and 1263."
     - caller: astrbot.dashboard.services.chat_service.ChatService.create_thread
       callee: astrbot.core.db.BaseDatabase.get_platform_session_by_id
       file: astrbot/dashboard/services/chat_service.py

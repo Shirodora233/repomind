@@ -39,6 +39,11 @@ oracle_context:
       symbols:
         - astrbot.dashboard.services.config_service.ProviderConfigService.create_provider
       reason: Contains the service method called by the route handler.
+    - path: astrbot/dashboard/responses.py
+      role: direct_callee
+      symbols:
+        - astrbot.dashboard.responses.ok
+      reason: Defines the response helper returned by the route handler.
     - path: astrbot/core/provider/manager.py
       role: indirect_callee
       symbols:
@@ -67,6 +72,12 @@ golden:
       file: astrbot/dashboard/services/config_service.py
       line: 1606
       evidence: "await self.provider_manager.create_provider(config)"
+      confidence_type: static_confirmed
+    - caller: astrbot.dashboard.api.providers.create_provider
+      callee: astrbot.dashboard.responses.ok
+      file: astrbot/dashboard/api/providers.py
+      line: 276
+      evidence: "return ok(message=\"新增服务提供商配置成功\")"
       confidence_type: static_confirmed
   optional_edges: []
   excluded_edges:

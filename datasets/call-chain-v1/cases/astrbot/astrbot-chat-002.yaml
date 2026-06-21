@@ -18,6 +18,7 @@ features:
   - class_method
   - async
   - cross_file
+  - constructor
 notes: >
   Service-layer stop case that distinguishes request_agent_stop_all from the
   stronger stop_all path used elsewhere.
@@ -28,6 +29,7 @@ oracle_context:
       symbols:
         - astrbot.dashboard.services.chat_service.ChatService.stop_session
         - astrbot.dashboard.services.chat_service.build_webchat_unified_msg_origin
+        - astrbot.dashboard.services.chat_service.ChatServiceError
       reason: Contains the target method and local helper call.
     - path: astrbot/core/db/__init__.py
       role: type_definition
@@ -48,6 +50,13 @@ golden:
       line: 971
       evidence: "session = await self.db.get_platform_session_by_id(session_id)"
       confidence_type: static_confirmed
+    - caller: astrbot.dashboard.services.chat_service.ChatService.stop_session
+      callee: astrbot.dashboard.services.chat_service.ChatServiceError
+      file: astrbot/dashboard/services/chat_service.py
+      line: 973
+      evidence: "raise ChatServiceError(f\"Session {session_id} not found\")"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol. The same symbol-level edge also appears on line 975."
     - caller: astrbot.dashboard.services.chat_service.ChatService.stop_session
       callee: astrbot.dashboard.services.chat_service.build_webchat_unified_msg_origin
       file: astrbot/dashboard/services/chat_service.py

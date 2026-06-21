@@ -19,6 +19,7 @@ features:
   - async
   - registry
   - polymorphism
+  - constructor
 notes: >
   Download handler dispatch case. The concrete handler depends on scheme and
   settings, but the protocol-level download_request call is statically visible.
@@ -41,7 +42,12 @@ oracle_context:
       role: other
       symbols:
         - scrapy.utils.defer.maybe_deferred_to_future
-      reason: Defines the old-style handler wrapper accepted as a technical optional edge.
+      reason: Defines the old-style handler wrapper called on the compatibility branch.
+    - path: scrapy/exceptions.py
+      role: direct_callee
+      symbols:
+        - scrapy.exceptions.NotSupported
+      reason: Defines the exception class constructed for unsupported schemes.
 golden:
   required_edges:
     - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
@@ -57,20 +63,27 @@ golden:
       evidence: "handler = self._get_handler(scheme)"
       confidence_type: static_confirmed
     - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
-      callee: scrapy.core.downloader.handlers.DownloadHandlerProtocol.download_request
+      callee: scrapy.exceptions.NotSupported
       file: scrapy/core/downloader/handlers/__init__.py
-      line: 156
-      evidence: "return await handler.download_request(request)"
-      confidence_type: dynamic_possible
-      notes: "Concrete handler class depends on runtime scheme and settings."
-  optional_edges:
+      line: 145
+      evidence: "raise NotSupported("
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
     - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
       callee: scrapy.utils.defer.maybe_deferred_to_future
       file: scrapy/core/downloader/handlers/__init__.py
       line: 150
       evidence: "return await maybe_deferred_to_future("
       confidence_type: static_confirmed
-      notes: "Technical wrapper used only for old-style handlers."
+      notes: "Static compatibility-branch wrapper used for old-style handlers."
+    - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
+      callee: scrapy.core.downloader.handlers.DownloadHandlerProtocol.download_request
+      file: scrapy/core/downloader/handlers/__init__.py
+      line: 156
+      evidence: "return await handler.download_request(request)"
+      confidence_type: dynamic_possible
+      notes: "Concrete handler class depends on runtime scheme and settings."
+  optional_edges: []
   excluded_edges:
     - caller: scrapy.core.downloader.handlers.DownloadHandlers.download_request_async
       callee: scrapy.core.downloader.handlers.DownloadHandlers._load_handler

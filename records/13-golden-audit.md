@@ -45,6 +45,40 @@
   - 该输出包含真漏标，也包含 callback、registry、对象 receiver 和 helper utility 的人工分级问题，不能自动批量写入 golden。
   - 后续进入消融前，应优先复核高影响 pilot / ablation subset，而不是直接相信 70-case 历史 baseline 指标。
 
+### 2026-06-21 high-risk follow-up
+
+- 先将旧版 baseline v0 冻结为历史，不再作为后续正式对照。
+- 提交上一轮 agent case golden 修复后，继续复核 high-risk 候选。
+- 审计脚本收紧：
+  - 仅审计 `find_callees` target body 内的 repo 内直接调用。
+  - 跳过嵌套函数、嵌套类、lambda、装饰器和默认参数。
+  - 新增 singleton / inherited canonical alias 归一，以及 runtime callback slot 过滤。
+  - auditor version 升级为 `direct-call-auditor-v2`。
+- 历史“41 个候选”经脚本收紧后，变为 15 个高风险 `find_callees` case、35 条候选。
+- 确认为 golden 漏标并修复 7 个 case：
+  - `astrbot-chat-002`
+  - `astrbot-chat-003`
+  - `astrbot-dashboard-001`
+  - `astrbot-platform-002`
+  - `scrapy-crawler-002`
+  - `scrapy-download-001`
+  - `scrapy-download-002`
+- 修复内容：
+  - 新增 8 条 `required_edges`，`required_edges` 从 224 增至 232。
+  - `optional_edges` 从 10 降至 8。
+  - `constructor` feature case 从 7 增至 10。
+- 人工复核但不修改 golden 的 case：
+  - `astrbot-context-001`、`astrbot-conversation-003`、`astrbot-platform-001`、`astrbot-provider-002`、`astrbot-star-001`、`astrbot-star-003`、`astrbot-webhook-001`、`scrapy-crawler-001`。
+  - 原因主要是 singleton 实例路径与 class method canonical 等价、继承方法 canonical 差异、runtime callback slot。
+- 验证：
+  - `python -m py_compile scripts\audit_direct_calls.py`
+  - `python scripts\validate_cases.py --cases datasets\call-chain-v1\cases`
+  - `python scripts\audit_direct_calls.py --json-out runs\dataset-audit\all-cases-direct-call-audit-v2-after-fixes-20260621.json`
+- 最终审计结果：所有 `find_callees` case 均为 `0 repo-resolved calls missing from required_edges`。
+- 正式诊断报告：
+  - `reports/baseline/diagnostics/golden-audit-rescore-decision-20260621.md`
+  - 重评分原始聚合：`runs/validation/baseline-rescore-after-golden-audit-v2-20260621.json`
+
 ## 重评分影响
 
 复用已有模型输出，不重新调用 API。
