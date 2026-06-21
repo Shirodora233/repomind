@@ -123,3 +123,10 @@
   - 修正：`astrbot-agent-001` 与 `astrbot-agent-002` 的 golden 从高层 helper 子集扩展为 target body 内静态可确认的 repo 内直接调用。
   - 复用已有输出重评分：`base` P/R/E=0.936170/0.505747/0.954546；`S+F+C+P postprocessed` P/R/E=1.000000/0.735632/0.984375。
   - 结论变化：旧结论中 `astrbot-agent-002` 的 17 条 helper false positives 作废；PE v2 当前表现为 precision 改善但 recall 仍不足，不能再用旧报告作为消融决策依据。
+- 2026-06-21：完成 PE v2 扩展 Oracle 25-case DeepSeek pilot，正式报告见 `reports/pe/batches/pe-v2-expanded-oracle-25-deepseek-20260621.md`。
+  - Run path：`runs/pe/oracle-expanded-25-v2-deepseek-20260621`；本轮只跑 Oracle Context，不进入 E2E、PE+RAG、Fine-tune 或完整消融。
+  - 覆盖组合：`base`、`P`、`S`、`F`、`C`、`S+F+C`、`S+F+C+P`。其中 `base` 复用 baseline v1 DeepSeek Oracle 输出，`P` 和 `S+F+C+P` 使用本地 deterministic postprocess，不额外调用模型。
+  - Case 子集：25 个 corrected baseline v1 代表 case，覆盖 134 条 required edges、7 个 `find_callers`、18 个 `find_callees`、1 easy / 12 medium / 12 hard、14 个 AstrBot / 11 个 Scrapy。
+  - 结果摘要：`S` 为当前最佳 PE-only 方向，P/R/E=1.000000/0.977612/0.984733；`base` 为 0.939850/0.925373/0.967742；`S+F+C+P` 为 1.000000/0.955224/0.984375，组合后 recall 低于单独 `S`。
+  - 成本：有效 API 组合为 `S`、`F`、`C`、`S+F+C`，共约 4,559,553 tokens，observed cost 约 2.008672 USD；一次误跑的 `S+F+C+P` diagnostic 因 OpenRouter key daily prompt-token limit 在 3/25 case 后失败，额外消耗约 0.108766 USD，未纳入正式指标。
+  - 结论：PE v2 不应继续追求“大而全”的 `S+F+C+P`；下一步应把 `S` 作为 PE-only 候选进入 E2E pilot，并把 constructor / exception class / repo utility wrapper 漏报作为后续精修目标。

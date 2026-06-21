@@ -1,11 +1,11 @@
 version: pe-v2
 stage: prompt_engineering
-status: precision_revision_generated_assets_ready_not_run
+status: expanded_oracle_pilot_completed
 
 baseline_reference:
   dataset: call-chain-v1
   test_set_status: frozen
-  baseline_report: reports/baseline/summary/baseline-summary-v0-20260620.md
+  baseline_report: reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md
   scorer: call-chain-scorer-v1
   oracle_runner: oracle-context-runner-v1
   e2e_runner: e2e-agent-runner-v1
@@ -102,34 +102,58 @@ matrix_runner:
   note: Command plans must mark prompt/postprocess gaps explicitly and must not be reported as completed PE experiments.
 
 pilot:
-  matrix: focused_precision_revision
+  matrix: expanded_oracle_pe_only
   combinations:
     - base
+    - P
+    - S
+    - F
+    - C
+    - S+F+C
     - S+F+C+P
   case_ids:
-    - astrbot-agent-002
-    - astrbot-pipeline-002
     - astrbot-agent-001
+    - astrbot-agent-002
     - astrbot-chat-002
     - astrbot-chat-003
+    - astrbot-context-001
+    - astrbot-dashboard-001
     - astrbot-hook-001
+    - astrbot-platform-004
+    - astrbot-star-001
+    - astrbot-star-003
+    - astrbot-tools-002
+    - astrbot-webhook-002
+    - astrbot-webhook-003
+    - astrbot-webhook-004
+    - scrapy-crawler-002
+    - scrapy-crawler-004
+    - scrapy-download-001
+    - scrapy-download-002
+    - scrapy-engine-001
+    - scrapy-engine-002
+    - scrapy-engine-004
+    - scrapy-feed-001
     - scrapy-feed-003
+    - scrapy-signal-001
     - scrapy-signal-004
   coverage:
-    selection_policy: targeted_6_to_8_medium_hard_cases_prioritizing_v1_precision_failures
+    selection_policy: 25-case stratified diagnostic subset from corrected baseline v1 low-score and boundary cases
     task_type:
-      find_callers: 3
-      find_callees: 5
+      find_callers: 7
+      find_callees: 18
     difficulty:
-      easy: 0
-      medium_or_hard: 8
+      easy: 1
+      medium: 12
+      hard: 12
     repos:
-      astrbot: 6
-      scrapy: 2
+      astrbot: 14
+      scrapy: 11
+    required_edges: 134
 
 full_run:
   case_set: all_70_cases
-  selection_rule: not authorized for PE v2 until focused Oracle validation shows precision improvement without unacceptable recall loss
+  selection_rule: do not run full 70-case PE v2 matrix yet; use S as the current PE-only candidate for E2E pilot and keep S+F+C+P out of main ablation candidates
 
 models:
   primary:

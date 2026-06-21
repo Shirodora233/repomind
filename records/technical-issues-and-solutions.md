@@ -263,3 +263,15 @@
 - 解决方式：已解决训练链路问题。`scripts/run_finetune_smoke.py` 已升级到 `finetune-smoke-runner-v6`：默认 target 改为 `q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj`，新增 `--exclude-modules` 且默认 `regex:.*(vision_tower|audio_tower).*`，只向 `language_model` 注入 LoRA；同时保留 v5 的 `assistant_only` label、Gemma chat template、token/label/truncation 统计，并将 `prepare_model_for_kbit_training` 显式绑定到 `--gradient-checkpointing`，启用时使用 `use_reentrant=False`。验证结果：直接 backward 下 `lora_B` 梯度恢复，205 个 B 张量 / 7,028,736 个 B 参数均有 grad；1-step runner 自检 `grad_norm=2.676` 且保存的 `lora_B` 全部非零；v6 2-sample 20-step overfit run 从 `initial_eval_loss=1.8497421741485596` 降到 `final_eval_loss=0.0005846773856319487`。
 - 后续注意：后续正式/半正式训练必须使用 runner v6 或更高版本，必须检查 `train_dataset_stats` / `eval_dataset_stats`，并确认 adapter 的 `lora_B` 非零。不要再使用 `.linear` target 或 `max_seq_length=128` 评估学习效果。v6 小样本过拟合只证明训练链路可学习，不等于 frozen dev 泛化已经提升；扩大到 400 train / 100 dev 前仍需记录 git commit、资源门禁和 overfit/dev 监控。
 - 相关文件：`scripts/run_finetune_smoke.py`、`configs/experiments/finetune-gemma4-e2b-qlora-frozen-synth-v1.yaml`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-overfit-diagnostic-20260621.md`、`records/11-finetune-data-and-training.md`
+
+## OpenRouter key daily prompt-token limit 会中断大上下文 PE / RAG 批量实验
+
+- 首次发现阶段：PE 优化阶段
+- 状态：active
+- 最后复核：2026-06-21
+- 现象：运行 PE v2 扩展 Oracle 25-case DeepSeek pilot 时，单独误跑 `S+F+C+P` API 组合在 3/25 case 后失败。OpenRouter 返回 `HTTP Error 402: Payment Required`，错误信息包含 `Prompt tokens limit exceeded`，后续 case 只留下 `request_error.txt` / attempts 记录，没有有效 `prediction.yaml`。
+- 影响：这不是模型能力、prompt 格式或 provider routing 问题；如果把失败 run 直接纳入报告，会把未完成 case 计作 0 recall，污染 PE / RAG 对比。大上下文 Oracle / RAG 批量实验尤其容易触发该限制。
+- 原因：OpenRouter key 设置了日级 prompt token 上限；即使账户余额充足、DeepSeek direct provider routing 正确，超过 key daily limit 后仍会拒绝请求。
+- 解决方式：不要把失败批次作为正式指标来源。优先确认该组合是否真的需要额外 API；例如 `P` 只是 deterministic postprocess，不应单独重跑模型。若必须继续跑，等待限额重置或由用户调整 key daily limit 后，用 `--case-id` 只补跑未完成 case，并在报告中写明 split / resume 原因。
+- 后续注意：正式批量实验前先用 dry-run 估算 prompt token 规模；PE/RAG 大 prompt 组合优先按小批次运行并及时汇总成本。报告必须区分“有效 API 成本”和“失败 diagnostic 成本”，并保留 direct provider / no-fallback 配置不变。
+- 相关文件：`configs/experiments/pe-v2.yaml`、`reports/pe/batches/pe-v2-expanded-oracle-25-deepseek-20260621.md`、`records/09-pe-optimization.md`
