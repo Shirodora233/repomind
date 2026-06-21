@@ -191,3 +191,15 @@
 - 解决方式：已在 Oracle runner 和 E2E runner 中增加 structured timing。run 根目录写入 `timing.json`，`run_config.json` 写入 timing summary 和 `timing_file`；每个 case 子目录写入 `timing.json`。E2E `model_trace.json` 额外记录每步模型响应耗时和工具执行耗时，`e2e_metrics.json` summary 记录总 `duration_seconds`。
 - 后续注意：旧 baseline v0 run 没有结构化 wall-clock，不应事后用文件时间作为正式 runtime 指标；从 `oracle-context-runner-v1` / `e2e-agent-runner-v1` 起，后续正式实验必须使用 structured timing。不要把 OpenRouter `usage` 或 Ollama `total_duration` 误写成整批 wall-clock。
 - 相关文件：`scripts/run_oracle_context.py`、`scripts/run_e2e_agent.py`、`docs/call-chain-evaluation-protocol.md`
+
+## OpenRouter / urllib transient SSL EOF 会污染小批量实验分数
+
+- 首次发现阶段：PE / RAG 优化阶段
+- 状态：resolved
+- 最后复核：2026-06-21
+- 现象：RAG-only 20-case pilot 与 PE 2-case smoke 中多次出现 `URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol>`。失败 case 没有 `raw_response.json`，评分时表现为 0 recall。PE smoke 中同一 prompt rerun 可以成功，说明这是请求层 transient failure，不应直接归因于 prompt 或模型能力。
+- 影响：小样本实验会被单个 request error 严重扭曲；例如 2-case smoke 中一侧 case 失败会让 recall 从 1.0 降到 0.444444 或 0.555556。
+- 原因：当前 runner 原来每个 case 只调用一次 API，`urllib.request.urlopen` 遇到 SSL EOF / 5xx / 429 等 transient failure 后直接记录 request_error 并跳过该 case。
+- 解决方式：`scripts/run_oracle_context.py` 新增 `--max-retries` 和 `--retry-backoff-seconds`，并实现 `call_openai_compatible_with_retry()`；`scripts/run_rag_context.py` 复用该 helper。每个 case 会写入 `request_attempts.json`，`timing.json` 中也记录 `model_attempts`，`run_config.json` 记录 retry 配置。默认 `--max-retries=0` 保持旧行为；正式在线实验建议显式设置 `--max-retries 2 --retry-backoff-seconds 2`。
+- 后续注意：retry 只用于 request-level failure，不重试 parse error 或低分输出。报告中需要同时记录 full batch score、request error 数、retry attempts；如果使用 rerun 或 successful-response diagnostic score，必须明确说明口径。
+- 相关文件：`scripts/run_oracle_context.py`、`scripts/run_rag_context.py`

@@ -24,11 +24,11 @@ from call_chain_common import (
 from run_oracle_context import (
     DEFAULT_ENV_FILE,
     _default_model_config_path,
-    call_openai_compatible,
-    format_request_error,
+    call_openai_compatible_with_retry,
     list_models,
     load_env_file,
     load_model_config,
+    ModelRequestFailed,
     normalize_single_case_payload,
     resolve_model_settings,
     response_content,
@@ -73,6 +73,8 @@ def main() -> int:
     parser.add_argument("--reasoning-max-tokens", type=int, help="Optional OpenRouter reasoning.max_tokens value.")
     parser.add_argument("--reasoning-exclude", action="store_true", help="Set OpenRouter reasoning.exclude=true.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
+    parser.add_argument("--max-retries", type=int, default=0, help="Retry retryable model request failures this many times per case.")
+    parser.add_argument("--retry-backoff-seconds", type=float, default=2.0, help="Linear backoff base between retryable attempts.")
     parser.add_argument("--line-tolerance", type=int, default=0)
     parser.add_argument("--runner-version", default=RUNNER_VERSION)
     parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
@@ -166,6 +168,8 @@ def main() -> int:
         "reasoning_max_tokens": args.reasoning_max_tokens,
         "reasoning_exclude": args.reasoning_exclude,
         "timeout_seconds": args.timeout_seconds,
+        "max_retries": args.max_retries,
+        "retry_backoff_seconds": args.retry_backoff_seconds,
         "timing_file": "timing.json",
         "timing": {
             "started_at": run_started_at,
@@ -206,12 +210,16 @@ def main() -> int:
             model_started_perf = time.perf_counter()
             case_timing["model_call_started_at"] = model_started_at
             try:
-                raw_response = call_openai_compatible(prompt, model_settings or {}, args)
-            except Exception as exc:
+                raw_response, attempts = call_openai_compatible_with_retry(prompt, model_settings or {}, args)
+                case_timing["model_attempts"] = attempts
+                write_json(case_dir / "request_attempts.json", attempts)
+            except ModelRequestFailed as exc:
                 case_timing["model_call_finished_at"] = utc_now_iso()
                 case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
+                case_timing["model_attempts"] = exc.attempts
                 case_timing["status"] = "request_error"
-                write_text(case_dir / "request_error.txt", format_request_error(exc))
+                write_json(case_dir / "request_attempts.json", exc.attempts)
+                write_text(case_dir / "request_error.txt", str(exc))
                 continue
             case_timing["model_call_finished_at"] = utc_now_iso()
             case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)

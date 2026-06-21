@@ -51,6 +51,12 @@ DEFAULT_MODEL_CONFIG = PROJECT_ROOT / "configs" / "model-providers.example.yaml"
 DEFAULT_LOCAL_MODEL_CONFIG = PROJECT_ROOT / "configs" / "model-providers.local.yaml"
 
 
+class ModelRequestFailed(RuntimeError):
+    def __init__(self, message: str, attempts: list[dict[str, Any]]) -> None:
+        super().__init__(message)
+        self.attempts = attempts
+
+
 def build_oracle_prompt(case: dict[str, Any], repo_path: Path, prompt_template: str) -> str:
     metadata = dump_yaml(case_metadata_for_prompt(case)).strip()
     context_parts: list[str] = []
@@ -312,6 +318,59 @@ def call_openai_compatible(prompt: str, settings: dict[str, Any], args: argparse
     return call_model_messages(messages, settings, args)
 
 
+def call_openai_compatible_with_retry(
+    prompt: str,
+    settings: dict[str, Any],
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    max_retries = max(0, int(getattr(args, "max_retries", 0) or 0))
+    total_attempts = max_retries + 1
+    backoff = max(0.0, float(getattr(args, "retry_backoff_seconds", 0.0) or 0.0))
+    attempts: list[dict[str, Any]] = []
+    last_error = ""
+
+    for attempt_number in range(1, total_attempts + 1):
+        attempt_started_perf = time.perf_counter()
+        attempt: dict[str, Any] = {
+            "attempt": attempt_number,
+            "started_at": utc_now_iso(),
+            "finished_at": None,
+            "duration_seconds": None,
+            "status": "started",
+            "retryable": False,
+        }
+        try:
+            response = call_openai_compatible(prompt, settings, args)
+        except Exception as exc:
+            last_error = format_request_error(exc)
+            retryable = attempt_number < total_attempts and is_retryable_request_error(exc)
+            attempt["status"] = "request_error"
+            attempt["error"] = last_error
+            attempt["retryable"] = retryable
+            attempt["finished_at"] = utc_now_iso()
+            attempt["duration_seconds"] = round(time.perf_counter() - attempt_started_perf, 3)
+            attempts.append(attempt)
+            if not retryable:
+                raise ModelRequestFailed(last_error, attempts) from exc
+            if backoff:
+                time.sleep(backoff * attempt_number)
+            continue
+
+        attempt["status"] = "success"
+        attempt["finished_at"] = utc_now_iso()
+        attempt["duration_seconds"] = round(time.perf_counter() - attempt_started_perf, 3)
+        attempts.append(attempt)
+        return response, attempts
+
+    raise ModelRequestFailed(last_error or "model request failed", attempts)
+
+
+def is_retryable_request_error(exc: Exception) -> bool:
+    if isinstance(exc, urllib.error.HTTPError):
+        return exc.code in {408, 409, 425, 429} or exc.code >= 500
+    return isinstance(exc, urllib.error.URLError)
+
+
 def call_model_messages(messages: list[dict[str, str]], settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     if settings.get("provider_type") == "ollama-native":
         return call_ollama_native_messages(messages, settings, args)
@@ -418,6 +477,8 @@ def main() -> int:
     parser.add_argument("--reasoning-max-tokens", type=int, help="Optional OpenRouter reasoning.max_tokens value.")
     parser.add_argument("--reasoning-exclude", action="store_true", help="Set OpenRouter reasoning.exclude=true.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
+    parser.add_argument("--max-retries", type=int, default=0, help="Retry retryable model request failures this many times per case.")
+    parser.add_argument("--retry-backoff-seconds", type=float, default=2.0, help="Linear backoff base between retryable attempts.")
     parser.add_argument("--line-tolerance", type=int, default=0)
     parser.add_argument("--runner-version", default="oracle-context-runner-v1")
     parser.add_argument("--prompt-version", default="oracle-context-v0")
@@ -499,6 +560,8 @@ def main() -> int:
         "reasoning_max_tokens": args.reasoning_max_tokens,
         "reasoning_exclude": args.reasoning_exclude,
         "timeout_seconds": args.timeout_seconds,
+        "max_retries": args.max_retries,
+        "retry_backoff_seconds": args.retry_backoff_seconds,
         "timing_file": "timing.json",
         "timing": {
             "started_at": run_started_at,
@@ -543,12 +606,16 @@ def main() -> int:
             model_started_perf = time.perf_counter()
             case_timing["model_call_started_at"] = model_started_at
             try:
-                raw_response = call_openai_compatible(prompt, model_settings or {}, args)
-            except Exception as exc:
+                raw_response, attempts = call_openai_compatible_with_retry(prompt, model_settings or {}, args)
+                case_timing["model_attempts"] = attempts
+                write_json(case_dir / "request_attempts.json", attempts)
+            except ModelRequestFailed as exc:
                 case_timing["model_call_finished_at"] = utc_now_iso()
                 case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
+                case_timing["model_attempts"] = exc.attempts
                 case_timing["status"] = "request_error"
-                write_text(case_dir / "request_error.txt", format_request_error(exc))
+                write_json(case_dir / "request_attempts.json", exc.attempts)
+                write_text(case_dir / "request_error.txt", str(exc))
                 continue
             case_timing["model_call_finished_at"] = utc_now_iso()
             case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
