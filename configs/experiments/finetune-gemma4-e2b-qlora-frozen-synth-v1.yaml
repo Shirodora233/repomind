@@ -57,10 +57,12 @@ environment:
 
 runner:
   script: scripts/run_finetune_smoke.py
-  runner_version: finetune-smoke-runner-v4
+  runner_version: finetune-smoke-runner-v5
   split_argument_required: true
   split: train
   eval_split: dev
+  label_mode: assistant_only
+  use_chat_template: true
   device_map: single-gpu
   trust_remote_code: true
 
@@ -86,17 +88,19 @@ qlora:
 training_defaults:
   max_samples: 400
   max_eval_samples: 100
-  max_seq_length: 128
+  max_seq_length: 512
   max_steps: 100
   eval_steps: 10
   logging_steps: 1
   learning_rate: 0.0002
+  lr_scheduler_type: linear
+  warmup_steps: 0
   per_device_train_batch_size: 1
   per_device_eval_batch_size: 1
   gradient_accumulation_steps: 1
   seed: null
   output_dir: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1
-  note: Increase max_steps or max_seq_length only after a successful controlled run; 8GB VRAM is close to the limit.
+  note: Use assistant-only labels and Gemma chat template. Avoid max_seq_length=128 because the first train samples are about 429-430 tokens and 128 truncates the assistant answer.
 
 command_template: >-
   python scripts\run_finetune_smoke.py
@@ -107,10 +111,14 @@ command_template: >-
   --split train
   --max-eval-samples 100
   --eval-split dev
-  --max-seq-length 128
+  --max-seq-length 512
   --max-steps 100
   --eval-steps 10
   --logging-steps 1
+  --label-mode assistant_only
+  --use-chat-template
+  --lr-scheduler-type linear
+  --warmup-steps 0
   --per-device-eval-batch-size 1
   --gradient-accumulation-steps 1
   --device-map single-gpu
@@ -139,3 +147,4 @@ known_pilot_outputs:
   one_step_smoke: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-smoke-20260621-linear-targets-1step
   ten_step_pilot: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-pilot-20260621-10step
   hundred_step_with_dev_eval: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1-100step-20260621
+  two_sample_overfit_full_length_20step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-overfit-2sample-448-20step-20260621-1155

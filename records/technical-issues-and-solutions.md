@@ -24,6 +24,18 @@
 
 ## 已知问题
 
+## Codex 用量上限可能硬切正在运行的在线模型实验
+
+- 首次发现阶段：修正 golden 后 baseline v1 重跑
+- 状态：active
+- 最后复核：2026-06-21
+- 现象：运行在线模型正式批次时，如果 Codex 侧网络/工具用量达到上限，正在执行的 `require_escalated` API 命令可能以非零状态直接结束，终端没有 Python traceback。受影响 case 目录可能只包含 `prompt.md` 和 `case_metadata.json`，没有 `request_attempts.json`、`raw_response.json`、`prediction.yaml` 或 `timing.json`。
+- 影响：这类中断容易被误判为模型响应格式错误、runner 异常或 provider timeout。若直接重跑全量，会重复消耗已经完成 case 的 API 成本。
+- 原因：该中断发生在外层 Codex 工具/审批额度层，而不是 `run_oracle_context.py` 内部可捕获的 `ModelRequestFailed`；因此 runner 的 `finally` 块不一定有机会写入 case timing。
+- 解决方式：不要把半批 run 当作正式报告来源。保留已完成 case 的 prediction/raw response；等额度恢复后，用 `--case-id` 只跑剩余 case 到单独 part run，最后用 `scripts/summarize_call_chain_runs.py --run track,model,part1+part2 ...` 或 `score_predictions.py` 对合并 predictions 重新评分。
+- 后续注意：正式报告必须说明 split run 的原因、part run path、缺失/补跑 case 范围和是否有重复 case。不要为绕过用量限制改用未记录 provider 或改 routing。
+- 相关文件：`scripts/summarize_call_chain_runs.py`、`records/07-cross-repo-baseline-analysis.md`
+
 ## Windows 本地微调环境 PyTorch CUDA wheel 单连接下载过慢
 
 - 首次发现阶段：Fine-tune 与消融实验阶段
@@ -240,14 +252,14 @@
 - 后续注意：冻结训练配置必须写明 `--split train`。dev split 只用于诊断或后续评估，不应进入训练样本。
 - 相关文件：`scripts/run_finetune_smoke.py`、`configs/experiments/finetune-gemma4-e2b-qlora-frozen-synth-v1.yaml`、`datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json`
 
-## 100-step Gemma4 QLoRA synthetic pilot dev loss 完全持平
+## Gemma4 QLoRA synthetic pilot loss 持平且小样本未过拟合
 
 - 首次发现阶段：Fine-tune 数据与训练阶段
 - 状态：active
 - 最后复核：2026-06-21
-- 现象：使用 frozen synthetic readiness 数据运行 100-step Gemma4 E2B QLoRA，训练链路完成且 adapter 写出，但初始 dev loss、每 10 step dev loss 和最终 dev loss 均为 `7.441023349761963`。Trainer 日志中每步 `grad_norm` 也显示为 `0.0`。训练 loss 首 10 step 均值约 `7.6813`，末 10 step 均值约 `7.5836`，只有很弱下降。
-- 影响：本轮没有过拟合信号，但也没有可测的 dev loss 改善。不能据此声称 fine-tune 效果已经提升，只能说明 QLoRA 链路、adapter 保存和 dev 监控可用。
-- 原因：尚未确定。候选原因包括：100 step / 0.25 epoch 对 synthetic 数据过短；Trainer 默认线性调度快速衰减学习率；LoRA 更新幅度太小；当前 SFT 文本格式未使用 Gemma chat template；labels 覆盖整段 prompt+answer 而非只训练 assistant；`grad_norm=0.0` 可能是 PEFT / quantized module 梯度统计显示问题，也可能提示实际更新弱。
-- 解决方式：未解决。已确认 adapter 权重不是全零：`adapter_model.safetensors` 含 296 个 tensor、2,850,816 个 LoRA 参数，非零参数约 1,277,952，最大绝对值约 `0.03613`。下一步应先做小型诊断 run：固定更高学习率或不衰减调度、只训练 assistant token、记录 LoRA 参数更新范数、用 1-2 条样本过拟合到 loss 明显下降，再扩大正式训练。
-- 后续注意：不要仅凭 `status=completed` 或 adapter 文件存在判断微调有效。报告 fine-tune 效果时必须同时给出 train loss、dev loss、过拟合判断和是否有可测改进。
-- 相关文件：`scripts/run_finetune_smoke.py`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-100step-20260621.md`、`records/11-finetune-data-and-training.md`
+- 现象：使用 frozen synthetic readiness 数据运行 100-step Gemma4 E2B QLoRA，训练链路完成且 adapter 写出，但初始 dev loss、每 10 step dev loss 和最终 dev loss 均为 `7.441023349761963`，`eval_loss_delta=0.0`。Trainer 日志中每步 `grad_norm` 也显示为 `0.0`。后续 2-sample overfit 诊断使用 train 样本同时作为 eval、`max_seq_length=448`、`learning_rate=0.001`、`lr_scheduler_type=constant`、`lora_dropout=0`、20 steps，仍然得到 `initial_eval_loss=4.764147758483887`、`final_eval_loss=4.764147758483887`、`eval_loss_delta=0.0`。
+- 影响：当前只能说明 QLoRA 链路、adapter 保存和 overfit/dev 监控可用，不能声称 fine-tune 效果已经提升。100-step run 没有过拟合信号，也没有可测 dev loss 改善；2-sample 诊断未能在极小样本上产生应有的 loss 下降，必须先修复训练信号再放大训练。
+- 原因：已确认一个明确问题：100-step pilot 的 `max_seq_length=128` 太短，前几条 train 样本旧 formatter token 长度约 423-476，128 很可能在 assistant 答案前截断。未完全解决的问题是：即使提高到 448，旧 runner 仍训练整段 prompt+answer，且使用手写 `<|role|>` 标记而不是 Gemma chat template；这可能让 loss 被 prompt 复现主导，掩盖 assistant 答案学习。`grad_norm=0.0` 仍需继续判断是 PEFT / quantized module 日志显示问题，还是实际有效更新弱。
+- 解决方式：部分解决。已确认 adapter 权重不是全零：100-step 与 2-sample 诊断均写出 296 个 tensor、2,850,816 个 LoRA 参数、约 1,277,952 个非零参数，最大绝对值约 `0.03613`。`scripts/run_finetune_smoke.py` 已升级为 `finetune-smoke-runner-v5`：新增 `--label-mode assistant_only|full_text`（默认 `assistant_only`）、`--use-chat-template/--no-use-chat-template`、`--lr-scheduler-type`、`--warmup-steps`，并在 `training_summary.json` 写入 token/label/truncation 统计；截断后没有监督 token 会直接报错。`configs/experiments/finetune-gemma4-e2b-qlora-frozen-synth-v1.yaml` 已更新为下一轮使用 `label_mode=assistant_only`、`use_chat_template=true`、`max_seq_length=512`。
+- 后续注意：下一步必须先复跑 1-2 条样本 overfit 诊断，确认 v5 runner 下 loss 明显下降，再扩大到 400 train / 100 dev。不要再使用 `max_seq_length=128` 作为学习效果评估入口。不要仅凭 `status=completed` 或 adapter 文件存在判断微调有效；报告 fine-tune 效果时必须同时给出 train loss、eval loss、过拟合判断、token/label/truncation 统计和是否有可测改进。
+- 相关文件：`scripts/run_finetune_smoke.py`、`configs/experiments/finetune-gemma4-e2b-qlora-frozen-synth-v1.yaml`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-overfit-diagnostic-20260621.md`、`records/11-finetune-data-and-training.md`
