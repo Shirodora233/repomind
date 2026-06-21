@@ -4,6 +4,7 @@ import argparse
 import glob
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -113,6 +114,10 @@ def sample_fingerprint(sample: dict[str, Any]) -> str:
         "dynamic": sample.get("dynamic_boundary", {}).get("boundary_types", []),
     }
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)
+
+
+def evidence_ref(edge: dict[str, Any]) -> str:
+    return f"{edge.get('caller', '')}->{edge.get('callee', '')}"
 
 
 def validate_call_edge(edge: Any, location: str) -> list[str]:
@@ -275,9 +280,27 @@ def validate_samples(
     group_splits: dict[str, set[str]] = {}
     sample_ids: dict[str, str] = {}
     fingerprints: dict[str, str] = {}
-    split_counts: dict[str, int] = {}
-    source_type_counts: dict[str, int] = {}
-    tag_counts: dict[str, int] = {}
+    duplicate_sample_id_count = 0
+    duplicate_content_count = 0
+    split_counts: Counter[str] = Counter()
+    source_type_counts: Counter[str] = Counter()
+    tag_counts: Counter[str] = Counter()
+    task_type_counts: Counter[str] = Counter()
+    direction_counts: Counter[str] = Counter()
+    edge_bucket_counts: Counter[str] = Counter()
+    negative_type_counts: Counter[str] = Counter()
+    dynamic_boundary_type_counts: Counter[str] = Counter()
+    positive_required_samples = 0
+    negative_samples = 0
+    boundary_only_non_negative_samples = 0
+    dynamic_boundary_samples = 0
+    samples_with_evidence = 0
+    samples_missing_evidence = 0
+    evidence_complete_samples = 0
+    evidence_incomplete_samples = 0
+    total_edge_labels_requiring_evidence = 0
+    edge_labels_with_evidence = 0
+    missing_evidence_refs: list[str] = []
     repo_group_summary: dict[str, dict[str, Any]] = {}
 
     leakage_rules = config.get("leakage_rules", {}) if isinstance(config.get("leakage_rules"), dict) else {}
@@ -323,12 +346,14 @@ def validate_samples(
 
                 sample_id = sample["id"]
                 if sample_id in sample_ids:
+                    duplicate_sample_id_count += 1
                     errors.append(f"{prefix}: duplicate sample id {sample_id!r}; first seen at {sample_ids[sample_id]}")
                 else:
                     sample_ids[sample_id] = prefix
 
                 fingerprint = sample_fingerprint(sample)
                 if fingerprint in fingerprints:
+                    duplicate_content_count += 1
                     errors.append(f"{prefix}: duplicate sample content; first seen at {fingerprints[fingerprint]}")
                 else:
                     fingerprints[fingerprint] = prefix
@@ -336,11 +361,67 @@ def validate_samples(
                 repo = sample["repo"]
                 group = sample["leakage"]["split_by_repo_group"]
                 split = sample["split"]
+                labels = sample["edges"]
+                negative = sample["negative"]
+                dynamic = sample["dynamic_boundary"]
                 repo_splits.setdefault(repo, set()).add(split)
                 group_splits.setdefault(group, set()).add(split)
-                split_counts[split] = split_counts.get(split, 0) + 1
+                split_counts[split] += 1
                 source_type = sample.get("source_type", "unknown")
-                source_type_counts[source_type] = source_type_counts.get(source_type, 0) + 1
+                source_type_counts[source_type] += 1
+                task_type_counts[sample["task_type"]] += 1
+                direction_counts[sample["direction"]] += 1
+                for bucket in ("required_edges", "optional_edges", "excluded_edges", "runtime_only_edges"):
+                    edge_bucket_counts[bucket] += len(labels.get(bucket, []))
+
+                if negative.get("is_negative"):
+                    negative_samples += 1
+                    negative_type_counts[negative.get("negative_type", "unknown")] += 1
+                elif labels.get("required_edges"):
+                    positive_required_samples += 1
+                else:
+                    boundary_only_non_negative_samples += 1
+
+                if dynamic.get("has_dynamic_boundary"):
+                    dynamic_boundary_samples += 1
+                    for boundary_type in dynamic.get("boundary_types", []):
+                        dynamic_boundary_type_counts[boundary_type] += 1
+                else:
+                    dynamic_boundary_type_counts["none"] += 1
+
+                evidence_items = sample.get("evidence", [])
+                if evidence_items:
+                    samples_with_evidence += 1
+                else:
+                    samples_missing_evidence += 1
+
+                evidence_refs = {
+                    (item.get("bucket"), item.get("edge_ref"))
+                    for item in evidence_items
+                    if isinstance(item, dict) and item.get("edge_ref")
+                }
+                expected_refs: list[tuple[str, str]] = []
+                for bucket in ("required_edges", "optional_edges", "excluded_edges", "runtime_only_edges"):
+                    for edge_item in labels.get(bucket, []):
+                        expected_refs.append((bucket, evidence_ref(edge_item)))
+                missing_refs = [
+                    (bucket, ref)
+                    for bucket, ref in expected_refs
+                    if (bucket, ref) not in evidence_refs
+                ]
+                total_edge_labels_requiring_evidence += len(expected_refs)
+                edge_labels_with_evidence += len(expected_refs) - len(missing_refs)
+                if missing_refs:
+                    evidence_incomplete_samples += 1
+                    for bucket, ref in missing_refs[:10]:
+                        missing_evidence_refs.append(f"{prefix}: missing evidence for {bucket} {ref}")
+                    if len(missing_refs) > 10:
+                        missing_evidence_refs.append(
+                            f"{prefix}: {len(missing_refs) - 10} additional edge labels missing evidence"
+                        )
+                elif evidence_items:
+                    evidence_complete_samples += 1
+
                 group_item = repo_group_summary.setdefault(
                     group,
                     {
@@ -354,7 +435,7 @@ def validate_samples(
                 group_item["splits"].add(split)
                 for tag in sample.get("tags", []):
                     if isinstance(tag, str) and tag.strip():
-                        tag_counts[tag] = tag_counts.get(tag, 0) + 1
+                        tag_counts[tag] += 1
 
             all_errors.extend(errors)
             all_warnings.extend(warnings)
@@ -368,13 +449,19 @@ def validate_samples(
                 }
             )
 
+    repo_split_isolation_violations: list[str] = []
     if split_by_repo:
         for repo, splits in sorted(repo_splits.items()):
             if len(splits) > 1:
-                all_errors.append(f"repo split isolation violation: {repo!r} appears in {sorted(splits)}")
+                repo_split_isolation_violations.append(
+                    f"repo split isolation violation: {repo!r} appears in {sorted(splits)}"
+                )
         for group, splits in sorted(group_splits.items()):
             if len(splits) > 1:
-                all_errors.append(f"split_by_repo_group isolation violation: {group!r} appears in {sorted(splits)}")
+                repo_split_isolation_violations.append(
+                    f"split_by_repo_group isolation violation: {group!r} appears in {sorted(splits)}"
+                )
+        all_errors.extend(repo_split_isolation_violations)
 
     missing_required_sample_types = [tag for tag in required_sample_types if tag_counts.get(tag, 0) == 0]
     for tag in missing_required_sample_types:
@@ -395,13 +482,45 @@ def validate_samples(
     return {
         "file_count": len(files),
         "sample_count": len(reports),
-        "split_counts": split_counts,
-        "source_type_counts": source_type_counts,
-        "tag_counts": tag_counts,
+        "split_counts": dict(sorted(split_counts.items())),
+        "source_type_counts": dict(sorted(source_type_counts.items())),
+        "tag_counts": dict(sorted(tag_counts.items())),
+        "task_type_counts": dict(sorted(task_type_counts.items())),
+        "direction_counts": dict(sorted(direction_counts.items())),
+        "edge_bucket_counts": dict(sorted(edge_bucket_counts.items())),
         "required_sample_types": required_sample_types,
         "missing_required_sample_types": missing_required_sample_types,
         "repo_split_group_counts": dict(sorted(repo_split_group_counts.items())),
         "repo_split_groups": normalized_repo_group_summary,
+        "repo_split_isolation": {
+            "passed": not repo_split_isolation_violations,
+            "violations": repo_split_isolation_violations,
+        },
+        "positive_negative_summary": {
+            "positive_required_samples": positive_required_samples,
+            "negative_samples": negative_samples,
+            "boundary_only_non_negative_samples": boundary_only_non_negative_samples,
+            "negative_type_counts": dict(sorted(negative_type_counts.items())),
+        },
+        "dynamic_boundary_summary": {
+            "dynamic_boundary_samples": dynamic_boundary_samples,
+            "non_dynamic_samples": len(reports) - dynamic_boundary_samples,
+            "boundary_type_counts": dict(sorted(dynamic_boundary_type_counts.items())),
+        },
+        "evidence_completeness": {
+            "samples_with_evidence": samples_with_evidence,
+            "samples_missing_evidence": samples_missing_evidence,
+            "evidence_complete_samples": evidence_complete_samples,
+            "evidence_incomplete_samples": evidence_incomplete_samples,
+            "edge_labels_requiring_evidence": total_edge_labels_requiring_evidence,
+            "edge_labels_with_evidence": edge_labels_with_evidence,
+            "edge_labels_missing_evidence": total_edge_labels_requiring_evidence - edge_labels_with_evidence,
+            "missing_evidence_refs": missing_evidence_refs,
+        },
+        "duplicate_summary": {
+            "duplicate_sample_id_count": duplicate_sample_id_count,
+            "duplicate_content_count": duplicate_content_count,
+        },
         "error_count": len(all_errors),
         "warning_count": len(all_warnings),
         "errors": all_errors,
@@ -446,6 +565,11 @@ def main() -> int:
     print("split counts:", json.dumps(summary["split_counts"], sort_keys=True))
     print("source type counts:", json.dumps(summary["source_type_counts"], sort_keys=True))
     print("repo split group counts:", json.dumps(summary["repo_split_group_counts"], sort_keys=True))
+    print("repo split isolation:", "passed" if summary["repo_split_isolation"]["passed"] else "failed")
+    print("positive/negative:", json.dumps(summary["positive_negative_summary"], sort_keys=True))
+    print("dynamic boundary:", json.dumps(summary["dynamic_boundary_summary"], sort_keys=True))
+    print("evidence completeness:", json.dumps(summary["evidence_completeness"], sort_keys=True))
+    print("duplicates:", json.dumps(summary["duplicate_summary"], sort_keys=True))
     if summary["required_sample_types"]:
         covered = len(summary["required_sample_types"]) - len(summary["missing_required_sample_types"])
         print(f"required sample type coverage: {covered}/{len(summary['required_sample_types'])}")
