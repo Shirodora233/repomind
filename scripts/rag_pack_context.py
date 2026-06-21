@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import math
+import re
 import sys
 import time
 from pathlib import Path
@@ -25,12 +27,38 @@ from call_chain_common import (
     write_text,
     write_yaml,
 )
-from rag_common import load_index, project_path, result_public_view
+from rag_common import load_index, module_name_from_path, project_path, result_public_view, target_module_hints
 
 
 DEFAULT_PROMPT = PROJECT_ROOT / "prompts" / "oracle-context-v0.md"
-CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1"
-CONTEXT_PACKER_VERSION = "rag-context-packer-v1"
+CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.1"
+CONTEXT_PACKER_VERSION = "rag-context-packer-v1.1"
+CALL_EXPR_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\(")
+CALL_SKIP_NAMES = {
+    "all",
+    "any",
+    "bool",
+    "bytes",
+    "cast",
+    "dict",
+    "float",
+    "int",
+    "isinstance",
+    "issubclass",
+    "len",
+    "list",
+    "max",
+    "min",
+    "object",
+    "print",
+    "range",
+    "repr",
+    "set",
+    "str",
+    "sum",
+    "tuple",
+    "type",
+}
 
 
 def main() -> int:
@@ -43,6 +71,13 @@ def main() -> int:
     parser.add_argument("--top-k", type=int, default=10, help="Max retrieved chunks per case to consider.")
     parser.add_argument("--max-context-tokens", type=int, default=24000, help="Approximate context token budget per case.")
     parser.add_argument("--chars-per-token", type=float, default=4.0, help="Approximate chars/token for budget accounting.")
+    parser.add_argument("--no-synthesis-aid", action="store_true", help="Disable deterministic RAG synthesis aid block.")
+    parser.add_argument(
+        "--synthesis-aid-call-limit",
+        type=int,
+        default=40,
+        help="Max direct-call candidate rows rendered in the deterministic synthesis aid.",
+    )
     parser.add_argument("--out-dir", help="Output directory. Defaults to runs/rag-context/rag-v1-<timestamp>.")
     parser.add_argument("--format", choices=["table", "json"], default="table")
     args = parser.parse_args()
@@ -53,6 +88,8 @@ def main() -> int:
         raise ValueError("--max-context-tokens must be positive")
     if args.chars_per_token <= 0:
         raise ValueError("--chars-per-token must be positive")
+    if args.synthesis_aid_call_limit < 0:
+        raise ValueError("--synthesis-aid-call-limit must be zero or positive")
 
     started_at = utc_now_iso()
     started_perf = time.perf_counter()
@@ -62,6 +99,7 @@ def main() -> int:
         raise ValueError(f"{retrieval_path}: retrieval report missing index_dir")
     loaded_index = load_index(str(index_dir))
     chunks_by_id = {str(chunk.get("chunk_id")): chunk for chunk in loaded_index.chunks}
+    chunks_by_file = group_chunks_by_file(loaded_index.chunks)
 
     retrieval_cases = {str(item.get("case_id")): item for item in retrieval_report.get("cases", [])}
     selected_ids = list(args.case_id or retrieval_cases.keys())
@@ -81,9 +119,12 @@ def main() -> int:
             case=cases[case_id],
             retrieval_case=retrieval_cases.get(case_id),
             chunks_by_id=chunks_by_id,
+            chunks_by_file=chunks_by_file,
             top_k=args.top_k,
             max_context_tokens=args.max_context_tokens,
             chars_per_token=args.chars_per_token,
+            include_synthesis_aid=not args.no_synthesis_aid,
+            synthesis_aid_call_limit=args.synthesis_aid_call_limit,
             prompt_template=prompt_template,
             prompt_template_path=prompt_template_path,
             prompt_version=args.prompt_version,
@@ -107,6 +148,8 @@ def main() -> int:
         "top_k": args.top_k,
         "max_context_tokens": args.max_context_tokens,
         "chars_per_token": args.chars_per_token,
+        "synthesis_aid_enabled": not args.no_synthesis_aid,
+        "synthesis_aid_call_limit": args.synthesis_aid_call_limit,
         "case_count": len(packed_cases),
         "cases": packed_cases,
         "out_dir": str(out_root),
@@ -135,9 +178,12 @@ def pack_case(
     case: dict[str, Any],
     retrieval_case: dict[str, Any] | None,
     chunks_by_id: dict[str, dict[str, Any]],
+    chunks_by_file: dict[str, list[dict[str, Any]]],
     top_k: int,
     max_context_tokens: int,
     chars_per_token: float,
+    include_synthesis_aid: bool,
+    synthesis_aid_call_limit: int,
     prompt_template: str,
     prompt_template_path: Path,
     prompt_version: str,
@@ -148,6 +194,7 @@ def pack_case(
         key=lambda item: int(item.get("rank") or 999999),
     )
     selected_chunks: list[dict[str, Any]] = []
+    selected_sources: list[dict[str, Any]] = []
     context_parts: list[str] = []
     token_total = 0
     skipped_budget = 0
@@ -172,19 +219,40 @@ def pack_case(
         public_result = result_public_view(result)
         public_result["estimated_tokens"] = estimated_tokens
         selected_chunks.append(public_result)
+        source = {"result": result, "chunk": chunk or result, "text": text, "public_result": public_result}
+        selected_sources.append(source)
         context_parts.append(render_context_part(result=result, chunk=chunk or result, text=text))
 
-    context_text = "\n\n".join(context_parts)
-    prompt_text = render_prompt(prompt_template, case, context_text)
     case_dir = out_root / safe_name(case["id"])
     context_path = case_dir / "retrieved_context.md"
     prompt_path = case_dir / "prompt.md"
     metadata_path = case_dir / "case_metadata.yaml"
+
+    synthesis_aid: dict[str, Any] | None = None
+    synthesis_aid_tokens = 0
+    synthesis_aid_path: Path | None = None
+    if include_synthesis_aid:
+        synthesis_aid = build_synthesis_aid(
+            case=case,
+            selected_sources=selected_sources,
+            chunks_by_file=chunks_by_file,
+            call_limit=synthesis_aid_call_limit,
+        )
+        synthesis_aid_text = render_synthesis_aid(synthesis_aid)
+        synthesis_aid_tokens = estimate_tokens(synthesis_aid_text, chars_per_token=chars_per_token)
+        context_parts = [synthesis_aid_text, *context_parts]
+        synthesis_aid_path = case_dir / "synthesis_aid.json"
+
+    context_text = "\n\n".join(part for part in context_parts if part)
+    prompt_text = render_prompt(prompt_template, case, context_text)
     write_text(context_path, context_text + ("\n" if context_text else ""))
     write_text(prompt_path, prompt_text)
     write_yaml(metadata_path, rag_case_metadata_for_prompt(case))
+    if synthesis_aid is not None and synthesis_aid_path is not None:
+        write_json(synthesis_aid_path, synthesis_aid)
 
     included_files = sorted({str(item.get("file") or "") for item in selected_chunks if item.get("file")})
+    aid_summary = summarize_synthesis_aid(synthesis_aid, synthesis_aid_tokens) if synthesis_aid else None
     return {
         "case_id": case["id"],
         "repo_key": case.get("repo_key"),
@@ -194,11 +262,15 @@ def pack_case(
         "retrieval_result_count": len(retrieval_results),
         "included_chunk_count": len(selected_chunks),
         "included_files": included_files,
-        "estimated_context_tokens": token_total,
+        "estimated_context_tokens": token_total + synthesis_aid_tokens,
+        "estimated_chunk_tokens": token_total,
+        "estimated_synthesis_aid_tokens": synthesis_aid_tokens,
         "skipped_by_budget": skipped_budget,
         "context_file": project_relative(context_path),
         "prompt_file": project_relative(prompt_path),
         "case_metadata_file": project_relative(metadata_path),
+        "synthesis_aid_file": project_relative(synthesis_aid_path) if synthesis_aid_path else None,
+        "synthesis_aid": aid_summary,
         "prompt_template": project_relative(prompt_template_path),
         "prompt_version": prompt_version,
         "chunks": selected_chunks,
@@ -239,6 +311,653 @@ def render_prompt(prompt_template: str, case: dict[str, Any], context_text: str)
 def rag_case_metadata_for_prompt(case: dict[str, Any]) -> dict[str, Any]:
     excluded = {"golden", "oracle_context"}
     return {key: value for key, value in case.items() if key not in excluded}
+
+
+def group_chunks_by_file(chunks: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for chunk in chunks:
+        file_name = str(chunk.get("file") or "")
+        if not file_name:
+            continue
+        grouped.setdefault(file_name, []).append(chunk)
+    for items in grouped.values():
+        items.sort(key=lambda item: (int(item.get("start_line") or 0), int(item.get("end_line") or 0)))
+    return grouped
+
+
+def build_synthesis_aid(
+    *,
+    case: dict[str, Any],
+    selected_sources: list[dict[str, Any]],
+    chunks_by_file: dict[str, list[dict[str, Any]]],
+    call_limit: int,
+) -> dict[str, Any]:
+    target = str(case.get("target") or "")
+    target_type = str(case.get("target_type") or "")
+    task_type = str(case.get("task_type") or "")
+    direction = str(case.get("direction") or "")
+    target_tail = target.split(".")[-1] if target else ""
+    target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
+    module_symbol, module_path = target_module_hints(target, target_type)
+    definition_focus = build_target_definition_focus(target, selected_sources)
+    target_file = str(definition_focus.get("file") or "")
+    import_context = build_target_import_context(
+        target_file=target_file,
+        definition_start_line=as_int(definition_focus.get("definition_start_line")),
+        chunks_by_file=chunks_by_file,
+    )
+    import_aliases = parse_import_aliases(import_context.get("import_source", ""), current_module=module_symbol)
+    direct_calls = build_direct_call_evidence(
+        case=case,
+        selected_sources=selected_sources,
+        import_aliases=import_aliases,
+        limit=call_limit,
+    )
+    return {
+        "source_policy": {
+            "note": "Deterministic helper derived only from case metadata, retrieval results, and index chunks.",
+            "golden_used": False,
+            "oracle_context_used": False,
+            "allowed_sources": [
+                "case metadata without golden/oracle_context",
+                "retrieval results",
+                "index chunks",
+            ],
+        },
+        "case_constraints": {
+            "case_id": case.get("id"),
+            "repo_key": case.get("repo_key"),
+            "task_type": task_type,
+            "direction": direction,
+            "target": target,
+            "target_type": target_type,
+            "max_depth": case.get("max_depth"),
+            "scope": case.get("scope"),
+            "include_tests": case.get("include_tests"),
+            "external_deps": case.get("external_deps"),
+            "features": case.get("features", []),
+        },
+        "canonical_symbol_hints": {
+            "target_symbol": target,
+            "target_tail": target_tail,
+            "target_parent": target_parent,
+            "target_module_symbol": module_symbol,
+            "target_module_path_hint": module_path,
+            "constructor_class_symbol_hint": target_parent if target_tail in {"from_crawler", "__init__"} else None,
+            "import_aliases_from_target_module": import_aliases,
+        },
+        "target_definition": definition_focus,
+        "target_module_import_context": import_context,
+        "direct_call_evidence": {
+            "mode": direct_call_mode(task_type, direction),
+            "candidate_count": len(direct_calls["candidates"]),
+            "rendered_candidate_count": len(direct_calls["rendered_candidates"]),
+            "omitted_candidate_count": direct_calls["omitted_count"],
+            "candidates": direct_calls["rendered_candidates"],
+        },
+        "boundary_notes": build_boundary_notes(case),
+    }
+
+
+def build_target_definition_focus(target: str, selected_sources: list[dict[str, Any]]) -> dict[str, Any]:
+    if not target:
+        return {"status": "no_target"}
+    candidates: list[dict[str, Any]] = []
+    for source in selected_sources:
+        chunk = source["chunk"]
+        result = source["result"]
+        for span in chunk.get("symbol_spans") or []:
+            if not isinstance(span, dict) or str(span.get("symbol") or "") != target:
+                continue
+            chunk_start = as_int(chunk.get("start_line"), 1)
+            chunk_end = as_int(chunk.get("end_line"), chunk_start)
+            definition_start = as_int(span.get("start_line"), chunk_start)
+            definition_end = as_int(span.get("end_line"), definition_start)
+            overlap_start = max(chunk_start, definition_start)
+            overlap_end = min(chunk_end, definition_end)
+            candidates.append(
+                {
+                    "status": "exact_index_symbol_match",
+                    "symbol": target,
+                    "file": chunk.get("file"),
+                    "retrieval_rank": result.get("rank"),
+                    "chunk_id": chunk.get("chunk_id") or result.get("chunk_id"),
+                    "definition_start_line": definition_start,
+                    "definition_end_line": definition_end,
+                    "chunk_start_line": chunk_start,
+                    "chunk_end_line": chunk_end,
+                    "snippet_start_line": overlap_start,
+                    "snippet_end_line": min(overlap_end, overlap_start + 40),
+                    "snippet": slice_numbered_text(
+                        str(source.get("text") or ""),
+                        chunk_start=chunk_start,
+                        start_line=overlap_start,
+                        end_line=min(overlap_end, overlap_start + 40),
+                    ),
+                }
+            )
+    if not candidates:
+        return {"status": "not_found_in_selected_chunks", "symbol": target}
+    candidates.sort(
+        key=lambda item: (
+            0 if item.get("snippet_start_line") == item.get("definition_start_line") else 1,
+            as_int(item.get("retrieval_rank"), 999999),
+            as_int(item.get("chunk_start_line"), 999999),
+        )
+    )
+    selected = candidates[0]
+    selected["selected_body_chunk_count"] = len(candidates)
+    selected["body_chunk_refs"] = [
+        {
+            "file": item.get("file"),
+            "retrieval_rank": item.get("retrieval_rank"),
+            "chunk_id": item.get("chunk_id"),
+            "lines": f"{item.get('chunk_start_line')}-{item.get('chunk_end_line')}",
+        }
+        for item in candidates[:8]
+    ]
+    return selected
+
+
+def build_target_import_context(
+    *,
+    target_file: str,
+    definition_start_line: int,
+    chunks_by_file: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    if not target_file:
+        return {"status": "no_target_definition_file"}
+    chunks = chunks_by_file.get(target_file, [])
+    if not chunks:
+        return {"status": "target_file_not_indexed", "file": target_file}
+    cutoff = definition_start_line if definition_start_line > 0 else 160
+    line_map: dict[int, str] = {}
+    source_chunk_ids: list[str] = []
+    for chunk in chunks:
+        chunk_start = as_int(chunk.get("start_line"), 1)
+        if chunk_start > cutoff:
+            continue
+        source_chunk_ids.append(str(chunk.get("chunk_id") or ""))
+        for offset, line in enumerate(str(chunk.get("text") or "").splitlines()):
+            line_no = chunk_start + offset
+            if line_no >= cutoff:
+                continue
+            line_map.setdefault(line_no, line)
+    import_lines = select_import_lines(line_map)
+    if not import_lines:
+        return {
+            "status": "no_import_lines_before_target_definition",
+            "file": target_file,
+            "source_chunk_count": len(source_chunk_ids),
+        }
+    import_source = "\n".join(line for _, line in import_lines)
+    return {
+        "status": "index_import_context",
+        "file": target_file,
+        "line_count": len(import_lines),
+        "source_chunk_count": len(source_chunk_ids),
+        "source_chunk_ids": [chunk_id for chunk_id in source_chunk_ids if chunk_id][:5],
+        "import_source": import_source,
+        "line_numbered_imports": "\n".join(f"{line_no:>4} | {line}" for line_no, line in import_lines),
+    }
+
+
+def select_import_lines(line_map: dict[int, str]) -> list[tuple[int, str]]:
+    selected: list[tuple[int, str]] = []
+    in_block = False
+    paren_balance = 0
+    for line_no in sorted(line_map):
+        line = line_map[line_no]
+        stripped = line.strip()
+        starts_import = stripped.startswith("import ") or stripped.startswith("from ")
+        if starts_import:
+            in_block = True
+            paren_balance = stripped.count("(") - stripped.count(")")
+            selected.append((line_no, line))
+            if paren_balance <= 0 and not stripped.endswith("\\"):
+                in_block = False
+            continue
+        if in_block:
+            selected.append((line_no, line))
+            paren_balance += stripped.count("(") - stripped.count(")")
+            if paren_balance <= 0 and not stripped.endswith("\\"):
+                in_block = False
+    return selected
+
+
+def parse_import_aliases(import_source: str, *, current_module: str = "") -> dict[str, str]:
+    if not import_source.strip():
+        return {}
+    try:
+        tree = ast.parse(import_source)
+    except SyntaxError:
+        return {}
+    aliases: dict[str, str] = {}
+
+    for node in getattr(tree, "body", []):
+        if isinstance(node, ast.ImportFrom):
+            module = resolve_import_from_module(
+                module=str(node.module or ""),
+                level=int(node.level or 0),
+                current_module=current_module,
+            )
+            if not module.strip("."):
+                continue
+            for alias in node.names:
+                if alias.name == "*":
+                    continue
+                local_name = alias.asname or alias.name.split(".")[-1]
+                aliases[local_name] = f"{module}.{alias.name}".lstrip(".")
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                local_name = alias.asname or alias.name.split(".")[0]
+                aliases[local_name] = alias.name
+    return dict(sorted(aliases.items()))
+
+
+def resolve_import_from_module(*, module: str, level: int, current_module: str) -> str:
+    if level <= 0:
+        return module
+    current_parts = [part for part in current_module.split(".") if part]
+    base_parts = current_parts[: max(0, len(current_parts) - level)]
+    parts = [*base_parts, *[part for part in module.split(".") if part]]
+    return ".".join(parts)
+
+
+def build_direct_call_evidence(
+    *,
+    case: dict[str, Any],
+    selected_sources: list[dict[str, Any]],
+    import_aliases: dict[str, str],
+    limit: int,
+) -> dict[str, Any]:
+    mode = direct_call_mode(str(case.get("task_type") or ""), str(case.get("direction") or ""))
+    target = str(case.get("target") or "")
+    target_tail = target.split(".")[-1] if target else ""
+    candidates: list[dict[str, Any]] = []
+    seen: set[tuple[str, int, str, str]] = set()
+    for source in selected_sources:
+        chunk = source["chunk"]
+        result = source["result"]
+        chunk_start = as_int(chunk.get("start_line"), 1)
+        for offset, line in enumerate(str(source.get("text") or "").splitlines()):
+            line_no = chunk_start + offset
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#") or is_definition_line(stripped):
+                continue
+            enclosing_symbol = enclosing_symbol_for_line(chunk, line_no)
+            if mode == "callers_to_target":
+                if enclosing_symbol == target:
+                    continue
+                call_exprs = [
+                    expr for expr in extract_call_expressions(line) if call_expr_tail(expr) == target_tail
+                ]
+                for expr in call_exprs:
+                    candidate = call_candidate_record(
+                        role="caller_to_target_candidate",
+                        case=case,
+                        result=result,
+                        chunk=chunk,
+                        line_no=line_no,
+                        evidence=stripped,
+                        caller_hint=enclosing_symbol or module_name_from_path(str(chunk.get("file") or "")),
+                        callee_expression=expr,
+                        canonical_hint=target,
+                        import_aliases=import_aliases,
+                    )
+                    key = candidate_key(candidate)
+                    if key not in seen:
+                        seen.add(key)
+                        candidates.append(candidate)
+            else:
+                target_span = target_span_for_line(chunk, target, line_no)
+                if target_span is None:
+                    continue
+                for expr in extract_call_expressions(line):
+                    candidate = call_candidate_record(
+                        role="target_body_direct_call_candidate",
+                        case=case,
+                        result=result,
+                        chunk=chunk,
+                        line_no=line_no,
+                        evidence=stripped,
+                        caller_hint=target,
+                        callee_expression=expr,
+                        canonical_hint=resolve_callee_hint(expr, case, import_aliases),
+                        import_aliases=import_aliases,
+                    )
+                    key = candidate_key(candidate)
+                    if key not in seen:
+                        seen.add(key)
+                        candidates.append(candidate)
+    candidates.sort(
+        key=lambda item: (
+            as_int(item.get("retrieval_rank"), 999999),
+            str(item.get("file") or ""),
+            as_int(item.get("line"), 999999),
+            str(item.get("callee_expression") or ""),
+        )
+    )
+    return {
+        "candidates": candidates,
+        "rendered_candidates": candidates[:limit] if limit else [],
+        "omitted_count": max(0, len(candidates) - limit),
+    }
+
+
+def call_candidate_record(
+    *,
+    role: str,
+    case: dict[str, Any],
+    result: dict[str, Any],
+    chunk: dict[str, Any],
+    line_no: int,
+    evidence: str,
+    caller_hint: str,
+    callee_expression: str,
+    canonical_hint: str | None,
+    import_aliases: dict[str, str],
+) -> dict[str, Any]:
+    return {
+        "role": role,
+        "caller_hint": caller_hint,
+        "callee_expression": callee_expression,
+        "callee_canonical_hint": canonical_hint,
+        "receiver_hint": receiver_hint(callee_expression),
+        "boundary_role": boundary_role(callee_expression, evidence),
+        "registered_callback_arguments": registered_callback_arguments(evidence),
+        "file": chunk.get("file"),
+        "line": line_no,
+        "evidence": evidence,
+        "retrieval_rank": result.get("rank"),
+        "best_query": result.get("best_query"),
+        "normalization_note": normalization_note(callee_expression, case, import_aliases),
+    }
+
+
+def extract_call_expressions(line: str) -> list[str]:
+    expressions: list[str] = []
+    for match in CALL_EXPR_RE.finditer(strip_inline_comment(line)):
+        expr = match.group(1)
+        tail = call_expr_tail(expr)
+        if tail in CALL_SKIP_NAMES:
+            continue
+        if expr in {"if", "for", "while", "with", "return", "yield", "await", "lambda"}:
+            continue
+        expressions.append(expr)
+    return list(dict.fromkeys(expressions))
+
+
+def strip_inline_comment(line: str) -> str:
+    in_single = False
+    in_double = False
+    escaped = False
+    for idx, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == "'" and not in_double:
+            in_single = not in_single
+            continue
+        if char == '"' and not in_single:
+            in_double = not in_double
+            continue
+        if char == "#" and not in_single and not in_double:
+            return line[:idx]
+    return line
+
+
+def call_expr_tail(expr: str) -> str:
+    return expr.split(".")[-1]
+
+
+def receiver_hint(expr: str) -> str | None:
+    if "." not in expr:
+        return None
+    return ".".join(expr.split(".")[:-1])
+
+
+def boundary_role(expr: str, evidence: str) -> str:
+    tail = call_expr_tail(expr)
+    if tail in {"connect", "disconnect", "add_listener", "add_handler", "register", "register_handler"}:
+        return "registration_or_lifecycle_boundary"
+    if tail in {"append", "add", "remove", "setdefault", "get", "set_value", "inc_value"}:
+        return "state_or_container_call"
+    if "signals." in expr or ".signals." in expr:
+        return "signal_dispatch_call"
+    if registered_callback_arguments(evidence):
+        return "registration_with_callback_arguments"
+    return "direct_call_expression"
+
+
+def registered_callback_arguments(evidence: str) -> list[str]:
+    if ".connect(" not in evidence and "connect(" not in evidence and "register" not in evidence:
+        return []
+    connect_match = re.search(r"\bconnect\(([^,)\n]+)", evidence)
+    if connect_match:
+        first_arg = connect_match.group(1).strip()
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+", first_arg):
+            return [first_arg]
+    candidates = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)\b", evidence)
+    return [
+        value
+        for value in dict.fromkeys(candidates)
+        if not value.endswith(".connect") and call_expr_tail(value) not in {"signals", "signal"}
+    ][:6]
+
+
+def resolve_callee_hint(expr: str, case: dict[str, Any], import_aliases: dict[str, str]) -> str | None:
+    target = str(case.get("target") or "")
+    target_parent = ".".join(target.split(".")[:-1]) if "." in target else ""
+    if expr == "cls" and target_parent:
+        return target_parent
+    root = expr.split(".")[0]
+    if root in import_aliases:
+        suffix = expr[len(root) :]
+        return f"{import_aliases[root]}{suffix}"
+    if expr.startswith("self.") and target_parent:
+        return f"{target_parent}.{expr[len('self.'):]}"
+    if "." in expr:
+        return expr
+    return import_aliases.get(expr)
+
+
+def normalization_note(expr: str, case: dict[str, Any], import_aliases: dict[str, str]) -> str:
+    hint = resolve_callee_hint(expr, case, import_aliases)
+    if expr == "cls" and hint:
+        return "cls(...) constructor expression; use the class symbol for strict scoring unless an explicit __init__ call is required."
+    if hint and expr != hint:
+        return "Canonical hint resolved from target module import aliases or receiver context; verify against source before output."
+    if "." not in expr:
+        return "Bare function name; do not invent a target-module-qualified symbol unless import context supports it."
+    return "Receiver expression; canonical class/module may need verification from surrounding context."
+
+
+def direct_call_mode(task_type: str, direction: str) -> str:
+    if task_type == "find_callers" or direction == "upstream":
+        return "callers_to_target"
+    return "target_body_callees"
+
+
+def build_boundary_notes(case: dict[str, Any]) -> list[dict[str, str]]:
+    notes = [
+        {
+            "topic": "golden_leakage",
+            "note": "This aid does not include golden required_edges, excluded_edges, runtime_only_edges, or oracle_context file lists.",
+        },
+        {
+            "topic": "direct_call_requirement",
+            "note": "Use the listed source lines as evidence candidates; imports, comments, docstrings, and string mentions alone are not call edges.",
+        },
+        {
+            "topic": "registration_boundary",
+            "note": "For registration lines such as signals.connect(handler, ...), the outer connect/register call is direct; handler arguments are lifecycle callbacks, not calls made by this function.",
+        },
+    ]
+    if case.get("include_tests") is False:
+        notes.append({"topic": "tests", "note": "Test paths remain out of scope for this case."})
+    if str(case.get("external_deps") or "") == "exclude":
+        notes.append({"topic": "external_deps", "note": "External dependency calls should not be returned as scored repo call edges."})
+    if case.get("max_depth") is not None:
+        notes.append({"topic": "max_depth", "note": f"Respect max_depth={case.get('max_depth')}; do not expand beyond that depth."})
+    return notes
+
+
+def render_synthesis_aid(aid: dict[str, Any]) -> str:
+    parts = [
+        "## RAG Synthesis Aid",
+        "This deterministic block is derived from retrieved/indexed context only; it is not an oracle answer.",
+        "",
+        "### Source Policy And Case Constraints",
+        f"```yaml\n{dump_yaml({key: aid[key] for key in ['source_policy', 'case_constraints', 'canonical_symbol_hints']}).strip()}\n```",
+    ]
+    target_definition = aid.get("target_definition") or {}
+    parts.extend(
+        [
+            "",
+            "### Target Definition Focus",
+            f"```yaml\n{dump_yaml({key: value for key, value in target_definition.items() if key != 'snippet'}).strip()}\n```",
+        ]
+    )
+    if target_definition.get("snippet"):
+        parts.extend(["", "```python", str(target_definition["snippet"]), "```"])
+
+    import_context = aid.get("target_module_import_context") or {}
+    parts.extend(
+        [
+            "",
+            "### Target Module Import Context",
+            f"```yaml\n{dump_yaml({key: value for key, value in import_context.items() if key not in {'import_source', 'line_numbered_imports'}}).strip()}\n```",
+        ]
+    )
+    if import_context.get("line_numbered_imports"):
+        parts.extend(["", "```python", str(import_context["line_numbered_imports"]), "```"])
+
+    direct = aid.get("direct_call_evidence") or {}
+    parts.extend(
+        [
+            "",
+            "### Direct Call Evidence Candidates",
+            f"```yaml\n{dump_yaml({key: value for key, value in direct.items() if key != 'candidates'}).strip()}\n```",
+            render_direct_call_table(direct.get("candidates") or []),
+            "",
+            "### Boundary Notes",
+            f"```yaml\n{dump_yaml(aid.get('boundary_notes') or []).strip()}\n```",
+        ]
+    )
+    return "\n".join(parts)
+
+
+def render_direct_call_table(candidates: list[dict[str, Any]]) -> str:
+    if not candidates:
+        return "No direct-call candidates were extracted from the selected chunks."
+    rows = [
+        "| Role | Caller Hint | Callee Expression | Canonical Hint | Boundary | File:Line | Evidence |",
+        "| --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for item in candidates:
+        rows.append(
+            "| "
+            + " | ".join(
+                markdown_cell(value)
+                for value in [
+                    item.get("role"),
+                    item.get("caller_hint"),
+                    item.get("callee_expression"),
+                    item.get("callee_canonical_hint"),
+                    item.get("boundary_role"),
+                    f"{item.get('file')}:{item.get('line')}",
+                    item.get("evidence"),
+                ]
+            )
+            + " |"
+        )
+    return "\n".join(rows)
+
+
+def summarize_synthesis_aid(aid: dict[str, Any] | None, estimated_tokens: int) -> dict[str, Any] | None:
+    if aid is None:
+        return None
+    direct = aid.get("direct_call_evidence") or {}
+    definition = aid.get("target_definition") or {}
+    import_context = aid.get("target_module_import_context") or {}
+    return {
+        "enabled": True,
+        "estimated_tokens": estimated_tokens,
+        "target_definition_status": definition.get("status"),
+        "target_definition_file": definition.get("file"),
+        "import_context_status": import_context.get("status"),
+        "direct_call_mode": direct.get("mode"),
+        "direct_call_candidate_count": direct.get("candidate_count"),
+        "rendered_candidate_count": direct.get("rendered_candidate_count"),
+        "omitted_candidate_count": direct.get("omitted_candidate_count"),
+        "golden_used": False,
+        "oracle_context_used": False,
+    }
+
+
+def target_span_for_line(chunk: dict[str, Any], target: str, line_no: int) -> dict[str, Any] | None:
+    spans = [
+        span
+        for span in chunk.get("symbol_spans") or []
+        if isinstance(span, dict)
+        and str(span.get("symbol") or "") == target
+        and as_int(span.get("start_line")) <= line_no <= as_int(span.get("end_line"))
+    ]
+    if not spans:
+        return None
+    spans.sort(key=lambda span: as_int(span.get("end_line")) - as_int(span.get("start_line")))
+    return spans[0]
+
+
+def enclosing_symbol_for_line(chunk: dict[str, Any], line_no: int) -> str:
+    spans = [
+        span
+        for span in chunk.get("symbol_spans") or []
+        if isinstance(span, dict) and as_int(span.get("start_line")) <= line_no <= as_int(span.get("end_line"))
+    ]
+    if not spans:
+        return ""
+    spans.sort(key=lambda span: (as_int(span.get("end_line")) - as_int(span.get("start_line")), -len(str(span.get("symbol") or ""))))
+    return str(spans[0].get("symbol") or "")
+
+
+def slice_numbered_text(text: str, *, chunk_start: int, start_line: int, end_line: int) -> str:
+    lines = text.splitlines()
+    selected: list[str] = []
+    for line_no in range(start_line, end_line + 1):
+        idx = line_no - chunk_start
+        if 0 <= idx < len(lines):
+            selected.append(f"{line_no:>4} | {lines[idx]}")
+    return "\n".join(selected)
+
+
+def is_definition_line(stripped: str) -> bool:
+    return stripped.startswith("def ") or stripped.startswith("async def ") or stripped.startswith("class ")
+
+
+def candidate_key(candidate: dict[str, Any]) -> tuple[str, int, str, str]:
+    return (
+        str(candidate.get("file") or ""),
+        as_int(candidate.get("line")),
+        str(candidate.get("caller_hint") or ""),
+        str(candidate.get("callee_expression") or ""),
+    )
+
+
+def markdown_cell(value: Any) -> str:
+    text = "" if value is None else str(value)
+    return text.replace("|", "\\|").replace("\n", " ").strip()
+
+
+def as_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def estimate_tokens(text: str, *, chars_per_token: float) -> int:

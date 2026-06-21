@@ -89,7 +89,8 @@ retrieval_evaluation:
     - DefinitionAccuracy@K
 
 context_pack:
-  schema_version: rag-context-pack-v1
+  schema_version: rag-context-pack-v1.1
+  packer_version: rag-context-packer-v1.1
   script: scripts/rag_pack_context.py
   default_output_root: runs/rag-context
   default_retrieval_variant: keyword_multiquery_safe
@@ -97,6 +98,22 @@ context_pack:
   default_prompt_version: oracle-context-v0-rag-context-pack
   default_top_k: 10
   default_max_context_tokens: 24000
+  deterministic_synthesis_aid:
+    default_enabled: true
+    disable_flag: --no-synthesis-aid
+    default_call_candidate_limit: 40
+    source_policy:
+      - case metadata without golden/oracle_context
+      - retrieval results
+      - index chunks
+    components:
+      - source_policy_and_case_constraints
+      - canonical_symbol_hints
+      - target_definition_focus
+      - target_module_import_context_from_index
+      - direct_call_evidence_candidates
+      - lifecycle_registration_boundary_notes
+    no_golden_or_oracle_context_usage: true
   leakage_policy:
     no_oracle_or_golden_file_injection: true
     source: retrieval.json + index chunks only
@@ -108,6 +125,7 @@ context_pack:
     - <case_id>/retrieved_context.md
     - <case_id>/prompt.md
     - <case_id>/case_metadata.yaml
+    - <case_id>/synthesis_aid.json
 
 rag_context_runner:
   runner_version: rag-context-runner-v1
