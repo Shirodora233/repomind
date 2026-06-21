@@ -113,3 +113,9 @@
     - `python scripts/run_pe_matrix.py --config configs/experiments/pe-v2.yaml --dry-run --track both --model-provider openrouter --model-alias deepseek-v4-pro-direct-no-reasoning --combination base/S+F+C+P --format json --output runs/pe/plans/pe-v2-focused-8-deepseek-plan-20260621.json`
     - plan 检查：`commands=4`、`case_count=8`、`models_called=False`、statuses 为 `ready=2` / `ready_with_postprocess_plan=2`。
   - 本轮未运行 API，成本和 token 均为 0。当前判断：PE v2 可以进入 focused Oracle validation，但不能进入 PE+RAG / All 或完整 70-case 消融。
+- 2026-06-21：完成 PE v2 focused Oracle 8-case DeepSeek validation，正式报告见 `reports/pe/batches/pe-v2-focused-oracle-8-deepseek-20260621.md`。
+  - Run path：`runs/pe/oracle-focused-8-v2-deepseek-20260621`。
+  - 覆盖组合：`base` 与 `S+F+C+P`；模型为 `deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，`--max-retries 2`；16 个 API case response 均 attempt 1 成功。
+  - 结果摘要：`base` P/R/E=0.936170/0.936170/0.954546；`S+F+C+P raw` P/R/E=0.734375/1.000000/0.978723；`S+F+C+P postprocessed` 分数不变，仅将 duplicate count 从 8 降到 0。
+  - 成本：共 659,320 tokens，observed cost 0.205440872 USD，wall-clock 合计约 132.282 秒。
+  - 结论：PE v2 不通过 focused validation。它修复了 `astrbot-chat-002` 的 `astrobot`/`astrbot` typo 并补满 recall，但在 `astrbot-agent-002` 仍返回 17 条 nearby helper false positives；不能进入 PE+RAG / All 或完整消融。
