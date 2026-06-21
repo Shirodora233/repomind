@@ -16,16 +16,27 @@ external_deps: exclude
 features:
   - async
   - cross_file
+  - constructor
   - dependency_injection
 notes: >
-  Main agent builder case with several direct helper calls in one large module.
+  Main agent builder case with many direct repo-internal helper and constructor
+  calls in one large module.
 oracle_context:
   files:
     - path: astrbot/core/astr_main_agent.py
       role: target_definition
       symbols:
         - astrbot.core.astr_main_agent.build_main_agent
+        - astrbot.core.astr_main_agent.MainAgentBuildResult
         - astrbot.core.astr_main_agent._select_provider
+        - astrbot.core.astr_main_agent._set_llm_error_message
+        - astrbot.core.astr_main_agent._compress_image_for_provider
+        - astrbot.core.astr_main_agent._is_generated_compressed_image_path
+        - astrbot.core.astr_main_agent._append_audio_attachment
+        - astrbot.core.astr_main_agent._append_video_attachment
+        - astrbot.core.astr_main_agent._get_quoted_message_parser_settings
+        - astrbot.core.astr_main_agent._append_quoted_image_attachment
+        - astrbot.core.astr_main_agent._append_quoted_audio_attachment
         - astrbot.core.astr_main_agent._get_session_conv
         - astrbot.core.astr_main_agent._apply_file_extract
         - astrbot.core.astr_main_agent._decorate_llm_request
@@ -33,7 +44,62 @@ oracle_context:
         - astrbot.core.astr_main_agent._plugin_tool_fix
         - astrbot.core.astr_main_agent._apply_web_search_tools
         - astrbot.core.astr_main_agent._apply_llm_safety_mode
-      reason: Contains the target and all direct helper callees for this max_depth 1 case.
+        - astrbot.core.astr_main_agent._apply_sandbox_tools
+        - astrbot.core.astr_main_agent._apply_local_env_tools
+        - astrbot.core.astr_main_agent._proactive_cron_job_tools
+        - astrbot.core.astr_main_agent._get_fallback_chat_providers
+        - astrbot.core.astr_main_agent._select_image_chat_provider
+        - astrbot.core.astr_main_agent._handle_webchat
+        - astrbot.core.astr_main_agent._get_workspace_path_for_umo
+        - astrbot.core.astr_main_agent._apply_web_search_citation_prompt
+        - astrbot.core.astr_main_agent._get_compress_provider
+      reason: Contains the target and same-file direct helper callees for this max_depth 1 case.
+    - path: astrbot/core/provider/entities.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.provider.entities.ProviderRequest
+      reason: ProviderRequest is constructed directly by build_main_agent.
+    - path: astrbot/core/agent/message.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.agent.message.TextPart
+      reason: TextPart is constructed directly by build_main_agent for attachment content parts.
+    - path: astrbot/core/utils/string_utils.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.string_utils.normalize_and_dedupe_strings
+      reason: Used directly to normalize media URL lists and quoted fallback images.
+    - path: astrbot/core/utils/quoted_message_parser.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.quoted_message_parser.extract_quoted_message_images
+      reason: Used directly when resolving quoted message fallback images.
+    - path: astrbot/core/astr_agent_run_util.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.astr_agent_run_util.AgentRunner
+      reason: AgentRunner alias is constructed directly by build_main_agent.
+    - path: astrbot/core/astr_agent_context.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.astr_agent_context.AstrAgentContext
+        - astrbot.core.astr_agent_context.AgentContextWrapper
+      reason: Agent context objects are constructed directly by build_main_agent.
+    - path: astrbot/core/agent/tool.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.agent.tool.ToolSet
+      reason: ToolSet is constructed directly when proactive message tools are enabled.
+    - path: astrbot/core/astr_agent_tool_exec.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.astr_agent_tool_exec.FunctionToolExecutor
+      reason: FunctionToolExecutor is constructed directly in agent runner reset.
+    - path: astrbot/core/utils/astrbot_path.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.astrbot_path.get_astrbot_system_tmp_path
+      reason: Used directly for tool result overflow path selection.
     - path: astrbot/core/star/context.py
       role: indirect_callee
       symbols:
@@ -41,8 +107,8 @@ oracle_context:
         - astrbot.core.star.context.Context.get_using_provider
       reason: Called inside _select_provider, but not directly by build_main_agent.
   notes: >
-    This case asks only for direct callees of build_main_agent. Helper-internal
-    calls such as Context.get_provider_by_id are excluded.
+    This case asks for direct repo-internal callees of build_main_agent.
+    Helper-internal calls such as Context.get_provider_by_id are excluded.
 golden:
   required_edges:
     - caller: astrbot.core.astr_main_agent.build_main_agent
@@ -50,6 +116,85 @@ golden:
       file: astrbot/core/astr_main_agent.py
       line: 1341
       evidence: "provider = provider or _select_provider(event, plugin_context)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._set_llm_error_message
+      file: astrbot/core/astr_main_agent.py
+      line: 1345
+      evidence: "_set_llm_error_message("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.provider.entities.ProviderRequest
+      file: astrbot/core/astr_main_agent.py
+      line: 1360
+      evidence: "req = ProviderRequest()"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._compress_image_for_provider
+      file: astrbot/core/astr_main_agent.py
+      line: 1377
+      evidence: "image_path = await _compress_image_for_provider("
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 1416 for quoted images."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._is_generated_compressed_image_path
+      file: astrbot/core/astr_main_agent.py
+      line: 1381
+      evidence: "if _is_generated_compressed_image_path(path, image_path):"
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 1420 for quoted images."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.agent.message.TextPart
+      file: astrbot/core/astr_main_agent.py
+      line: 1385
+      evidence: "TextPart(text=f\"[Image Attachment: path {image_path}]\")"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol; additional TextPart calls appear on lines 1395, 1432, and 1499."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._append_audio_attachment
+      file: astrbot/core/astr_main_agent.py
+      line: 1390
+      evidence: "_append_audio_attachment(req, audio_path)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._append_video_attachment
+      file: astrbot/core/astr_main_agent.py
+      line: 1400
+      evidence: "await _append_video_attachment(req, comp)"
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 1440 for quoted videos."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._get_quoted_message_parser_settings
+      file: astrbot/core/astr_main_agent.py
+      line: 1405
+      evidence: "quoted_message_settings = _get_quoted_message_parser_settings("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._append_quoted_image_attachment
+      file: astrbot/core/astr_main_agent.py
+      line: 1423
+      evidence: "_append_quoted_image_attachment(req, image_path)"
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 1479 for fallback quoted images."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._append_quoted_audio_attachment
+      file: astrbot/core/astr_main_agent.py
+      line: 1427
+      evidence: "_append_quoted_audio_attachment(req, audio_path)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.utils.string_utils.normalize_and_dedupe_strings
+      file: astrbot/core/astr_main_agent.py
+      line: 1446
+      evidence: "fallback_images = normalize_and_dedupe_strings("
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on lines 1507 and 1508 for media URL lists."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.utils.quoted_message_parser.extract_quoted_message_images
+      file: astrbot/core/astr_main_agent.py
+      line: 1447
+      evidence: "await extract_quoted_message_images("
       confidence_type: static_confirmed
     - caller: astrbot.core.astr_main_agent.build_main_agent
       callee: astrbot.core.astr_main_agent._get_session_conv
@@ -93,6 +238,108 @@ golden:
       line: 1537
       evidence: "_apply_llm_safety_mode(config, req)"
       confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_sandbox_tools
+      file: astrbot/core/astr_main_agent.py
+      line: 1540
+      evidence: "_apply_sandbox_tools(config, req, req.session_id)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_local_env_tools
+      file: astrbot/core/astr_main_agent.py
+      line: 1542
+      evidence: "_apply_local_env_tools(req, plugin_context)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_agent_run_util.AgentRunner
+      file: astrbot/core/astr_main_agent.py
+      line: 1544
+      evidence: "agent_runner = AgentRunner()"
+      confidence_type: static_confirmed
+      notes: "AgentRunner is an imported repo alias constructed directly here."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_agent_context.AstrAgentContext
+      file: astrbot/core/astr_main_agent.py
+      line: 1545
+      evidence: "astr_agent_ctx = AstrAgentContext("
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._proactive_cron_job_tools
+      file: astrbot/core/astr_main_agent.py
+      line: 1551
+      evidence: "_proactive_cron_job_tools(req, plugin_context)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.agent.tool.ToolSet
+      file: astrbot/core/astr_main_agent.py
+      line: 1555
+      evidence: "req.func_tool = ToolSet()"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._get_fallback_chat_providers
+      file: astrbot/core/astr_main_agent.py
+      line: 1567
+      evidence: "fallback_providers = _get_fallback_chat_providers("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._select_image_chat_provider
+      file: astrbot/core/astr_main_agent.py
+      line: 1570
+      evidence: "selected_provider = _select_image_chat_provider(provider, req, fallback_providers)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._handle_webchat
+      file: astrbot/core/astr_main_agent.py
+      line: 1590
+      evidence: "asyncio.create_task(_handle_webchat(event, req, provider))"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._get_workspace_path_for_umo
+      file: astrbot/core/astr_main_agent.py
+      line: 1602
+      evidence: "f\"`{_get_workspace_path_for_umo(event.unified_msg_origin)}`\\n\""
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._apply_web_search_citation_prompt
+      file: astrbot/core/astr_main_agent.py
+      line: 1613
+      evidence: "_apply_web_search_citation_prompt(event, req)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_agent_context.AgentContextWrapper
+      file: astrbot/core/astr_main_agent.py
+      line: 1618
+      evidence: "run_context=AgentContextWrapper("
+      confidence_type: static_confirmed
+      notes: "AgentContextWrapper is an imported repo alias constructed directly here."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_agent_tool_exec.FunctionToolExecutor
+      file: astrbot/core/astr_main_agent.py
+      line: 1622
+      evidence: "tool_executor=FunctionToolExecutor(),"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent._get_compress_provider
+      file: astrbot/core/astr_main_agent.py
+      line: 1627
+      evidence: "llm_compress_provider=_get_compress_provider(config, plugin_context, event)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.utils.astrbot_path.get_astrbot_system_tmp_path
+      file: astrbot/core/astr_main_agent.py
+      line: 1633
+      evidence: "get_astrbot_system_tmp_path()"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.astr_main_agent.build_main_agent
+      callee: astrbot.core.astr_main_agent.MainAgentBuildResult
+      file: astrbot/core/astr_main_agent.py
+      line: 1645
+      evidence: "return MainAgentBuildResult("
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol."
   optional_edges: []
   excluded_edges:
     - caller: astrbot.core.astr_main_agent.build_main_agent

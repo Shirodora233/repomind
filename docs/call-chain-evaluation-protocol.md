@@ -17,6 +17,8 @@
 - 外部库调用默认不计入主分数，只作为边界说明。
 - 每条答案必须尽量包含 caller、callee、file、line、evidence。
 - 主分数使用 strict symbol-level matching：`caller` 与 `callee` 必须和 golden 的 canonical symbol 完全一致。
+- `find_callees` 的 `required_edges` 应覆盖 target symbol body 内所有静态可确认的 repo 内直接调用，而不是只标注“关键业务 helper”。如果某条直接调用能解析到 repo 内函数、方法或类构造 symbol，默认应进入 `required_edges`；只有注册回调、字符串/注释、import、外部/标准库 API、内建容器方法、日志/监控等非目标调用边界才应排除或另行说明。
+- `find_callers` 的 `required_edges` 应覆盖所有静态可确认、直接调用 target symbol 的 repo 内 caller；只传入回调、注册 handler、同名字符串或框架声明不等同于 caller。
 - Python `ClassName(...)` 构造调用在 golden 中默认使用 class symbol，例如 `pkg.mod.ClassName`。显式 `super().__init__()` 或直接 `__init__` 调用可使用 `pkg.mod.ClassName.__init__`。
 - scorer 同时输出 constructor-normalized 辅助指标，用于诊断 `ClassName` 与 `ClassName.__init__` 的表达差异；该辅助指标不替代主分数。
 

@@ -15,25 +15,43 @@ include_tests: false
 external_deps: exclude
 features:
   - async
+  - constructor
   - plugin
   - event_bus
   - cross_file
 notes: >
   Core LLM request case with event hooks, agent construction, streaming/non-streaming
-  execution branches, and local history-saving helper calls.
+  execution branches, follow-up helpers, result object construction, metrics, and
+  local history-saving helper calls.
 oracle_context:
   files:
     - path: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
       role: target_definition
       symbols:
         - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._send_llm_error_message
         - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._save_to_history
+        - astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal._record_internal_agent_stats
       reason: Contains the target method and a local helper called by the target.
     - path: astrbot/core/pipeline/context.py
       role: direct_callee
       symbols:
         - astrbot.core.pipeline.context.call_event_hook
       reason: Contains the event hook helper invoked by the target.
+    - path: astrbot/core/pipeline/process_stage/follow_up.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.pipeline.process_stage.follow_up.try_capture_follow_up
+        - astrbot.core.pipeline.process_stage.follow_up.prepare_follow_up_capture
+        - astrbot.core.pipeline.process_stage.follow_up.register_active_runner
+        - astrbot.core.pipeline.process_stage.follow_up.unregister_active_runner
+        - astrbot.core.pipeline.process_stage.follow_up.finalize_follow_up_capture
+      reason: Contains follow-up lifecycle helpers invoked directly by the target.
+    - path: astrbot/core/utils/session_lock.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.session_lock.session_lock_manager.acquire_lock
+      reason: The target acquires a session lock through the repo session lock manager.
     - path: astrbot/core/astr_main_agent.py
       role: direct_callee
       symbols:
@@ -45,6 +63,22 @@ oracle_context:
         - astrbot.core.astr_agent_run_util.run_live_agent
         - astrbot.core.astr_agent_run_util.run_agent
       reason: Contains execution helpers invoked by different branches of the target.
+    - path: astrbot/core/message/message_event_result.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.message.message_event_result.MessageEventResult
+        - astrbot.core.message.message_event_result.MessageChain
+      reason: Result objects are constructed directly by the target.
+    - path: astrbot/core/persona_error_reply.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.persona_error_reply.extract_persona_custom_error_message_from_event
+      reason: Used directly by the target exception path.
+    - path: astrbot/core/utils/metrics.py
+      role: direct_callee
+      symbols:
+        - astrbot.core.utils.metrics.Metric.upload
+      reason: Used directly by the target to schedule metrics upload.
     - path: astrbot/core/conversation_mgr.py
       role: indirect_callee
       symbols:
@@ -56,6 +90,18 @@ oracle_context:
 golden:
   required_edges:
     - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.follow_up.try_capture_follow_up
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 194
+      evidence: "follow_up_capture = try_capture_follow_up(event)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.follow_up.prepare_follow_up_capture
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 199
+      evidence: ") = await prepare_follow_up_capture(follow_up_capture)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
       callee: astrbot.core.pipeline.context.call_event_hook
       file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
       line: 213
@@ -63,11 +109,37 @@ golden:
       confidence_type: static_confirmed
       notes: "The same symbol-level edge also appears on line 264 for OnLLMRequestEvent."
     - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.utils.session_lock.session_lock_manager.acquire_lock
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 215
+      evidence: "async with session_lock_manager.acquire_lock(event.unified_msg_origin):"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
       callee: astrbot.core.astr_main_agent.build_main_agent
       file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
       line: 226
       evidence: "build_result: MainAgentBuildResult | None = await build_main_agent("
       confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage._send_llm_error_message
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 237
+      evidence: "await self._send_llm_error_message("
+      confidence_type: static_confirmed
+      notes: "The same symbol-level edge also appears on line 256 in the blocked provider branch."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.follow_up.register_active_runner
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 273
+      evidence: "register_active_runner(event.unified_msg_origin, agent_runner)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.message.message_event_result.MessageEventResult
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 307
+      evidence: "MessageEventResult()"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol; additional construction appears on lines 339 and 366."
     - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
       callee: astrbot.core.astr_agent_run_util.run_live_agent
       file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
@@ -89,6 +161,43 @@ golden:
       evidence: "run_agent("
       confidence_type: static_confirmed
       notes: "The same symbol-level edge also appears on line 372 in another branch."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.message.message_event_result.MessageChain
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 357
+      evidence: "MessageChain()"
+      confidence_type: static_confirmed
+      notes: "Class construction is represented by the class symbol; additional construction appears on lines 364 and 430."
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal._record_internal_agent_stats
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 392
+      evidence: "_record_internal_agent_stats("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.utils.metrics.Metric.upload
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 412
+      evidence: "Metric.upload("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.follow_up.unregister_active_runner
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 420
+      evidence: "unregister_active_runner(event.unified_msg_origin, agent_runner)"
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.persona_error_reply.extract_persona_custom_error_message_from_event
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 424
+      evidence: "custom_error_message = extract_persona_custom_error_message_from_event("
+      confidence_type: static_confirmed
+    - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process
+      callee: astrbot.core.pipeline.process_stage.follow_up.finalize_follow_up_capture
+      file: astrbot/core/pipeline/process_stage/method/agent_sub_stages/internal.py
+      line: 438
+      evidence: "await finalize_follow_up_capture("
+      confidence_type: static_confirmed
   optional_edges: []
   excluded_edges:
     - caller: astrbot.core.pipeline.process_stage.method.agent_sub_stages.internal.InternalAgentSubStage.process

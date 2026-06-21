@@ -55,11 +55,13 @@ python scripts\score_predictions.py --predictions runs\pe\oracle-focused-8-v2-de
 
 ## Summary Metrics
 
+2026-06-21 golden audit 后，`astrbot-agent-001` 与 `astrbot-agent-002` 的 golden 从“关键 helper 子集”修正为“target body 内静态可确认的 repo 内直接调用”。因此本节指标使用同一批模型输出重新评分；原始 run 的成本和耗时不变。
+
 | Variant | Pred | Matched | Unmatched | Dup | Precision | Recall | Evidence |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `base` | 47 | 44 | 3 | 7 | 0.936170 | 0.936170 | 0.954546 |
-| `S+F+C+P raw` | 64 | 47 | 17 | 8 | 0.734375 | 1.000000 | 0.978723 |
-| `S+F+C+P postprocessed` | 64 | 47 | 17 | 0 | 0.734375 | 1.000000 | 0.978723 |
+| `base` | 47 | 44 | 3 | 7 | 0.936170 | 0.505747 | 0.954546 |
+| `S+F+C+P raw` | 64 | 64 | 0 | 2 | 1.000000 | 0.735632 | 0.984375 |
+| `S+F+C+P postprocessed` | 64 | 64 | 0 | 0 | 1.000000 | 0.735632 | 0.984375 |
 
 ## Cost And Runtime
 
@@ -77,8 +79,8 @@ Cost uses OpenRouter `usage.cost`.
 
 | Case | Base P/R | PE v2 P/R | Observation |
 | --- | --- | --- | --- |
-| `astrbot-agent-001` | 1.000 / 1.000 | 1.000 / 1.000 | Both good. |
-| `astrbot-agent-002` | 1.000 / 1.000 | 0.320 / 1.000 | PE v2 returned 17 extra helper edges from `build_main_agent`. |
+| `astrbot-agent-001` | 1.000 / 0.294 | 1.000 / 0.294 | Golden audit expanded direct repo calls from 5 to 17; both prompts still return only the original high-level subset. |
+| `astrbot-agent-002` | 1.000 / 0.222 | 1.000 / 0.694 | Golden audit expanded direct repo calls from 8 to 36; PE v2 returns many valid direct helpers but still misses constructors and utility calls. |
 | `astrbot-chat-002` | 0.000 / 0.000 | 1.000 / 1.000 | PE v2 fixed the `astrobot` vs `astrbot` package typo seen in base. |
 | `astrbot-chat-003` | 1.000 / 1.000 | 1.000 / 1.000 | PE v2 improved evidence from 0.777778 to 0.888889. |
 | `astrbot-hook-001` | 1.000 / 1.000 | 1.000 / 1.000 | Both good. |
@@ -86,15 +88,15 @@ Cost uses OpenRouter `usage.cost`.
 | `scrapy-feed-003` | n/a / n/a | n/a / n/a | Negative case, both returned no edges. |
 | `scrapy-signal-004` | 1.000 / 1.000 | 1.000 / 1.000 | Both good. |
 
-The critical failure is `astrbot-agent-002`. PE v2 finds all 8 required edges, but also returns 17 nearby helper calls such as `_append_audio_attachment`、`_apply_sandbox_tools`、`_handle_webchat`、`_select_image_chat_provider` and other adjacent helpers as if they were directly called by `build_main_agent`.
+The original conclusion that `astrbot-agent-002` contained 17 helper false positives is superseded by the golden audit. Those returned edges are direct repo-internal calls in `build_main_agent` and should not be counted as unmatched predictions. The remaining PE v2 issue is under-generation against the now exhaustive direct-call golden, especially missing constructors and imported utility helpers.
 
 ## Conclusion
 
-PE v2 does not pass focused validation. It improves recall and fixes one package typo case, but the exact failure mode it was meant to fix still appears in `astrbot-agent-002`. The postprocess step only removes duplicates and does not improve precision.
+PE v2 should be reinterpreted after golden audit. It no longer shows the previous precision failure: post-audit precision is 1.0 with zero unmatched predictions. It also improves recall over base on the focused set, from 0.505747 to 0.735632, and fixes the `astrbot-chat-002` package typo. However, it still does not fully solve exhaustive direct-call coverage, especially on `astrbot-agent-001` and `astrbot-agent-002`.
 
 Current decision:
 
-- Do not use PE v2 as PE-only best.
-- Do not enter PE+RAG / All ablation with PE v2.
-- Keep baseline prompt as the Oracle default for now.
-- Next PE revision must either add a stronger target-body evidence extraction mechanism or deterministic AST/body-boundary filtering; prompt-only wording was not enough for dense helper cases.
+- Do not treat the previous `astrbot-agent-002` precision failure as valid evidence.
+- Do not run PE+RAG / All based on the old report until the affected pilot set is rescored or rerun under the corrected golden.
+- PE v2 is directionally better than base on this corrected focused Oracle set, but still recall-limited.
+- Next PE revision should emphasize exhaustive target-body direct-call extraction, including constructors and imported repo utility helpers, rather than only suppressing helper over-inclusion.

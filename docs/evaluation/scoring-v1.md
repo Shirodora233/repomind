@@ -20,6 +20,10 @@ caller_symbol -> callee_symbol
 
 主分数默认只评价 repo 内调用关系。import 关系、字符串、注释和文档中的 symbol 名不等同于调用关系。
 
+对于 `find_callees`，golden `required_edges` 应穷尽 target symbol body 内所有静态可确认的 repo 内直接调用。这里的“直接调用”指 call expression 出现在返回的 caller symbol body 中，并且 callee 能解析为 repo 内函数、方法或类构造 symbol；不能只标注少数关键业务 helper。外部库、标准库、内建容器方法、日志/监控调用、import、字符串、注释、注册回调和仅传参的 callback 不进入主 required edges，除非 case 明确把它们作为边界或 optional/runtime 分级记录。
+
+对于 `find_callers`，golden `required_edges` 应穷尽所有静态可确认、直接调用 target symbol 的 repo 内 caller。
+
 ## 2. Golden edge 分类
 
 每个 case 的 golden answer 使用四类 edge：

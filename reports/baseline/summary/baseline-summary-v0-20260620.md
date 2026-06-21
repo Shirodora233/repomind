@@ -1,5 +1,9 @@
 # Baseline Summary v0
 
+## Golden Audit Notice
+
+2026-06-21 对 `astrbot-agent-001` 和 `astrbot-agent-002` 的 golden 进行复核后，`call-chain-v1` 的 required edges 从 184 条修正为 224 条。本报告保留 2026-06-20 baseline 阶段的原始口径和指标，用于历史追溯；不要将本报告指标直接与 golden audit 后的新 PE / RAG 重评分结果做严格横向比较。后续正式 baseline 对照应基于修正后的 golden 重新聚合或重跑。
+
 ## 实验范围
 
 - 日期：2026-06-20

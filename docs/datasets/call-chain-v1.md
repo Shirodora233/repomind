@@ -110,7 +110,7 @@ Scrapy 在 v1 中的定位：
 
 | edge 类别 | 数量 | 评分角色 |
 | --- | ---: | --- |
-| `required_edges` | 184 | 主 recall 目标 |
+| `required_edges` | 224 | 主 recall 目标 |
 | `optional_edges` | 10 | 可推断动态边，找到加分或辅助分析 |
 | `excluded_edges` | 90 | 明确误报边，返回则扣 precision |
 | `runtime_only_edges` | 3 | 依赖运行时配置、插件状态或环境变量才能确认 |
@@ -132,7 +132,7 @@ Scrapy 在 v1 中的定位：
 | `factory` | 8 |
 | `dynamic_import` | 6 |
 | `plugin` | 5 |
-| `constructor` | 5 |
+| `constructor` | 7 |
 | `dependency_injection` | 4 |
 | `negative_case` | 4 |
 | `external_boundary` | 2 |

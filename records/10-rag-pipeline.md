@@ -111,3 +111,7 @@
   - 结果摘要：相同 3 case 上，上一轮 RAG retry 为 P/R/E=0.266667/0.470588/1.000000；synthesis aid 后为 0.464286/0.764706/1.000000；constructor-normalized recall 从 0.529412 提升到 0.823529。
   - 成本：54,605 tokens，observed cost 0.025195374 USD，wall-clock 30.635 秒。
   - 结论：synthesis aid 对 recall 有明确帮助，但 precision 仍被 `astrbot-agent-001` helper/log/follow_up extra edges 拖低；暂不直接进入新的 20-case pilot，下一步应先做 candidate 控制和 canonical receiver normalization。
+- 2026-06-21：golden audit 后更新 RAG synthesis aid 3-case report 结论，详见 `records/13-golden-audit.md` 和 `reports/rag/batches/rag-v1-synthesis-aid-deepseek-smoke-3-20260621.md`。
+  - 修正：`astrbot-agent-001` 的 follow-up、session lock、error-helper 等 target body 内 repo 直接调用补入 required edges。
+  - 修正后重评分：上一轮 RAG retry 同 3 case P/R/E=0.333333/0.344828/1.000000；synthesis aid P/R/E=0.750000/0.724138/1.000000。
+  - 结论变化：旧结论中“follow-up/session helper 是误报”的部分作废；当前 RAG 下一步应过滤 logger / external 调用，并保留有效 direct repo helpers，同时继续做 `crawler.signals.connect` canonical receiver normalization。

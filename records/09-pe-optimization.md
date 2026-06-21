@@ -119,3 +119,7 @@
   - 结果摘要：`base` P/R/E=0.936170/0.936170/0.954546；`S+F+C+P raw` P/R/E=0.734375/1.000000/0.978723；`S+F+C+P postprocessed` 分数不变，仅将 duplicate count 从 8 降到 0。
   - 成本：共 659,320 tokens，observed cost 0.205440872 USD，wall-clock 合计约 132.282 秒。
   - 结论：PE v2 不通过 focused validation。它修复了 `astrbot-chat-002` 的 `astrobot`/`astrbot` typo 并补满 recall，但在 `astrbot-agent-002` 仍返回 17 条 nearby helper false positives；不能进入 PE+RAG / All 或完整消融。
+- 2026-06-21：golden audit 后更新 PE v2 focused report 结论，详见 `records/13-golden-audit.md` 和 `reports/pe/batches/pe-v2-focused-oracle-8-deepseek-20260621.md`。
+  - 修正：`astrbot-agent-001` 与 `astrbot-agent-002` 的 golden 从高层 helper 子集扩展为 target body 内静态可确认的 repo 内直接调用。
+  - 复用已有输出重评分：`base` P/R/E=0.936170/0.505747/0.954546；`S+F+C+P postprocessed` P/R/E=1.000000/0.735632/0.984375。
+  - 结论变化：旧结论中 `astrbot-agent-002` 的 17 条 helper false positives 作废；PE v2 当前表现为 precision 改善但 recall 仍不足，不能再用旧报告作为消融决策依据。
