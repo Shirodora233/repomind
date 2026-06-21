@@ -92,3 +92,9 @@
   - 诊断指标：排除 2 个 SSL EOF request error 后，18 个成功响应 case 的 Recall 为 0.639344，Evidence Accuracy 0.948718。
   - 成本与时间：18 个成功 API 响应共 249,618 tokens，OpenRouter observed cost 0.111888960 USD；wall-clock 104.180 秒。
   - 结论：retrieval 已达到 Recall@10 和 EvidenceFileRecall@10 全覆盖，主要瓶颈转移到 canonical symbol 对齐、callee 过滤、lifecycle excluded edge 控制、dense fan-in 合并和 runner retry。
+- 2026-06-21：在 runner retry 支持后重跑 RAG-only DeepSeek 20-case pilot，正式报告见 `reports/rag/batches/rag-v1-rag-context-deepseek-pilot-20-retry-20260621.md`。
+  - Run path：`runs/rag-context-runs/rag-v1-deepseek-pilot-20-retry-20260621`。
+  - Retry 配置：`--max-retries 2 --retry-backoff-seconds 2`；20 个 case 均 attempt 1 成功，request errors 0。
+  - 指标：Precision 0.511905，Recall 0.614286，Evidence Accuracy 0.976744；constructor-normalized Precision 0.523810，Recall 0.628571。
+  - 成本与时间：277,347 tokens，OpenRouter observed cost 0.021114697 USD；wall-clock 87.908 秒。
+  - 结论：retry/attempt 记录已可用于正式实验；RAG-only 主要瓶颈仍是生成侧边过滤、canonical symbol normalization、lifecycle boundary 和 dense fan-in enumeration。
