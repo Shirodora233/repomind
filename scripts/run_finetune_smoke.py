@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATASET = PROJECT_ROOT / "runs" / "finetune" / "full-synthetic-readiness-20260621" / "full-synthetic-readiness.jsonl"
 DEFAULT_OUTPUT_ROOT = Path(os.environ.get("REPOMIND_FT_ROOT", r"E:\AI\repomind-ft")) / "outputs"
 DEFAULT_TARGET_MODULES = "q_proj.linear,k_proj.linear,v_proj.linear,o_proj.linear,gate_proj.linear,up_proj.linear,down_proj.linear"
-RUNNER_VERSION = "finetune-smoke-runner-v3"
+RUNNER_VERSION = "finetune-smoke-runner-v4"
 
 
 @dataclass
@@ -31,10 +31,15 @@ def main() -> int:
     parser.add_argument("--output-dir", default="", help="Adapter/checkpoint output directory. Defaults under E:/AI/repomind-ft/outputs.")
     parser.add_argument("--max-samples", type=int, default=32)
     parser.add_argument("--split", choices=("train", "dev", "test", "all"), default="train")
+    parser.add_argument("--eval-split", choices=("train", "dev", "test", "all", "none"), default="dev")
+    parser.add_argument("--max-eval-samples", type=int, default=100)
+    parser.add_argument("--eval-steps", type=int, default=10)
+    parser.add_argument("--logging-steps", type=int, default=1)
     parser.add_argument("--max-seq-length", type=int, default=1024)
     parser.add_argument("--max-steps", type=int, default=5)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--per-device-train-batch-size", type=int, default=1)
+    parser.add_argument("--per-device-eval-batch-size", type=int, default=1)
     parser.add_argument("--gradient-accumulation-steps", type=int, default=4)
     parser.add_argument("--lora-r", type=int, default=8)
     parser.add_argument("--lora-alpha", type=int, default=16)
@@ -62,7 +67,10 @@ def main() -> int:
     if not dataset_path.exists():
         raise FileNotFoundError(f"dataset not found: {dataset_path}")
     examples = load_examples(dataset_path, args.max_samples, args.split)
+    eval_examples = load_eval_examples(dataset_path, args)
     write_text(output_dir / "sample_preview.txt", "\n\n---\n\n".join(example.text for example in examples[:3]))
+    if eval_examples:
+        write_text(output_dir / "eval_sample_preview.txt", "\n\n---\n\n".join(example.text for example in eval_examples[:3]))
 
     env_snapshot = collect_environment_snapshot()
     write_json(output_dir / "environment_snapshot.json", env_snapshot)
@@ -75,13 +83,14 @@ def main() -> int:
                 "finished_at": utc_now(),
                 "duration_seconds": round(time.perf_counter() - started_perf, 3),
                 "sample_count": len(examples),
+                "eval_sample_count": len(eval_examples),
             },
         )
         print(f"dry-run ok; wrote config to {output_dir}")
         return 0
 
     try:
-        summary = run_training(args, examples, output_dir, started_at, started_perf)
+        summary = run_training(args, examples, eval_examples, output_dir, started_at, started_perf)
     except Exception as exc:
         summary = {
             "status": "failed",
@@ -91,6 +100,7 @@ def main() -> int:
             "finished_at": utc_now(),
             "duration_seconds": round(time.perf_counter() - started_perf, 3),
             "sample_count": len(examples),
+            "eval_sample_count": len(eval_examples),
         }
         write_json(output_dir / "training_summary.json", summary)
         raise
@@ -123,6 +133,12 @@ def load_examples(path: Path, max_samples: int, split: str) -> list[TrainingExam
     return examples
 
 
+def load_eval_examples(path: Path, args: argparse.Namespace) -> list[TrainingExample]:
+    if args.eval_split == "none" or args.max_eval_samples <= 0:
+        return []
+    return load_examples(path, args.max_eval_samples, args.eval_split)
+
+
 def format_sample(sample: dict[str, Any]) -> str:
     messages = sample.get("messages")
     if isinstance(messages, list) and messages:
@@ -146,6 +162,7 @@ def format_sample(sample: dict[str, Any]) -> str:
 def run_training(
     args: argparse.Namespace,
     examples: list[TrainingExample],
+    eval_examples: list[TrainingExample],
     output_dir: Path,
     started_at: str,
     started_perf: float,
@@ -193,13 +210,18 @@ def run_training(
     model = get_peft_model(model, lora_config)
 
     train_dataset = TextDataset(examples, tokenizer, args.max_seq_length)
+    eval_dataset = TextDataset(eval_examples, tokenizer, args.max_seq_length) if eval_examples else None
     training_args = TrainingArguments(
         output_dir=str(output_dir / "trainer"),
         max_steps=args.max_steps,
         per_device_train_batch_size=args.per_device_train_batch_size,
+        per_device_eval_batch_size=args.per_device_eval_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         learning_rate=args.learning_rate,
-        logging_steps=1,
+        logging_steps=max(args.logging_steps, 1),
+        eval_strategy="steps" if eval_dataset is not None else "no",
+        eval_steps=max(args.eval_steps, 1),
+        do_eval=eval_dataset is not None,
         save_steps=max(args.max_steps, 1),
         save_total_limit=1,
         report_to=[],
@@ -208,15 +230,23 @@ def run_training(
         remove_unused_columns=False,
         dataloader_num_workers=0,
     )
-    trainer = Trainer(model=model, args=training_args, train_dataset=train_dataset)
+    trainer = Trainer(model=model, args=training_args, train_dataset=train_dataset, eval_dataset=eval_dataset)
+    initial_eval_metrics = trainer.evaluate(metric_key_prefix="eval_initial") if eval_dataset is not None else {}
     train_result = trainer.train()
+    final_eval_metrics = trainer.evaluate(metric_key_prefix="eval_final") if eval_dataset is not None else {}
 
     adapter_dir = output_dir / "adapter"
     model.save_pretrained(adapter_dir)
     tokenizer.save_pretrained(adapter_dir)
     metrics = {key: float(value) if isinstance(value, (int, float)) else value for key, value in train_result.metrics.items()}
     trainer.save_metrics("train", metrics)
+    if initial_eval_metrics:
+        trainer.save_metrics("eval_initial", normalize_metrics(initial_eval_metrics))
+    if final_eval_metrics:
+        trainer.save_metrics("eval_final", normalize_metrics(final_eval_metrics))
     trainer.save_state()
+    overfit_monitor = build_overfit_monitor(trainer.state.log_history, initial_eval_metrics, final_eval_metrics)
+    write_json(output_dir / "overfit_monitor.json", overfit_monitor)
 
     return {
         "status": "completed",
@@ -224,12 +254,16 @@ def run_training(
         "finished_at": utc_now(),
         "duration_seconds": round(time.perf_counter() - started_perf, 3),
         "sample_count": len(examples),
+        "eval_sample_count": len(eval_examples),
         "model": args.model,
         "load_in_4bit": args.load_in_4bit,
         "max_steps": args.max_steps,
         "max_seq_length": args.max_seq_length,
         "adapter_dir": str(adapter_dir),
         "metrics": metrics,
+        "initial_eval_metrics": normalize_metrics(initial_eval_metrics),
+        "final_eval_metrics": normalize_metrics(final_eval_metrics),
+        "overfit_monitor": overfit_monitor,
         "trainable_parameters": trainable_parameter_summary(model),
     }
 
@@ -281,10 +315,15 @@ def build_run_config(args: argparse.Namespace, output_dir: Path, started_at: str
         "output_dir": str(output_dir),
         "max_samples": args.max_samples,
         "split": args.split,
+        "max_eval_samples": args.max_eval_samples,
+        "eval_split": args.eval_split,
+        "eval_steps": args.eval_steps,
+        "logging_steps": args.logging_steps,
         "max_seq_length": args.max_seq_length,
         "max_steps": args.max_steps,
         "learning_rate": args.learning_rate,
         "per_device_train_batch_size": args.per_device_train_batch_size,
+        "per_device_eval_batch_size": args.per_device_eval_batch_size,
         "gradient_accumulation_steps": args.gradient_accumulation_steps,
         "lora": {
             "r": args.lora_r,
@@ -297,6 +336,48 @@ def build_run_config(args: argparse.Namespace, output_dir: Path, started_at: str
         "device_map": args.device_map,
         "trust_remote_code": args.trust_remote_code,
         "dry_run": args.dry_run,
+    }
+
+
+def normalize_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    return {key: float(value) if isinstance(value, (int, float)) else value for key, value in metrics.items()}
+
+
+def build_overfit_monitor(
+    log_history: list[dict[str, Any]],
+    initial_eval_metrics: dict[str, Any],
+    final_eval_metrics: dict[str, Any],
+) -> dict[str, Any]:
+    train_history = [
+        {"step": entry.get("step"), "loss": float(entry["loss"])}
+        for entry in log_history
+        if "loss" in entry and "step" in entry
+    ]
+    eval_history = [
+        {"step": entry.get("step"), "eval_loss": float(entry["eval_loss"])}
+        for entry in log_history
+        if "eval_loss" in entry and "step" in entry
+    ]
+    initial_loss = initial_eval_metrics.get("eval_initial_loss")
+    final_loss = final_eval_metrics.get("eval_final_loss")
+    assessment = "not_evaluated"
+    if isinstance(initial_loss, (int, float)) and isinstance(final_loss, (int, float)):
+        delta = float(final_loss) - float(initial_loss)
+        if delta > 0.05:
+            assessment = "possible_overfit_eval_loss_increased"
+        elif delta < -0.05:
+            assessment = "no_overfit_signal_eval_loss_decreased"
+        else:
+            assessment = "stable_eval_loss"
+    return {
+        "assessment": assessment,
+        "initial_eval_loss": float(initial_loss) if isinstance(initial_loss, (int, float)) else None,
+        "final_eval_loss": float(final_loss) if isinstance(final_loss, (int, float)) else None,
+        "eval_loss_delta": (float(final_loss) - float(initial_loss))
+        if isinstance(initial_loss, (int, float)) and isinstance(final_loss, (int, float))
+        else None,
+        "train_history": train_history,
+        "eval_history": eval_history,
     }
 
 

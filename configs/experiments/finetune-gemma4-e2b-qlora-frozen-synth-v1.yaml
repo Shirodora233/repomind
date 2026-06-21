@@ -57,9 +57,10 @@ environment:
 
 runner:
   script: scripts/run_finetune_smoke.py
-  runner_version: finetune-smoke-runner-v3
+  runner_version: finetune-smoke-runner-v4
   split_argument_required: true
   split: train
+  eval_split: dev
   device_map: single-gpu
   trust_remote_code: true
 
@@ -84,10 +85,14 @@ qlora:
 
 training_defaults:
   max_samples: 400
+  max_eval_samples: 100
   max_seq_length: 128
   max_steps: 100
+  eval_steps: 10
+  logging_steps: 1
   learning_rate: 0.0002
   per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
   gradient_accumulation_steps: 1
   seed: null
   output_dir: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1
@@ -100,8 +105,13 @@ command_template: >-
   --output-dir E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1
   --max-samples 400
   --split train
+  --max-eval-samples 100
+  --eval-split dev
   --max-seq-length 128
   --max-steps 100
+  --eval-steps 10
+  --logging-steps 1
+  --per-device-eval-batch-size 1
   --gradient-accumulation-steps 1
   --device-map single-gpu
 
@@ -120,6 +130,7 @@ recording_requirements:
     - ollama ps
   after_run:
     - training_summary.json
+    - overfit_monitor.json
     - adapter directory listing
     - GPU release check
     - records/11-finetune-data-and-training.md update
@@ -127,3 +138,4 @@ recording_requirements:
 known_pilot_outputs:
   one_step_smoke: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-smoke-20260621-linear-targets-1step
   ten_step_pilot: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-pilot-20260621-10step
+  hundred_step_with_dev_eval: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1-100step-20260621

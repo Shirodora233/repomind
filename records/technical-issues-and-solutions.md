@@ -239,3 +239,15 @@
 - 解决方式：`scripts/run_finetune_smoke.py` 已升级为 `finetune-smoke-runner-v3`，新增 `--split train|dev|test|all`，默认 `train`。`run_config.json` 会记录 split；如需复现旧 smoke 行为，可显式传 `--split all`。
 - 后续注意：冻结训练配置必须写明 `--split train`。dev split 只用于诊断或后续评估，不应进入训练样本。
 - 相关文件：`scripts/run_finetune_smoke.py`、`configs/experiments/finetune-gemma4-e2b-qlora-frozen-synth-v1.yaml`、`datasets/finetune-v1/frozen/full-synthetic-readiness-20260621/freeze-manifest.json`
+
+## 100-step Gemma4 QLoRA synthetic pilot dev loss 完全持平
+
+- 首次发现阶段：Fine-tune 数据与训练阶段
+- 状态：active
+- 最后复核：2026-06-21
+- 现象：使用 frozen synthetic readiness 数据运行 100-step Gemma4 E2B QLoRA，训练链路完成且 adapter 写出，但初始 dev loss、每 10 step dev loss 和最终 dev loss 均为 `7.441023349761963`。Trainer 日志中每步 `grad_norm` 也显示为 `0.0`。训练 loss 首 10 step 均值约 `7.6813`，末 10 step 均值约 `7.5836`，只有很弱下降。
+- 影响：本轮没有过拟合信号，但也没有可测的 dev loss 改善。不能据此声称 fine-tune 效果已经提升，只能说明 QLoRA 链路、adapter 保存和 dev 监控可用。
+- 原因：尚未确定。候选原因包括：100 step / 0.25 epoch 对 synthetic 数据过短；Trainer 默认线性调度快速衰减学习率；LoRA 更新幅度太小；当前 SFT 文本格式未使用 Gemma chat template；labels 覆盖整段 prompt+answer 而非只训练 assistant；`grad_norm=0.0` 可能是 PEFT / quantized module 梯度统计显示问题，也可能提示实际更新弱。
+- 解决方式：未解决。已确认 adapter 权重不是全零：`adapter_model.safetensors` 含 296 个 tensor、2,850,816 个 LoRA 参数，非零参数约 1,277,952，最大绝对值约 `0.03613`。下一步应先做小型诊断 run：固定更高学习率或不衰减调度、只训练 assistant token、记录 LoRA 参数更新范数、用 1-2 条样本过拟合到 loss 明显下降，再扩大正式训练。
+- 后续注意：不要仅凭 `status=completed` 或 adapter 文件存在判断微调有效。报告 fine-tune 效果时必须同时给出 train loss、dev loss、过拟合判断和是否有可测改进。
+- 相关文件：`scripts/run_finetune_smoke.py`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-100step-20260621.md`、`records/11-finetune-data-and-training.md`
