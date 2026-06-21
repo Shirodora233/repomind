@@ -150,3 +150,11 @@
   - 本地验证：`python -m py_compile scripts\rag_pack_context.py` 通过；基于 `runs/rag-retrieval/rag-v1-pilot-20-keyword-multiquery-safe-20260621` 生成 `runs/rag-context/rag-v1.4-candidate-dedup-pilot-20-20260621`；runner dry-run 写入 `runs/rag-context-runs/rag-v1.4-candidate-dedup-pilot-20-dry-20260621`。
   - 去重效果：20-case raw candidate rows 从 191 合并为 140，去重 51 行；`astrbot-agent-001` 从 60 合并为 39，`astrbot-chat-003` 从 23 合并为 12。最大 context token estimate 从 v1.3 的约 23,300 降到约 21,256。
   - 下一步：提交 v1.4 工程改动后，用同一 20-case、DeepSeek direct provider、`max_tokens=8000` 跑 RAG v1.4 API pilot，观察 duplicate predictions 和 precision 是否改善。
+- 2026-06-21：完成 RAG v1.4 Candidate Dedup DeepSeek 20-case pilot，正式报告见 `reports/rag/batches/rag-v1.4-candidate-dedup-deepseek-pilot-20-20260621.md`。
+  - 工程提交：`67145bb`；API run：`runs/rag-context-runs/rag-v1.4-candidate-dedup-deepseek-pilot-20-20260621`；同口径汇总：`runs/validation/rag-v1.4-candidate-dedup-deepseek-pilot-20-filtered-20260621.json`。
+  - 运行配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，reasoning disabled，`--max-tokens 8000 --max-retries 2 --concurrency 4 --warmup-cases 2`。20/20 response 均 `finish_reason=stop`，request errors 0，parse errors 0。run_config 的 `git_dirty=true` 来自 fine-tune 线未提交文件，不是 RAG 代码 dirty。
+  - 结果：RAG v1.4 P/R/E=0.775510/0.678571/0.973684；RAG v1.3 为 0.789474/0.669643/0.973333。v1.4 matched required 从 75 到 76，duplicate predictions 从 44 降到 16，但 unmatched 从 20 到 21，excluded hits 从 0 到 1。
+  - 分项：`find_callees` 从 0.710145/0.583333 提升到 0.746269/0.595238；`find_callers` precision 从 1.000000 退化到 0.838710，recall 保持 0.928571。
+  - 关键退化：`scrapy-crawler-006` 从 v1.3 的 P/R/E=1.0/1.0/1.0 退化为 precision 0.166667，返回 4 条 unmatched 和 1 条 excluded，说明 v1.4 去重后弱化了 secondary caller rows 的验证约束。
+  - 成本：20 个 raw responses，371,164 tokens，observed cost 0.142206053 USD，wall-clock 73.649 秒，observed provider 为 DeepSeek 20/20。
+  - 收口结论：当前 RAG-only 正式候选仍应是 v1.3；v1.4 去重机制有效但不能直接替代 v1.3。若继续迭代，应做最小 v1.5：保留 dedup，同时把 `find_callers` secondary rows 移到 warning block 或加强 return policy，目标是恢复 caller precision=1.0。
