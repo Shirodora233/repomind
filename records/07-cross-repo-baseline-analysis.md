@@ -173,3 +173,27 @@
   - 两个在线模型 caller 批次 Retrieval Recall 均为 0.973684，但 Edge Recall 低于 Oracle，继续支持“检索后 final edge 收敛是主瓶颈”的判断。
   - Gemma4 在 caller 方向暴露出方向混淆、fully-qualified symbol 不稳定、多 caller recall 低、同名/registration 边界失败和 evidence 不稳，适合作为后续 fine-tune 数据设计的下限信号。
   - 70-case baseline 最终汇总已更新到 `reports/baseline/summary/baseline-summary-v0-20260620.md`。
+
+### 2026-06-21：完成修正 golden 后在线 baseline v1 正式重跑
+
+- 目标：在 high-risk golden audit 后，基于 `required_edges=232` 的修正数据集重跑在线模型 baseline v1，作为后续 PE / RAG / Fine-tune / 消融的主对照；旧 `baseline-summary-v0-20260620.md` 继续冻结为历史。
+- 正式报告：`reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`。
+- 聚合摘要：`runs/baseline-v1/summary-online-baseline-v1-20260621.json`。
+- Run paths：
+  - `runs/baseline-v1/oracle-deepseek-corrected-golden-20260621`
+  - `runs/baseline-v1/oracle-tencent-corrected-golden-20260621`
+  - `runs/baseline-v1/oracle-tencent-corrected-golden-20260621-part2`
+  - `runs/baseline-v1/e2e-deepseek-corrected-golden-20260621`
+  - `runs/baseline-v1/e2e-tencent-corrected-golden-20260621`
+- 主要结果：
+  - Oracle DeepSeek：Precision 0.953390 / Recall 0.948276 / Evidence Accuracy 0.977273，cost 0.424684642 USD，wall-clock 365.233 秒。
+  - Oracle Tencent HY3：Precision 0.970588 / Recall 0.969828 / Evidence Accuracy 0.995556，cost 0.076574102 USD，wall-clock 348.638 秒。
+  - E2E DeepSeek：Precision 0.827586 / Recall 0.818966 / Evidence Accuracy 0.989474，Definition Accuracy 1.000000，Retrieval Recall 0.984848，cost 0.261886037 USD，wall-clock 1527.156 秒；`astrbot-negative-001` 未生成 prediction。
+  - E2E Tencent HY3：Precision 0.704724 / Recall 0.758621 / Evidence Accuracy 0.988636，Definition Accuracy 0.971429，Retrieval Recall 1.000000，cost 0.119151742 USD，wall-clock 2293.167 秒。
+- 运行说明：Tencent HY3 Oracle 首轮在 26/70 case 后被 Codex 用量上限硬切；恢复后补跑剩余 44 case 到 part2，并用 `scripts/summarize_call_chain_runs.py` 合并评分。该问题已记录到 `records/technical-issues-and-solutions.md`。
+- 新增辅助脚本：`scripts/summarize_call_chain_runs.py`，用于从一个或多个 run 目录合并 predictions，并聚合 score、task/difficulty 分桶、token/cost、provider、timing、request/parse error 和 E2E retrieval metrics；不改变 scorer 口径。
+- 验证：
+  - `python scripts/validate_cases.py --cases datasets\call-chain-v1\cases`：70 case 通过。
+  - `python -m py_compile scripts\summarize_call_chain_runs.py` 通过。
+  - `python scripts\summarize_call_chain_runs.py --run oracle,DeepSeek,runs\baseline-v1\oracle-deepseek-corrected-golden-20260621 --run oracle,Tencent-HY3,runs\baseline-v1\oracle-tencent-corrected-golden-20260621+runs\baseline-v1\oracle-tencent-corrected-golden-20260621-part2 --run e2e,DeepSeek,runs\baseline-v1\e2e-deepseek-corrected-golden-20260621 --run e2e,Tencent-HY3,runs\baseline-v1\e2e-tencent-corrected-golden-20260621 --json-out runs\baseline-v1\summary-online-baseline-v1-20260621.json` 通过。
+- 交接：第 1 步在线 baseline v1 已完成并可作为正式主对照。下一步进入 PE pilot 扩展，先选 20-30 个代表 case 验证 PE-only，而不是直接跑完整消融。

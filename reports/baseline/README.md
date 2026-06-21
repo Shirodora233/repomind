@@ -4,16 +4,19 @@
 
 ## 推荐阅读顺序
 
-1. `diagnostics/golden-audit-rescore-decision-20260621.md`
+1. `summary/baseline-v1-online-corrected-golden-20260621.md`
+   - 修正 golden 后的在线模型正式 baseline v1 主对照。
+   - 汇总 DeepSeek 与 Tencent HY3 在 Oracle Context 与 E2E 两条轨道上的最新指标、成本、timing 和瓶颈诊断。
+2. `diagnostics/golden-audit-rescore-decision-20260621.md`
    - 说明旧 baseline v0 已冻结为历史，不再作为正式对照。
    - 汇总 high-risk golden audit、重评分结果和是否需要重跑 baseline 的判断。
-2. `summary/baseline-summary-v0-20260620.md`
+3. `summary/baseline-summary-v0-20260620.md`
    - 70-case 历史 baseline 主报告。
    - 汇总 DeepSeek、Tencent HY3、Gemma4 在 Oracle Context 与 E2E 两条轨道上的历史主指标、成本、case 分层和主要失败模式。
-3. `summary/constructor-normalized-comparison-v0-20260620.md`
+4. `summary/constructor-normalized-comparison-v0-20260620.md`
    - scorer v1 辅助指标对比报告。
    - 用于解释 `ClassName` 与 `ClassName.__init__` constructor symbol 表达差异，不替代 strict 主分数。
-4. `diagnostics/cross-repo-failure-analysis-v0-20260620.md`
+5. `diagnostics/cross-repo-failure-analysis-v0-20260620.md`
    - 跨仓库失败模式分析。
    - 用于定位后续 PE / RAG 优化的目标场景。
 
@@ -22,6 +25,7 @@
 ```text
 reports/baseline/
   summary/
+    baseline-v1-online-corrected-golden-20260621.md
     baseline-summary-v0-20260620.md
     constructor-normalized-comparison-v0-20260620.md
   batches/
