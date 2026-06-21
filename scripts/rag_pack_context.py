@@ -31,8 +31,9 @@ from rag_common import load_index, module_name_from_path, project_path, result_p
 
 
 DEFAULT_PROMPT = PROJECT_ROOT / "prompts" / "oracle-context-v0.md"
-CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.3"
-CONTEXT_PACKER_VERSION = "rag-context-packer-v1.3"
+CONTEXT_PACK_SCHEMA_VERSION = "rag-context-pack-v1.4"
+CONTEXT_PACKER_VERSION = "rag-context-packer-v1.4"
+EDGE_CANDIDATE_BUILDER_VERSION = "rag-edge-candidate-builder-v1.4"
 CALL_EXPR_RE = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\s*\(")
 CALL_SKIP_NAMES = {
     "all",
@@ -860,41 +861,118 @@ def build_candidate_edge_table(
     case: dict[str, Any],
     direct_call_candidates: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    rows: list[dict[str, Any]] = []
-    for index, item in enumerate(direct_call_candidates, start=1):
+    raw_rows: list[dict[str, Any]] = []
+    merged_by_edge: dict[tuple[str, str], dict[str, Any]] = {}
+    for raw_index, item in enumerate(direct_call_candidates, start=1):
         status = str(item.get("candidate_status") or "")
         if status.startswith("filtered"):
             continue
         caller = str(item.get("caller_hint") or "")
         callee = str(item.get("output_symbol_hint") or item.get("callee_canonical_hint") or item.get("callee_expression") or "")
-        rows.append(
-            {
-                "candidate_id": f"edge-{index:03d}",
-                "status": status or "secondary",
-                "return_policy": candidate_return_policy(status),
-                "caller_symbol_hint": caller,
-                "callee_symbol_hint": callee,
-                "callee_expression": item.get("callee_expression"),
-                "file": item.get("file"),
-                "line": item.get("line"),
-                "evidence": item.get("evidence"),
-                "boundary_role": item.get("boundary_role"),
-                "registered_callback_arguments": item.get("registered_callback_arguments") or [],
-                "normalization_note": item.get("normalization_note"),
-                "verification_note": item.get("candidate_reason"),
-            }
-        )
+        row = {
+            "status": status or "secondary",
+            "return_policy": candidate_return_policy(status),
+            "caller_symbol_hint": caller,
+            "callee_symbol_hint": callee,
+            "callee_expression": item.get("callee_expression"),
+            "file": item.get("file"),
+            "line": item.get("line"),
+            "evidence": item.get("evidence"),
+            "boundary_role": item.get("boundary_role"),
+            "registered_callback_arguments": item.get("registered_callback_arguments") or [],
+            "normalization_note": item.get("normalization_note"),
+            "verification_note": item.get("candidate_reason"),
+            "evidence_count": 1,
+            "additional_evidence": [],
+            "_raw_index": raw_index,
+        }
+        raw_rows.append(row)
+        key = (caller, callee)
+        existing = merged_by_edge.get(key)
+        if existing is None:
+            merged_by_edge[key] = row
+        else:
+            merge_candidate_edge_row(existing, row)
+    rows = sorted(
+        merged_by_edge.values(),
+        key=lambda row: (
+            candidate_status_rank(str(row.get("status") or "")),
+            as_int(row.get("_raw_index"), 999999),
+            str(row.get("caller_symbol_hint") or ""),
+            str(row.get("callee_symbol_hint") or ""),
+        ),
+    )
+    for index, row in enumerate(rows, start=1):
+        row["candidate_id"] = f"edge-{index:03d}"
+        row.pop("_raw_index", None)
     return {
-        "builder_version": "rag-edge-candidate-builder-v1.3",
+        "builder_version": EDGE_CANDIDATE_BUILDER_VERSION,
         "source": "retrieval/index-derived direct call evidence only; no golden or oracle_context fields used",
+        "dedupe_policy": "one candidate row per caller_symbol_hint -> callee_symbol_hint; merged rows keep evidence_count and up to five additional_evidence entries",
         "case_id": case.get("id"),
         "task_type": case.get("task_type"),
         "target": case.get("target"),
+        "raw_candidate_count": len(raw_rows),
         "candidate_count": len(rows),
+        "deduplicated_candidate_count": len(raw_rows) - len(rows),
         "primary_candidate_count": sum(1 for row in rows if row.get("status") == "primary"),
         "secondary_candidate_count": sum(1 for row in rows if row.get("status") == "secondary"),
         "rows": rows,
     }
+
+
+def candidate_status_rank(status: str) -> int:
+    if status == "primary":
+        return 0
+    if status == "secondary":
+        return 1
+    return 2
+
+
+def candidate_evidence_ref(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": row.get("status"),
+        "callee_expression": row.get("callee_expression"),
+        "file": row.get("file"),
+        "line": row.get("line"),
+        "evidence": row.get("evidence"),
+    }
+
+
+def merge_candidate_edge_row(existing: dict[str, Any], incoming: dict[str, Any]) -> None:
+    evidence_refs = [candidate_evidence_ref(existing), candidate_evidence_ref(incoming)]
+    if candidate_status_rank(str(incoming.get("status") or "")) < candidate_status_rank(str(existing.get("status") or "")):
+        old_ref = candidate_evidence_ref(existing)
+        preserved = {
+            "evidence_count": existing.get("evidence_count", 1),
+            "additional_evidence": list(existing.get("additional_evidence") or []),
+            "_raw_index": existing.get("_raw_index"),
+        }
+        existing.update(incoming)
+        existing["evidence_count"] = preserved["evidence_count"]
+        existing["additional_evidence"] = preserved["additional_evidence"]
+        existing["_raw_index"] = preserved["_raw_index"]
+        evidence_refs.append(old_ref)
+
+    existing["evidence_count"] = as_int(existing.get("evidence_count"), 1) + 1
+    existing["return_policy"] = candidate_return_policy(str(existing.get("status") or ""))
+    existing["registered_callback_arguments"] = list(
+        dict.fromkeys(
+            [
+                *[str(value) for value in existing.get("registered_callback_arguments") or []],
+                *[str(value) for value in incoming.get("registered_callback_arguments") or []],
+            ]
+        )
+    )
+
+    current_ref = candidate_evidence_ref(existing)
+    additional = list(existing.get("additional_evidence") or [])
+    for ref in evidence_refs:
+        if ref == current_ref or ref in additional:
+            continue
+        if len(additional) < 5:
+            additional.append(ref)
+    existing["additional_evidence"] = additional
 
 
 def candidate_return_policy(status: str) -> str:
@@ -1258,8 +1336,8 @@ def render_candidate_edge_table(rows_data: list[dict[str, Any]]) -> str:
     if not rows_data:
         return "No candidate edges were extracted from the selected chunks."
     rows = [
-        "| ID | Status | Caller Hint | Callee Hint | Return Policy | File:Line | Evidence |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| ID | Status | Caller Hint | Callee Hint | Evidence Count | Return Policy | File:Line | Evidence |",
+        "| --- | --- | --- | --- | ---: | --- | --- | --- |",
     ]
     for item in rows_data:
         rows.append(
@@ -1271,6 +1349,7 @@ def render_candidate_edge_table(rows_data: list[dict[str, Any]]) -> str:
                     item.get("status"),
                     item.get("caller_symbol_hint"),
                     item.get("callee_symbol_hint"),
+                    item.get("evidence_count", 1),
                     item.get("return_policy"),
                     f"{item.get('file')}:{item.get('line')}",
                     item.get("evidence"),
@@ -1301,7 +1380,9 @@ def summarize_synthesis_aid(aid: dict[str, Any] | None, estimated_tokens: int) -
         "filtered_candidate_count": direct.get("filtered_candidate_count"),
         "rendered_candidate_count": direct.get("rendered_candidate_count"),
         "omitted_candidate_count": direct.get("omitted_candidate_count"),
+        "edge_raw_candidate_count": candidate_table.get("raw_candidate_count"),
         "edge_candidate_count": candidate_table.get("candidate_count"),
+        "edge_deduplicated_candidate_count": candidate_table.get("deduplicated_candidate_count"),
         "edge_primary_candidate_count": candidate_table.get("primary_candidate_count"),
         "edge_secondary_candidate_count": candidate_table.get("secondary_candidate_count"),
         "golden_used": False,

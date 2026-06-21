@@ -1,6 +1,6 @@
 version: rag-v1
 stage: rag_pipeline
-status: context_pack_candidate_builder_ready
+status: context_pack_candidate_builder_v1_4_ready
 
 baseline_reference:
   dataset: call-chain-v1
@@ -89,8 +89,8 @@ retrieval_evaluation:
     - DefinitionAccuracy@K
 
 context_pack:
-  schema_version: rag-context-pack-v1.3
-  packer_version: rag-context-packer-v1.3
+  schema_version: rag-context-pack-v1.4
+  packer_version: rag-context-packer-v1.4
   script: scripts/rag_pack_context.py
   default_output_root: runs/rag-context
   default_retrieval_variant: keyword_multiquery_safe
@@ -134,7 +134,7 @@ context_pack:
     - <case_id>/edge_candidates.json
 
 edge_candidate_builder:
-  version: rag-edge-candidate-builder-v1.3
+  version: rag-edge-candidate-builder-v1.4
   implemented_in: scripts/rag_pack_context.py
   source_policy:
     - retrieval results
@@ -151,6 +151,7 @@ edge_candidate_builder:
     - writes per-case edge_candidates.json
     - renders Candidate Edge Table in retrieved_context.md before raw chunks
     - downgrades find_callers same-tail receiver matches to secondary when receiver type is not proven
+    - deduplicates Candidate Edge Table rows by caller_symbol_hint -> callee_symbol_hint while preserving evidence_count and additional_evidence
 
 rag_context_runner:
   runner_version: rag-context-runner-v1

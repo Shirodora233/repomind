@@ -144,3 +144,9 @@
   - 分项：`find_callers` precision 从 0.838710 提升到 1.000000，recall 保持 0.928571；`find_callees` recall 保持 0.583333，但 precision 从 0.720588 小降到 0.710145，evidence accuracy 从 0.897959 提升到 0.979592。
   - 成本：20 个 raw responses，376,602 tokens，observed cost 0.117472852 USD，wall-clock 75.491 秒，observed provider 为 DeepSeek 20/20。
   - 结论：v1.3 可以作为下一轮 RAG-only 主线；进入 PE+RAG / All 消融前，应先处理 duplicate predictions、继承/基类 method owner 归一化、`self.db` / singleton registry receiver canonicalization，以及 AstrBot object-method extra edge 边界。
+- 2026-06-21：实现 RAG v1.4 Candidate Edge Table 去重，暂未调用在线模型。
+  - 修改 `scripts/rag_pack_context.py`，将 context pack schema / packer 升到 `rag-context-pack-v1.4` / `rag-context-packer-v1.4`，edge candidate builder 升到 `rag-edge-candidate-builder-v1.4`。
+  - Candidate Edge Table 现在按 `caller_symbol_hint -> callee_symbol_hint` 合并候选行，保留 `raw_candidate_count`、`deduplicated_candidate_count`、`evidence_count` 和最多 5 条 `additional_evidence`；Direct Call Evidence Candidates 仍保留 line-level 证据用于核验。
+  - 本地验证：`python -m py_compile scripts\rag_pack_context.py` 通过；基于 `runs/rag-retrieval/rag-v1-pilot-20-keyword-multiquery-safe-20260621` 生成 `runs/rag-context/rag-v1.4-candidate-dedup-pilot-20-20260621`；runner dry-run 写入 `runs/rag-context-runs/rag-v1.4-candidate-dedup-pilot-20-dry-20260621`。
+  - 去重效果：20-case raw candidate rows 从 191 合并为 140，去重 51 行；`astrbot-agent-001` 从 60 合并为 39，`astrbot-chat-003` 从 23 合并为 12。最大 context token estimate 从 v1.3 的约 23,300 降到约 21,256。
+  - 下一步：提交 v1.4 工程改动后，用同一 20-case、DeepSeek direct provider、`max_tokens=8000` 跑 RAG v1.4 API pilot，观察 duplicate predictions 和 precision 是否改善。
