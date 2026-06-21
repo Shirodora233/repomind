@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：已完成（high-risk direct-call audit 已收口；后续新增或修改 case 需滚动复核）
 
 ## 阶段目标
 
@@ -134,6 +134,6 @@ Run path：`runs/rag-context-runs/rag-v1-synthesis-aid-deepseek-smoke-3-20260621
 
 ## 后续注意
 
-- `reports/baseline/summary/baseline-summary-v0-20260620.md` 仍是 golden audit 前的历史 baseline 汇总，已加 notice；后续正式 baseline 对照需要基于修正后的 golden 重新聚合或重跑。
-- 其它大函数 `find_callees` case 仍可能存在同类“关键 helper 子集”漏标，进入消融前应优先用 `scripts/audit_direct_calls.py` 扫描高风险 case。
+- `reports/baseline/summary/baseline-summary-v0-20260620.md` 仍是 golden audit 前的历史 baseline 汇总，已加 notice；正式 baseline 对照已改用修正 golden 后的 `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`。
+- 当前 high-risk `find_callees` direct-call audit 已收口；如果后续新增 case、修改 golden 或引入新仓库，应继续用 `scripts/audit_direct_calls.py` 扫描高风险 case。
 - 审计脚本当前只能解析 import / same-file / direct self method 等较稳的 callee；复杂 receiver object method 仍需人工判断。

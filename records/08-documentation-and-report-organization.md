@@ -73,6 +73,13 @@
 - 将“共同失败模式”改为表格化表达，逐项列出精确现象、数据支撑、代表错误样本和优化指向。
 - 调整“策略结论”，强调下一阶段不应只扩大模型池，而应围绕 PE v1、RAG / Agent v1、Fine-tune 数据准备和 case 边界复核推进。
 
+### 2026-06-21：整理阶段报告索引与提交说明
+
+- 更新 `reports/pe/README.md`、`reports/rag/README.md`、`reports/finetune/README.md`，将入口从历史过程报告切换到当前 summary、候选版本和局限性说明。
+- 新增 `reports/ablation/README.md`，说明简单消融已完成、完整 8 组矩阵未启动，以及后续启动条件。
+- 根 README 和提交说明已指向项目 GitHub、Hugging Face 微调模型和主文档阅读顺序。
+- `output/` 作为本地导出目录被 Git 忽略，不纳入正式提交；正式 Markdown 报告仍以 `reports/` 为准。
+
 ## 验证结果
 
 已完成以下验证：

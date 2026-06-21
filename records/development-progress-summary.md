@@ -14,10 +14,10 @@
 | 主 baseline 模型 | DeepSeek direct no-reasoning、Tencent HY3 no-reasoning、Gemma4 E2B local |
 | 当前 scorer | `call-chain-scorer-v1`，strict 主分数 + constructor-normalized 辅助指标 |
 | 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
-| 当前 PE 资产 | `pe-v1` prompt assets、20 条 synthetic few-shot、`pe_postprocess.py`、matrix planner v2、34 个 generated prompts |
-| 当前 RAG 资产 | `rag-v1` chunk index、BM25/keyword retrieval、`keyword_multiquery_safe`、context packer、RAG context runner、retrieval eval |
-| 当前 Fine-tune 资产 | `finetune-data-v1` smoke+ 58 条 targeted synthetic、frozen synthetic v1/v2 各 500 条（train 400 / dev 100）、Gemma4 E2B QLoRA v1/v2 100-step adapter；v2 synthetic dev loss 已降到 0.1939；真实仓库 4-case 对照显示 v2 与 v1 recall 持平但 evidence 退步 |
-| 主报告 | `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`（修正 golden 后在线模型正式 baseline v1 主对照） |
+| 当前 PE 资产 | PE v2 `S` system guidance 为当前 PE-only 候选；PE v1/v2 prompt assets、generated prompts、matrix planner 和 `pe_postprocess.py` 保留用于追溯与后续精修 |
+| 当前 RAG 资产 | RAG v1.3 candidate builder 为当前 RAG-only 候选；v1.4 candidate dedup 作为诊断版本保留；chunk index、`keyword_multiquery_safe`、context packer、RAG context runner 和 retrieval eval 已可复现 |
+| 当前 Fine-tune 资产 | `finetune-data-v1` smoke+ 58 条 targeted synthetic、frozen synthetic v1/v2 各 500 条（train 400 / dev 100）、Gemma4 E2B QLoRA v1/v2 100-step adapter；v2 synthetic dev loss 已降到 0.1939，但真实仓库 4-case 未形成净提升；HF 产物为 `Shirodora233/gemma4-e2b-repomind-qlora-synth-v2-pilot` |
+| 主报告 | `reports/overall-summary-20260621.md`（项目总报告）与 `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`（修正 golden 后在线模型正式 baseline v1 主对照） |
 | Fine-tune 报告 | `reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-v6-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-v2-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-realcase-base-vs-adapter-smoke-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-realcase-v1-v2-comparison-20260621.md` |
 | 历史 baseline | `reports/baseline/summary/baseline-summary-v0-20260620.md`（历史 baseline v0，已冻结，不再作为正式对照） |
 | 辅助评分报告 | `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md` |
@@ -56,22 +56,27 @@
 | 2026-06-21 | Fine-tune frozen synthetic 与 QLoRA 修复 | `a90e944`、`3fdc6b7` | 冻结 500 条 synthetic train/dev；修复 assistant-only label、Gemma4 language-model LoRA target 与小样本过拟合链路 |
 | 2026-06-21 | Gemma4 v6 synthetic pilot 与真实 case smoke | `a37e103`、`30f7732` | 100-step v6 synthetic pilot dev loss 从 2.044 降到 0.332；真实仓库 4-case adapter 相对 base 达到 P=0.75 / R=0.25 / E=0.667 |
 | 2026-06-21 | Gemma4 v2 augmented synthetic pilot | `cf086d8` | 冻结 500 条 augmented synthetic v2；100-step v2 pilot dev loss 从 2.232 降到 0.194；真实仓库 4-case 中 v2 与 v1 同为 P=0.75/R=0.25，但 evidence 从 0.667 降到 0.333 |
-| 2026-06-21 | Fine-tune smoke+ recall/evidence augmentation | 本轮提交 | smoke+ 从 50 扩到 58 条，新增 multi-edge、depth-2、find_callers caller-body evidence 与 line-numbered evidence 模板；validator coverage 24/24 |
+| 2026-06-21 | Fine-tune smoke+ recall/evidence augmentation | 见 Fine-tune 阶段记录 | smoke+ 从 50 扩到 58 条，新增 multi-edge、depth-2、find_callers caller-body evidence 与 line-numbered evidence 模板；validator coverage 24/24 |
 | 2026-06-21 | RAG definition-safe retrieval | `d04a2d5` | `keyword_multiquery_safe`，pilot 20 DefinitionAccuracy@5=1.0、Recall@10=1.0 |
 | 2026-06-21 | PE prompt assembly ready | `4701bc9` | 34 个 generated prompt 资产，全矩阵 dry-run 无缺 prompt |
 | 2026-06-21 | RAG context packer | `fb8e3fb` | retrieval -> prompt-ready context，移除 `oracle_context` / `golden` metadata 泄漏 |
 | 2026-06-21 | RAG context runner | `1d50f7d` | RAG-only generation runner dry-run 入口，复用 scorer 与 model provider 配置 |
 | 2026-06-21 | RAG-only DeepSeek smoke | `d11dfdc` | 2-case RAG context runner smoke，P=0.9375 / R=0.8333 / E=1.0，成本约 0.0131 USD |
-| 2026-06-21 | Golden high-risk audit 与 baseline 冻结 | 本轮提交 | 修复 7 个 high-risk case，`required_edges=232`；旧 baseline v0 冻结为历史，正式对照需基于修正后 golden 重跑 |
-| 2026-06-21 | 在线 baseline v1 正式重跑 | 本轮提交 | DeepSeek / Tencent HY3 的 Oracle 与 E2E 70-case 主对照报告，新增 run summary 脚本 |
+| 2026-06-21 | Golden high-risk audit 与 baseline 冻结 | 见 Golden audit 阶段记录 | 修复 7 个 high-risk case，`required_edges=232`；旧 baseline v0 冻结为历史 |
+| 2026-06-21 | 在线 baseline v1 正式重跑 | 见 baseline 主报告 | DeepSeek / Tencent HY3 的 Oracle 与 E2E 70-case 主对照报告，新增 run summary 脚本 |
+| 2026-06-21 | PE v2 `S` Oracle / E2E pilot | 见 PE 阶段记录 | 25-case Oracle 与 25-case E2E 完成；`S` 保留为 PE-only 候选，但 E2E recall 有下降风险 |
+| 2026-06-21 | RAG v1.3 / v1.4 pilot | 见 RAG 阶段记录 | v1.3 作为 RAG-only 候选；v1.4 去重有效但 caller precision 退化，作为诊断版本保留 |
+| 2026-06-21 | 简单消融 | 见消融阶段记录 | `PE v2 S + RAG v1.3` 20-case DeepSeek 简单消融完成；完整 8 组矩阵未启动 |
+| 2026-06-21 | 项目交付说明整理 | `33a9fee` | 根 README、总报告和提交阅读顺序已整理；`output/` 为本地交付导出目录，不纳入 Git |
 
-## 当前待办
+## 当前交接
 
-- PE：下一步应基于 baseline v1 选择 20-30 个代表 case，跑 PE-only pilot；当前 PE v2 focused 结论不能直接当完整消融依据。
-- RAG：下一步应把 RAG-only synthesis aid 从 3-case smoke 扩到 20-case pilot，验证 canonical receiver、callback 边界和生成侧漏边模式是否稳定。
-- Baseline：在线 baseline v1 已完成；旧版 v0 已冻结，不再作为正式优化/消融主对照。Gemma4 本地 v1 可在资源允许时另行补跑，但不阻塞 PE/RAG 在线 pilot。
-- Fine-tune：v2 frozen synthetic 100-step pilot 已完成，synthetic dev loss 优于 v1，但真实仓库 4-case 未形成净提升且 evidence 退步；当前不加长训练，下一步先补强 evidence、multi-edge、depth-2 和同一函数多 helper call 的 synthetic 变体，再跑 v3 小规模 pilot；暂不把真实 case 回流训练集。
-- 消融矩阵：等待 PE smoke/pilot、RAG-only 20-case pilot、Fine-tune 扩大真实 case smoke 形成单项稳定版本后再运行。
+- Baseline：正式对照使用修正 golden 后的 baseline v1；旧版 v0 仅作为历史材料。Gemma4 本地 v1 可在资源允许时补跑，但不阻塞当前结论。
+- PE：当前保留 PE v2 `S` 作为 PE-only 候选；`S+F+C+P` 不作为主候选。若继续优化，应优先针对 hard case recall、constructor / exception class / repo utility wrapper 漏报做精修。
+- RAG：当前保留 RAG v1.3 candidate builder 作为 RAG-only 候选；v1.4 只证明 dedup 有价值，不能直接替代 v1.3。下一步可做 v1.5：保留 caller precision，同时吸收 dedup 和 receiver/owner 归一化收益。
+- Fine-tune：Gemma4 E2B QLoRA v2 augmented synthetic 100-step 作为可复现实验产物保留，HF 链接见报告；由于真实 case 无净提升，不进入当前组合消融。若继续推进，应先做 v3 数据增强和更大真实 case adapter smoke。
+- 消融矩阵：简单消融已完成；完整 PE/RAG/Fine-tune 8 组矩阵尚未启动，只有在 RAG 或 fine-tune 单项形成明确净提升后再运行更合理。
+- 报告索引：正式结论以 `reports/overall-summary-20260621.md` 和各阶段 `reports/*/README.md` / `summary/` 为入口；过程细节保留在对应 `records/`。
 
 ## 维护规则
 

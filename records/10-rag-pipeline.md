@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：阶段性完成（RAG v1.3 候选已形成；v1.4 作为诊断版本保留）
 
 ## 阶段目标
 
@@ -14,13 +14,14 @@
 - 检索结果与生成模型融合。
 - Retrieval Recall@K、MRR 与 E2E 效果提升评估。
 
-## 当前计划
+## 当前交接
 
-- 默认 embedding 使用 `Qwen/Qwen3-Embedding-0.6B + BM25 hybrid`。
-- 选型对照包含 `jinaai/jina-embeddings-v2-base-code`、`BAAI/bge-m3`，必要时再加入 `voyage-code-3` 作为 API 上限。
-- RAG only 必须使用 baseline prompt，不能混入 PE v1。
-- PE+RAG 必须在 PE best 冻结后再运行。
-- 优先解决检索后的 context pack 和 final edge synthesis，而不是单纯增加读取文件数量。
+- RAG v1.3 candidate builder 是当前 RAG-only 主候选。20-case DeepSeek pilot 为 P/R/E=0.789474/0.669643/0.973333；相对 v1.2，caller precision 和 evidence accuracy 改善，excluded hits 降到 0。
+- RAG v1.4 candidate dedup 只作为诊断版本保留。它把 duplicate predictions 从 44 降到 16，但 caller precision 从 1.000000 退化到 0.838710，因此不能直接替代 v1.3。
+- 当前 RAG-only 尚未超过 DeepSeek Base E2E；RAG 的价值主要体现在可控上下文、候选构造、失败诊断，以及给 PE+RAG / 小模型 / 大仓库路线提供可解释基础。
+- 当前总结入口：`reports/rag/summary/current-rag-summary-20260621.md`；报告索引：`reports/rag/README.md`。
+- 如果继续推进，建议做 RAG v1.5：保留 v1.3 caller precision，吸收 v1.4 dedup，修复 dense `find_callees` recall，并加强 receiver / owner canonicalization。
+- PE+RAG context runner 只能使用纯 guidance system prompt，例如 `prompts/pe/system-v2.md`；误用 E2E action prompt 的 run 只作为无效诊断。
 
 ## 文件所有权
 

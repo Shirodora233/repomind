@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：阶段性完成（PE v2 `S` 候选已形成；后续精修滚动维护）
 
 ## 阶段目标
 
@@ -13,12 +13,14 @@
 - CoT / reasoning guide：采用 evidence-first checklist，不要求输出完整长思维链。
 - 后处理：确定性过滤、排序、去重、depth 控制和 canonical symbol 清理。
 
-## 当前计划
+## 当前交接
 
-- 使用 `configs/experiments/pe-v1.yaml` 中定义的 20-case stratified pilot subset。
-- pilot 阶段跑 16 组 PE 组合，观察四个维度的独立效果和交互。
-- pilot 后选择 4-6 组代表性组合跑完整 70-case。
-- Oracle 与 E2E 都需要保留；先用 Oracle 观察纯推理提升，再用 E2E 验证真实 agent 场景。
+- PE v2 `S` system guidance 是当前 PE-only 候选。Oracle 25-case 中 `S` 为最佳方向，P/R/E=1.000000/0.977612/0.984733；同口径 base 为 0.939850/0.925373/0.967742。
+- PE v2 `S` E2E 25-case 中 P/R/E=0.800000/0.716418/0.979167；冻结 baseline 同 25 case 为 0.763780/0.723881/0.979381。结论是 precision 略涨，但 recall 小幅下降。
+- `S+F+C+P` 没有形成稳定叠加收益，不作为当前主候选。PE v1 历史结果和 PE v2 focused 结果主要用于解释为什么转向更保守的 `S`。
+- 当前总结入口：`reports/pe/summary/current-pe-summary-20260621.md`；报告索引：`reports/pe/README.md`。
+- 若继续优化，应优先处理 hard case recall、constructor / exception class / repo utility wrapper 漏报，而不是继续扩大 `S+F+C+P`。
+- PE+RAG 只能使用纯 guidance prompt，例如 `prompts/pe/system-v2.md`；不得把 E2E action prompt 用于 RAG context runner。
 
 ## 文件所有权
 

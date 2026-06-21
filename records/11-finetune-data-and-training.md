@@ -2,7 +2,7 @@
 
 ## 阶段状态
 
-状态：进行中
+状态：阶段性完成（v2 pilot 与真实 case smoke 已完成；后续 v3 数据滚动维护）
 
 ## 阶段目标
 
@@ -15,12 +15,14 @@
 - 数据覆盖正例、negative cases、证据输出和动态调用边界。
 - 正式训练前先完成数据 smoke、训练 smoke 和环境快照。
 
-## 当前计划
+## 当前交接
 
-- 先实现数据 schema、builder 和 validator，不立即开始正式训练。
-- 先构造 50 条 smoke 样本，验证格式、泄漏检查和训练输入。
-- 扩展到 500+ 条样本后，再启动 QLoRA smoke training。
-- 如果 fine-tune only 不能明显改善 schema、方向和 fully-qualified symbol 输出，应先补数据或调训练，而不是直接进入完整消融。
+- Gemma4 E2B QLoRA 训练链路已验证可学习；v2 augmented synthetic 100-step 是当前保留的微调产物。
+- v2 frozen synthetic 数据集为 500 条（train 400 / dev 100），v2 100-step dev loss 从 2.231752 降到 0.193902，训练链路和 synthetic dev 指标成立。
+- 真实仓库 4-case strict scorer 中，v1 与 v2 均为 Precision 0.750 / Recall 0.250；v2 evidence accuracy 从 v1 的 0.667 降到 0.333，没有形成净提升。
+- 当前 HF 产物：`https://huggingface.co/Shirodora233/gemma4-e2b-repomind-qlora-synth-v2-pilot`。
+- 当前总结入口：`reports/finetune/summary/current-finetune-summary-20260621.md`；报告索引：`reports/finetune/README.md`。
+- 当前不建议把 fine-tune 加入 PE+Fine-tune / RAG+Fine-tune / All 消融。若继续推进，应先补强 v3 数据：多边输出、depth-2、line-numbered evidence、同一函数多个 helper call，并用 8-12 个真实仓库 case 重新做 adapter smoke。
 
 ## 文件所有权
 
