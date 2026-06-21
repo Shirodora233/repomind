@@ -85,3 +85,10 @@
   - 结果摘要：成功响应拼接后的 `base-merged`、`S`、`F`、`C-rerun`、`P`、`S+F+C+P` 均达到 P/R/E=1.0；`P` 主要移除重复 symbol edge。
   - 成本：本轮包含 retry / rerun 在内共 12 个成功 API 响应，517,428 tokens，observed cost 0.192620697 USD。
   - 结论：PE 工具链已打通，但 2-case smoke 区分度不足，且小样本受 SSL EOF request error 干扰；后续应先跑 20-case stratified PE pilot，再决定单维度优化或组合消融。
+- 2026-06-21：完成 PE v1 Oracle 20-case DeepSeek pilot，正式报告见 `reports/pe/batches/pe-v1-oracle-pilot-20-deepseek-20260621.md`。
+  - Run path：`runs/pe/oracle-pilot-20-deepseek-20260621`。
+  - 覆盖组合：`base`、`P-only`、`S`、`F`、`C`、`S+F+C+P raw`、`S+F+C+P`。
+  - 模型配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，reasoning disabled，`--max-retries 2`；所有 100 个 API case response 均 attempt 1 成功。
+  - 结果摘要：`base` P/R/E=0.942857/0.942857/0.969697；`S` Recall=1.0 但 Precision=0.853659；`F` Precision=0.784091；`C` Precision=0.718750；`S+F+C+P` Precision=0.793103、Recall=0.985714。`P` 仅移除重复 symbol edge，未改变分数。
+  - 成本：5 个 API 组合共 3,682,821 tokens，observed cost 1.429117274 USD，wall-clock 合计约 629.126 秒。
+  - 结论：当前 PE v1 在 Oracle pilot 上没有超过 baseline，主要问题是 prompt 增强后过度枚举相邻 helper edges；进入 PE+RAG / All 消融前应先收紧 PE precision。
