@@ -16,9 +16,9 @@
 | 当前 runner | `oracle-context-runner-v1`、`e2e-agent-runner-v1`，已结构化记录 wall-clock timing |
 | 当前 PE 资产 | `pe-v1` prompt assets、20 条 synthetic few-shot、`pe_postprocess.py`、matrix planner v2、34 个 generated prompts |
 | 当前 RAG 资产 | `rag-v1` chunk index、BM25/keyword retrieval、`keyword_multiquery_safe`、context packer、RAG context runner、retrieval eval |
-| 当前 Fine-tune 资产 | `finetune-data-v1` smoke+ 58 条 targeted synthetic、frozen synthetic v1/v2 各 500 条（train 400 / dev 100）、Gemma4 E2B QLoRA v6 adapter、真实仓库 4-case base-vs-adapter smoke |
+| 当前 Fine-tune 资产 | `finetune-data-v1` smoke+ 58 条 targeted synthetic、frozen synthetic v1/v2 各 500 条（train 400 / dev 100）、Gemma4 E2B QLoRA v1/v2 100-step adapter；v2 synthetic dev loss 已降到 0.1939；真实仓库 4-case 对照显示 v2 与 v1 recall 持平但 evidence 退步 |
 | 主报告 | `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`（修正 golden 后在线模型正式 baseline v1 主对照） |
-| Fine-tune 报告 | `reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-v6-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-realcase-base-vs-adapter-smoke-20260621.md` |
+| Fine-tune 报告 | `reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-v6-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-qlora-frozen-synth-v2-100step-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-realcase-base-vs-adapter-smoke-20260621.md`、`reports/finetune/batches/finetune-gemma4-e2b-realcase-v1-v2-comparison-20260621.md` |
 | 历史 baseline | `reports/baseline/summary/baseline-summary-v0-20260620.md`（历史 baseline v0，已冻结，不再作为正式对照） |
 | 辅助评分报告 | `reports/baseline/summary/constructor-normalized-comparison-v0-20260620.md` |
 | 失败诊断报告 | `reports/baseline/diagnostics/cross-repo-failure-analysis-v0-20260620.md` |
@@ -55,6 +55,7 @@
 | 2026-06-21 | Fine-tune 500+ 来源规划 | `3e771ed` | 500+ source plan、`full_synthetic` dry-run manifest 入口 |
 | 2026-06-21 | Fine-tune frozen synthetic 与 QLoRA 修复 | `a90e944`、`3fdc6b7` | 冻结 500 条 synthetic train/dev；修复 assistant-only label、Gemma4 language-model LoRA target 与小样本过拟合链路 |
 | 2026-06-21 | Gemma4 v6 synthetic pilot 与真实 case smoke | `a37e103`、`30f7732` | 100-step v6 synthetic pilot dev loss 从 2.044 降到 0.332；真实仓库 4-case adapter 相对 base 达到 P=0.75 / R=0.25 / E=0.667 |
+| 2026-06-21 | Gemma4 v2 augmented synthetic pilot | `cf086d8` | 冻结 500 条 augmented synthetic v2；100-step v2 pilot dev loss 从 2.232 降到 0.194；真实仓库 4-case 中 v2 与 v1 同为 P=0.75/R=0.25，但 evidence 从 0.667 降到 0.333 |
 | 2026-06-21 | Fine-tune smoke+ recall/evidence augmentation | 本轮提交 | smoke+ 从 50 扩到 58 条，新增 multi-edge、depth-2、find_callers caller-body evidence 与 line-numbered evidence 模板；validator coverage 24/24 |
 | 2026-06-21 | RAG definition-safe retrieval | `d04a2d5` | `keyword_multiquery_safe`，pilot 20 DefinitionAccuracy@5=1.0、Recall@10=1.0 |
 | 2026-06-21 | PE prompt assembly ready | `4701bc9` | 34 个 generated prompt 资产，全矩阵 dry-run 无缺 prompt |
@@ -69,7 +70,7 @@
 - PE：下一步应基于 baseline v1 选择 20-30 个代表 case，跑 PE-only pilot；当前 PE v2 focused 结论不能直接当完整消融依据。
 - RAG：下一步应把 RAG-only synthesis aid 从 3-case smoke 扩到 20-case pilot，验证 canonical receiver、callback 边界和生成侧漏边模式是否稳定。
 - Baseline：在线 baseline v1 已完成；旧版 v0 已冻结，不再作为正式优化/消融主对照。Gemma4 本地 v1 可在资源允许时另行补跑，但不阻塞 PE/RAG 在线 pilot。
-- Fine-tune：下一步将 58 条 smoke+ augmentation 扩展成新的 frozen synthetic v2 训练集或小规模受控训练 run，再扩大到 8-12 个真实仓库 case 的 base-vs-adapter smoke；暂不把真实 case 回流训练集。
+- Fine-tune：v2 frozen synthetic 100-step pilot 已完成，synthetic dev loss 优于 v1，但真实仓库 4-case 未形成净提升且 evidence 退步；当前不加长训练，下一步先补强 evidence、multi-edge、depth-2 和同一函数多 helper call 的 synthetic 变体，再跑 v3 小规模 pilot；暂不把真实 case 回流训练集。
 - 消融矩阵：等待 PE smoke/pilot、RAG-only 20-case pilot、Fine-tune 扩大真实 case smoke 形成单项稳定版本后再运行。
 
 ## 维护规则
