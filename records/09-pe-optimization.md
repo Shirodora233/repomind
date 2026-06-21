@@ -130,3 +130,10 @@
   - 结果摘要：`S` 为当前最佳 PE-only 方向，P/R/E=1.000000/0.977612/0.984733；`base` 为 0.939850/0.925373/0.967742；`S+F+C+P` 为 1.000000/0.955224/0.984375，组合后 recall 低于单独 `S`。
   - 成本：有效 API 组合为 `S`、`F`、`C`、`S+F+C`，共约 4,559,553 tokens，observed cost 约 2.008672 USD；一次误跑的 `S+F+C+P` diagnostic 因 OpenRouter key daily prompt-token limit 在 3/25 case 后失败，额外消耗约 0.108766 USD，未纳入正式指标。
   - 结论：PE v2 不应继续追求“大而全”的 `S+F+C+P`；下一步应把 `S` 作为 PE-only 候选进入 E2E pilot，并把 constructor / exception class / repo utility wrapper 漏报作为后续精修目标。
+- 2026-06-21：完成 PE v2 `S` E2E 25-case DeepSeek pilot，正式报告见 `reports/pe/batches/pe-v2-s-e2e-pilot-25-deepseek-20260621.md`。
+  - Run path：`runs/pe/e2e-v2-s-25-deepseek-20260621`；同 25 case 对照汇总见 `runs/validation/pe-v2-s-e2e-pilot-25-deepseek-20260621.json`。
+  - 配置：baseline E2E task prompt `prompts/e2e-agent-v0.md` + PE v2 `S` system prompt `prompts/pe/generated/e2e-agent-system-pe-v2-s.md`，`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，reasoning disabled。
+  - 运行策略：用户明确同意访问 OpenRouter API 后执行；使用 `--warmup-cases 2 --concurrency 4`，先顺序完成 2 个 case，再并发执行后续 case，以尽量提高缓存命中并降低墙钟时间。
+  - 结果摘要：PE v2 `S` E2E 为 P/R/E=0.800000/0.716418/0.979167；冻结 baseline 同 25 case 为 0.763780/0.723881/0.979381。`S` 提升 precision、减少 unmatched predictions，但 recall 小幅下降。
+  - 成本：本轮 PE v2 `S` E2E 共 210 个 raw responses，1,267,598 tokens，observed cost 0.100943838 USD，wall-clock 273.504 秒，observed provider 为 DeepSeek 210/210，request errors 0，parse errors 0。
+  - 结论：PE v2 `S` 可作为 PE-only E2E 候选继续保留，但 hard case recall 下降，尚不能作为完整消融的最终 PE 入口；下一步应结合 RAG v1.3 focused 结果决定是否先做单项修补再进入组合消融。
