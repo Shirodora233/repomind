@@ -153,3 +153,4 @@ known_pilot_outputs:
   two_sample_overfit_full_length_20step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-overfit-2sample-448-20step-20260621-1155
   v6_language_target_update_sanity_1step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-update-sanity-v6-langtarget-2sample-448-1step-20260621-1335
   v6_language_target_overfit_20step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-overfit-v6-langtarget-2sample-512-20step-20260621-1340
+  v6_frozen_synth_100step: E:\AI\repomind-ft\outputs\gemma4-e2b-qlora-frozen-synth-v1-v6-100step-20260621-1345
