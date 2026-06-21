@@ -78,3 +78,10 @@
     - `python scripts/run_pe_matrix.py --dry-run --case-limit 1 --combination base/S+F+C+P --format json`：`S+F+C+P` Oracle/E2E 命令均为 `ready_with_postprocess_plan`。
     - `python scripts/run_pe_matrix.py --dry-run --case-limit 1 --format json`：64 条 runner command templates；状态统计为 `ready=32`、`ready_with_postprocess_plan=32`、`requires_prompt_assembly=0`。
   - 尚未完成：真实 PE Oracle / E2E 模型 pilot，以及 P 组合在真实 prediction 上的 postprocess 后重评分闭环。
+- 2026-06-21：完成 PE v1 Oracle 2-case DeepSeek smoke，正式报告见 `reports/pe/batches/pe-v1-oracle-smoke-deepseek-20260621.md`。
+  - Run path：`runs/pe/oracle-smoke-deepseek-20260621`。
+  - 覆盖组合：`base`、`S`、`F`、`C`、`P`、`S+F+C+P`；其中 `P` 使用 `pe_postprocess.py` 对已有 prediction 做确定性后处理，不重新调用模型。
+  - 模型配置：`deepseek-v4-pro-direct-no-reasoning`，OpenRouter direct provider `DeepSeek`，`allow_fallbacks=false`，reasoning disabled。
+  - 结果摘要：成功响应拼接后的 `base-merged`、`S`、`F`、`C-rerun`、`P`、`S+F+C+P` 均达到 P/R/E=1.0；`P` 主要移除重复 symbol edge。
+  - 成本：本轮包含 retry / rerun 在内共 12 个成功 API 响应，517,428 tokens，observed cost 0.192620697 USD。
+  - 结论：PE 工具链已打通，但 2-case smoke 区分度不足，且小样本受 SSL EOF request error 干扰；后续应先跑 20-case stratified PE pilot，再决定单维度优化或组合消融。
