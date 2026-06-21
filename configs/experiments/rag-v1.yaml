@@ -154,13 +154,18 @@ edge_candidate_builder:
     - deduplicates Candidate Edge Table rows by caller_symbol_hint -> callee_symbol_hint while preserving evidence_count and additional_evidence
 
 rag_context_runner:
-  runner_version: rag-context-runner-v1
+  runner_version: rag-context-runner-v1-system-prompt
   script: scripts/run_rag_context.py
   default_output_root: runs/rag-context-runs
   input: context_pack.json
   default_provider: dry-run
   scorer: call-chain-scorer-v1
-  purpose: run baseline generation over retrieved context without PE prompt changes
+  purpose: run baseline generation over retrieved context without PE prompt changes; optional --system-prompt is available for PE+RAG ablation and defaults off
+  optional_system_prompt:
+    flag: --system-prompt
+    version_flag: --system-prompt-version
+    default: null
+    warning: do not pass E2E JSON action system prompts to RAG context runner; use pure guidance prompts such as prompts/pe/system-v2.md
   model_runs_started: false
 
 embedding_candidates:

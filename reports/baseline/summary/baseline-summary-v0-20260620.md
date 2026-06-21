@@ -2,7 +2,7 @@
 
 ## Golden Audit Notice
 
-2026-06-21 对高风险 `find_callees` case 进行 golden audit 后，`call-chain-v1` 的 required edges 已从历史 baseline 时的 184 条修正为 232 条，optional edges 从 10 条修正为 8 条。本报告冻结为历史 baseline v0，不再作为后续正式优化或消融的主对照；正文指标保留 2026-06-20 baseline 阶段的原始口径，仅用于历史追溯。后续正式 baseline 对照应基于修正后的 golden、当前 runner / scorer / prompt 版本重新运行。
+2026-06-21 对高风险 `find_callees` case 进行 golden audit 后，`call-chain-v1` 的 required edges 已从历史 baseline 时的 184 条修正为 232 条，optional edges 从 10 条修正为 8 条。本报告冻结为历史 baseline v0，不再作为后续正式优化或消融的主对照；正文指标保留 2026-06-20 baseline 阶段的原始口径，仅用于历史追溯。当前正式 baseline 入口是 `reports/baseline/summary/current-baseline-summary-20260621.md` 和 `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`。
 
 ## 实验范围
 

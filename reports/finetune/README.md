@@ -17,6 +17,12 @@
 - `reports/finetune/batches/`：数据批次、训练 smoke、单次 adapter 评估报告。
 - `reports/finetune/summary/`：Fine-tune 阶段汇总，包含数据版本、训练配置、过拟合监控和模型效果。
 
+当前总结入口：
+
+- `reports/finetune/summary/current-finetune-summary-20260621.md`
+  - Gemma4 E2B QLoRA 训练链路已经可学习。
+  - v2 synthetic dev loss 明显改善，但真实仓库 4-case 没有净提升，因此暂不进入组合消融。
+
 正式训练启动前必须满足：
 
 - train/dev 数据集冻结并达到 500+ 样本。

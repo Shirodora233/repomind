@@ -25,6 +25,12 @@
 - `reports/pe/batches/`：单批 prompt 组合、smoke、pilot 或模型对比报告。
 - `reports/pe/summary/`：PE 阶段汇总，包含四个维度的独立贡献、最佳组合和副作用分析。
 
+当前总结入口：
+
+- `reports/pe/summary/current-pe-summary-20260621.md`
+  - PE v2 `S` 是当前最合理候选。
+  - Oracle 明显有效，E2E precision 小涨但 hard recall 下降。
+
 `runs/pe/plans/` 中的命令清单属于本地运行计划，不是正式实验报告；只有真实模型实验完成并整理指标后，才写入 `reports/pe/`。
 
 PE 报告必须明确区分四个维度：

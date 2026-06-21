@@ -158,3 +158,6 @@
   - 关键退化：`scrapy-crawler-006` 从 v1.3 的 P/R/E=1.0/1.0/1.0 退化为 precision 0.166667，返回 4 条 unmatched 和 1 条 excluded，说明 v1.4 去重后弱化了 secondary caller rows 的验证约束。
   - 成本：20 个 raw responses，371,164 tokens，observed cost 0.142206053 USD，wall-clock 73.649 秒，observed provider 为 DeepSeek 20/20。
   - 收口结论：当前 RAG-only 正式候选仍应是 v1.3；v1.4 去重机制有效但不能直接替代 v1.3。若继续迭代，应做最小 v1.5：保留 dedup，同时把 `find_callers` secondary rows 移到 warning block 或加强 return policy，目标是恢复 caller precision=1.0。
+- 2026-06-21：为简单消融给 `scripts/run_rag_context.py` 增加可选 `--system-prompt` / `--system-prompt-version`，默认关闭，不改变 RAG-only 行为；配置同步到 `configs/experiments/rag-v1.yaml`。
+  - 验证：`python -m py_compile scripts\run_rag_context.py`、`python scripts\run_rag_context.py --help`、1-case dry-run `runs/ablation/dry-rag-v1.3-pe-v2-s-smoke-20260621` 通过。
+  - 重要边界：PE+RAG context runner 只能使用纯 guidance prompt，例如 `prompts/pe/system-v2.md`；误用 `prompts/pe/generated/e2e-agent-system-pe-v2-s.md` 会让模型输出 JSON tool action，导致 parse error。该问题已记录到 `records/technical-issues-and-solutions.md`。

@@ -287,3 +287,15 @@
 - 解决方式：当前处理方式是所有 subset run 汇总时显式传入完整 `--case-id` 列表，并在 report 中记录 filtered validation path。误生成的未过滤 `runs/validation/rag-v1.2-candidate-control-deepseek-pilot-20-20260621.json` 和 `runs/validation/rag-v1.3-candidate-builder-deepseek-pilot-20-20260621.json` 已删除，仅保留带 `filtered` 后缀的同口径汇总。
 - 后续注意：凡是 2-case smoke、6-case focused、20/25-case pilot 或模型子集对比，都必须检查 summary `case_count` 与实验 case 数一致。若未来继续频繁跑子集，建议给 `summarize_call_chain_runs.py` 增加 `--expected-from-run` 或在发现 predictions 远少于 loaded cases 时输出 warning。
 - 相关文件：`scripts/summarize_call_chain_runs.py`、`reports/rag/batches/rag-v1.3-candidate-builder-deepseek-pilot-20-20260621.md`、`records/10-rag-pipeline.md`
+
+## PE+RAG context runner 不能使用 E2E action system prompt
+
+- 首次发现阶段：简单消融与策略选择阶段
+- 状态：active
+- 最后复核：2026-06-21
+- 现象：运行 `PE v2 S + RAG v1.3` 时，如果把 `prompts/pe/generated/e2e-agent-system-pe-v2-s.md` 作为 `run_rag_context.py --system-prompt`，模型会遵循 E2E JSON Action Protocol，返回 `{"action":"read_file", ...}` 这类 tool action，而不是 RAG context runner 需要的 YAML edge prediction。结果会出现 parse error，例如 `expected case_id, cases, or case_id-to-prediction mapping`。
+- 影响：这类 run 不是有效的 PE+RAG 评测，会低估组合策略，并把协议不兼容误判为模型能力或 RAG 效果问题。
+- 原因：`e2e-agent-system-pe-v2-s.md` 是给 `run_e2e_agent.py` 的工具循环 system prompt，包含“每轮返回 JSON action”的协议；`run_rag_context.py` 是一次性 context-pack generation runner，用户 prompt 仍要求返回 YAML edge object。
+- 解决方式：PE+RAG context runner 只能使用纯 guidance prompt，例如 `prompts/pe/system-v2.md`，并在命令中记录 `--system-prompt-version pe-v2-system-guidance-s`。不要把 `prompts/pe/generated/e2e-agent-system-*.md` 传给 RAG context runner。
+- 后续注意：如果需要专门的 RAG+PE prompt，应生成面向 RAG context runner 的 system prompt 或 user prompt adapter，明确保持 YAML output schema。无效 run 可以保留为 diagnostic，但不得纳入主消融指标。
+- 相关文件：`scripts/run_rag_context.py`、`prompts/pe/system-v2.md`、`prompts/pe/generated/e2e-agent-system-pe-v2-s.md`、`reports/ablation/summary/simple-ablation-rag20-deepseek-20260621.md`

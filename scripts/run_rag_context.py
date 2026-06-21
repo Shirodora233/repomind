@@ -26,6 +26,9 @@ from run_oracle_context import (
     DEFAULT_ENV_FILE,
     _default_model_config_path,
     call_openai_compatible_with_retry,
+    call_model_messages,
+    format_request_error,
+    is_retryable_request_error,
     list_models,
     load_env_file,
     load_model_config,
@@ -49,11 +52,67 @@ DEFAULT_CONTEXT_PACK_DIR = PROJECT_ROOT / "runs" / "rag-context"
 RUNNER_VERSION = "rag-context-runner-v1"
 
 
+def call_rag_model_with_retry(
+    prompt: str,
+    system_prompt: str | None,
+    settings: dict[str, Any],
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    if not system_prompt:
+        return call_openai_compatible_with_retry(prompt, settings, args)
+
+    max_retries = max(0, int(getattr(args, "max_retries", 0) or 0))
+    total_attempts = max_retries + 1
+    backoff = max(0.0, float(getattr(args, "retry_backoff_seconds", 0.0) or 0.0))
+    attempts: list[dict[str, Any]] = []
+    last_error = ""
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": prompt},
+    ]
+
+    for attempt_number in range(1, total_attempts + 1):
+        attempt_started_perf = time.perf_counter()
+        attempt: dict[str, Any] = {
+            "attempt": attempt_number,
+            "started_at": utc_now_iso(),
+            "finished_at": None,
+            "duration_seconds": None,
+            "status": "started",
+            "retryable": False,
+        }
+        try:
+            response = call_model_messages(messages, settings, args)
+        except Exception as exc:
+            last_error = format_request_error(exc)
+            retryable = attempt_number < total_attempts and is_retryable_request_error(exc)
+            attempt["status"] = "request_error"
+            attempt["error"] = last_error
+            attempt["retryable"] = retryable
+            attempt["finished_at"] = utc_now_iso()
+            attempt["duration_seconds"] = round(time.perf_counter() - attempt_started_perf, 3)
+            attempts.append(attempt)
+            if not retryable:
+                raise ModelRequestFailed(last_error, attempts) from exc
+            if backoff:
+                time.sleep(backoff * attempt_number)
+            continue
+
+        attempt["status"] = "success"
+        attempt["finished_at"] = utc_now_iso()
+        attempt["duration_seconds"] = round(time.perf_counter() - attempt_started_perf, 3)
+        attempts.append(attempt)
+        return response, attempts
+
+    raise ModelRequestFailed(last_error or "model request failed", attempts)
+
+
 def run_rag_case(
     *,
     case: dict[str, Any],
     context_case: dict[str, Any],
     context_pack_path: Path,
+    system_prompt: str | None,
     model_settings: dict[str, Any] | None,
     args: argparse.Namespace,
     out_root: Path,
@@ -87,7 +146,7 @@ def run_rag_case(
         model_started_perf = time.perf_counter()
         case_timing["model_call_started_at"] = model_started_at
         try:
-            raw_response, attempts = call_openai_compatible_with_retry(prompt, model_settings or {}, args)
+            raw_response, attempts = call_rag_model_with_retry(prompt, system_prompt, model_settings or {}, args)
             case_timing["model_attempts"] = attempts
             write_json(case_dir / "request_attempts.json", attempts)
         except ModelRequestFailed as exc:
@@ -124,6 +183,7 @@ def main() -> int:
     parser.add_argument("--context-pack", required=True, help="context_pack.json path or directory from rag_pack_context.py.")
     parser.add_argument("--cases", nargs="*", help="Case file, directory, or glob. Defaults to all call-chain v1 YAML cases.")
     parser.add_argument("--case-id", action="append", help="Only run a specific case id. Can be repeated.")
+    parser.add_argument("--system-prompt", help="Optional system prompt path for PE+RAG runs. Defaults to baseline RAG system behavior when omitted.")
     parser.add_argument("--out-dir", default=str(PROJECT_ROOT / "runs" / "rag-context-runs" / utc_timestamp()))
     parser.add_argument("--provider", choices=["dry-run", "openai-compatible"], default="dry-run")
     parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE), help="Optional .env file loaded before provider/model resolution.")
@@ -151,6 +211,7 @@ def main() -> int:
     parser.add_argument("--warmup-delay-seconds", type=float, default=0.0, help="Optional pause after sequential warmup cases before concurrent dispatch.")
     parser.add_argument("--line-tolerance", type=int, default=0)
     parser.add_argument("--runner-version", default=RUNNER_VERSION)
+    parser.add_argument("--system-prompt-version", help="Version label for --system-prompt when running PE+RAG.")
     parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
     args = parser.parse_args()
     if args.concurrency <= 0:
@@ -161,6 +222,8 @@ def main() -> int:
         raise ValueError("--warmup-delay-seconds must be non-negative")
 
     context_pack_path, context_pack = load_context_pack(args.context_pack)
+    system_prompt_path = Path(args.system_prompt) if args.system_prompt else None
+    system_prompt = load_text(system_prompt_path) if system_prompt_path else None
     load_env_file(Path(args.env_file))
     model_config_path = Path(args.model_config)
     model_config = load_model_config(model_config_path)
@@ -194,8 +257,18 @@ def main() -> int:
         model_settings = resolve_model_settings(args, model_config)
 
     write_json(out_root / "context_pack_snapshot.json", context_pack)
+    if system_prompt_path:
+        write_text(out_root / "system_prompt_snapshot.md", system_prompt or "")
     write_redacted_yaml_snapshot(model_config, out_root / "model_config_snapshot.yaml")
     write_case_manifest(out_root, ordered_cases, case_files_by_id)
+    version_files = [
+        ("runner", Path(__file__), args.runner_version),
+        ("context_pack", context_pack_path, context_pack.get("schema_version")),
+        ("scorer", PROJECT_ROOT / "scripts" / "score_predictions.py", args.scorer_version),
+        ("model_config", model_config_path, None),
+    ]
+    if system_prompt_path:
+        version_files.append(("system_prompt", system_prompt_path, args.system_prompt_version))
     write_version_manifest(
         out_root,
         run_type="rag-context",
@@ -204,14 +277,10 @@ def main() -> int:
             "context_pack": context_pack.get("schema_version"),
             "retriever": context_pack.get("retriever_version"),
             "prompt": context_pack.get("prompt_version"),
+            "system_prompt": args.system_prompt_version,
             "scorer": args.scorer_version,
         },
-        files=[
-            ("runner", Path(__file__), args.runner_version),
-            ("context_pack", context_pack_path, context_pack.get("schema_version")),
-            ("scorer", PROJECT_ROOT / "scripts" / "score_predictions.py", args.scorer_version),
-            ("model_config", model_config_path, None),
-        ],
+        files=version_files,
     )
 
     run_config = {
@@ -234,6 +303,9 @@ def main() -> int:
         "retriever_version": context_pack.get("retriever_version"),
         "prompt_template": context_pack.get("prompt_template"),
         "prompt_version": context_pack.get("prompt_version"),
+        "system_prompt": str(system_prompt_path) if system_prompt_path else None,
+        "system_prompt_version": args.system_prompt_version,
+        "system_prompt_sha256": sha256_file(system_prompt_path) if system_prompt_path else None,
         "runner_version": args.runner_version,
         "runner_sha256": sha256_file(Path(__file__)),
         "scorer_version": args.scorer_version,
@@ -272,6 +344,7 @@ def main() -> int:
                     case=case,
                     context_case=context_cases[case["id"]],
                     context_pack_path=context_pack_path,
+                    system_prompt=system_prompt,
                     model_settings=model_settings,
                     args=args,
                     out_root=out_root,
@@ -285,6 +358,7 @@ def main() -> int:
                     case=case,
                     context_case=context_cases[case["id"]],
                     context_pack_path=context_pack_path,
+                    system_prompt=system_prompt,
                     model_settings=model_settings,
                     args=args,
                     out_root=out_root,
@@ -300,6 +374,7 @@ def main() -> int:
                     case=case,
                     context_case=context_cases[case["id"]],
                     context_pack_path=context_pack_path,
+                    system_prompt=system_prompt,
                     model_settings=model_settings,
                     args=args,
                     out_root=out_root,

@@ -31,9 +31,9 @@ reports/
   comparisons/
 ```
 
-`baseline/` 的具体分类和推荐阅读顺序见 `reports/baseline/README.md`。当前 baseline 主结论优先看 `reports/baseline/summary/baseline-summary-v0-20260620.md`；早期 smoke、批次扩展和单模型对比报告只作为追溯材料。
+当前总体结论优先看 `reports/overall-summary-20260621.md`。`baseline/` 的具体分类和推荐阅读顺序见 `reports/baseline/README.md`。当前 baseline 主结论优先看 `reports/baseline/summary/current-baseline-summary-20260621.md` 与 `reports/baseline/summary/baseline-v1-online-corrected-golden-20260621.md`；旧 `baseline-summary-v0-20260620.md` 只作为历史追溯材料。
 
-优化阶段报告分别进入 `reports/pe/`、`reports/rag/`、`reports/finetune/`。完整消融矩阵和最优策略选择进入 `reports/ablation/`，并且只在 PE / RAG / Fine-tune 单项版本冻结后再生成。
+优化阶段报告分别进入 `reports/pe/`、`reports/rag/`、`reports/finetune/`。简单消融和完整消融矩阵进入 `reports/ablation/`。当前第一轮简单消融结果见 `reports/ablation/summary/simple-ablation-rag20-deepseek-20260621.md`；完整 8 组矩阵尚未启动。
 
 每份报告建议包含：
 
