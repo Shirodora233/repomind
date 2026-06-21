@@ -555,6 +555,8 @@ def main() -> int:
     parser.add_argument("--max-retries", type=int, default=0, help="Retry retryable model request failures this many times per case.")
     parser.add_argument("--retry-backoff-seconds", type=float, default=2.0, help="Linear backoff base between retryable attempts.")
     parser.add_argument("--concurrency", type=int, default=1, help="Max case-level model requests to run concurrently.")
+    parser.add_argument("--warmup-cases", type=int, default=0, help="Run this many cases sequentially before concurrent dispatch, useful for provider prompt-cache warmup.")
+    parser.add_argument("--warmup-delay-seconds", type=float, default=0.0, help="Optional pause after sequential warmup cases before concurrent dispatch.")
     parser.add_argument("--line-tolerance", type=int, default=0)
     parser.add_argument("--runner-version", default="oracle-context-runner-v1")
     parser.add_argument("--prompt-version", default="oracle-context-v0")
@@ -562,6 +564,10 @@ def main() -> int:
     args = parser.parse_args()
     if args.concurrency <= 0:
         raise ValueError("--concurrency must be positive")
+    if args.warmup_cases < 0:
+        raise ValueError("--warmup-cases must be non-negative")
+    if args.warmup_delay_seconds < 0:
+        raise ValueError("--warmup-delay-seconds must be non-negative")
 
     prompt_path = Path(args.prompt)
     model_config_path = Path(args.model_config)
@@ -641,6 +647,8 @@ def main() -> int:
         "max_retries": args.max_retries,
         "retry_backoff_seconds": args.retry_backoff_seconds,
         "concurrency": args.concurrency,
+        "warmup_cases": args.warmup_cases,
+        "warmup_delay_seconds": args.warmup_delay_seconds,
         "timing_file": "timing.json",
         "timing": {
             "started_at": run_started_at,
@@ -666,6 +674,21 @@ def main() -> int:
                 )
             )
     else:
+        warmup_count = min(args.warmup_cases, len(cases))
+        for case in cases[:warmup_count]:
+            results.append(
+                run_oracle_case(
+                    case=case,
+                    repos=repos,
+                    prompt_template=prompt_template,
+                    model_settings=model_settings,
+                    args=args,
+                    out_root=out_root,
+                )
+            )
+        if warmup_count and args.warmup_delay_seconds:
+            time.sleep(args.warmup_delay_seconds)
+        remaining_cases = cases[warmup_count:]
         with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
             futures = [
                 executor.submit(
@@ -677,7 +700,7 @@ def main() -> int:
                     args=args,
                     out_root=out_root,
                 )
-                for case in cases
+                for case in remaining_cases
             ]
             for future in as_completed(futures):
                 results.append(future.result())

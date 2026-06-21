@@ -5,6 +5,7 @@ import json
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -29,10 +30,12 @@ from call_chain_common import (
 from run_oracle_context import (
     call_model_messages,
     format_request_error,
+    is_retryable_request_error,
     list_models,
     load_env_file,
     load_model_config,
     make_mock_golden_prediction,
+    ModelRequestFailed,
     normalize_single_case_payload,
     resolve_model_settings,
 )
@@ -118,6 +121,53 @@ def case_metadata_for_e2e_prompt(case: dict[str, Any]) -> dict[str, Any]:
 
 def call_openai_compatible_messages(messages: list[dict[str, str]], settings: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     return call_model_messages(messages, settings, args)
+
+
+def call_openai_compatible_messages_with_retry(
+    messages: list[dict[str, str]],
+    settings: dict[str, Any],
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    max_retries = max(0, int(getattr(args, "max_retries", 0) or 0))
+    total_attempts = max_retries + 1
+    backoff = max(0.0, float(getattr(args, "retry_backoff_seconds", 0.0) or 0.0))
+    attempts: list[dict[str, Any]] = []
+    last_error = ""
+
+    for attempt_number in range(1, total_attempts + 1):
+        attempt_started_perf = time.perf_counter()
+        attempt: dict[str, Any] = {
+            "attempt": attempt_number,
+            "started_at": utc_now_iso(),
+            "finished_at": None,
+            "duration_seconds": None,
+            "status": "started",
+            "retryable": False,
+        }
+        try:
+            response = call_openai_compatible_messages(messages, settings, args)
+        except Exception as exc:
+            last_error = format_request_error(exc)
+            retryable = attempt_number < total_attempts and is_retryable_request_error(exc)
+            attempt["status"] = "request_error"
+            attempt["error"] = last_error
+            attempt["retryable"] = retryable
+            attempt["finished_at"] = utc_now_iso()
+            attempt["duration_seconds"] = round(time.perf_counter() - attempt_started_perf, 3)
+            attempts.append(attempt)
+            if not retryable:
+                raise ModelRequestFailed(last_error, attempts) from exc
+            if backoff:
+                time.sleep(backoff * attempt_number)
+            continue
+
+        attempt["status"] = "success"
+        attempt["finished_at"] = utc_now_iso()
+        attempt["duration_seconds"] = round(time.perf_counter() - attempt_started_perf, 3)
+        attempts.append(attempt)
+        return response, attempts
+
+    raise ModelRequestFailed(last_error or "model request failed", attempts)
 
 
 def response_content(response: dict[str, Any]) -> str:
@@ -232,10 +282,15 @@ def run_openai_compatible_loop(
     for step in range(1, args.max_agent_steps + 1):
         model_started_at = utc_now_iso()
         model_started_perf = time.perf_counter()
-        raw_response = call_openai_compatible_messages(messages, model_settings, args)
+        try:
+            raw_response, attempts = call_openai_compatible_messages_with_retry(messages, model_settings, args)
+        except ModelRequestFailed as exc:
+            write_json(case_dir / f"request_attempts_step_{step:02d}.json", exc.attempts)
+            raise
         model_finished_at = utc_now_iso()
         model_duration_seconds = round(time.perf_counter() - model_started_perf, 3)
         write_json(case_dir / f"raw_response_step_{step:02d}.json", raw_response)
+        write_json(case_dir / f"request_attempts_step_{step:02d}.json", attempts)
         content = response_content(raw_response)
         write_text(case_dir / f"raw_response_step_{step:02d}.txt", content)
 
@@ -245,6 +300,7 @@ def run_openai_compatible_loop(
             "model_call_started_at": model_started_at,
             "model_call_finished_at": model_finished_at,
             "model_call_duration_seconds": model_duration_seconds,
+            "model_attempts": attempts,
         }
         try:
             action = extract_agent_action(content)
@@ -323,10 +379,15 @@ def force_final_action(
     )
     model_started_at = utc_now_iso()
     model_started_perf = time.perf_counter()
-    raw_response = call_openai_compatible_messages(messages, model_settings, args)
+    try:
+        raw_response, attempts = call_openai_compatible_messages_with_retry(messages, model_settings, args)
+    except ModelRequestFailed as exc:
+        write_json(case_dir / f"request_attempts_step_{step:02d}_finalize.json", exc.attempts)
+        raise
     model_finished_at = utc_now_iso()
     model_duration_seconds = round(time.perf_counter() - model_started_perf, 3)
     write_json(case_dir / f"raw_response_step_{step:02d}_finalize.json", raw_response)
+    write_json(case_dir / f"request_attempts_step_{step:02d}_finalize.json", attempts)
     content = response_content(raw_response)
     write_text(case_dir / f"raw_response_step_{step:02d}_finalize.txt", content)
     trace_item: dict[str, Any] = {
@@ -336,6 +397,7 @@ def force_final_action(
         "model_call_started_at": model_started_at,
         "model_call_finished_at": model_finished_at,
         "model_call_duration_seconds": model_duration_seconds,
+        "model_attempts": attempts,
     }
     try:
         action = extract_agent_action(content)
@@ -422,6 +484,70 @@ def retrieval_metrics(case: dict[str, Any], toolbox: RepoToolbox) -> dict[str, A
     }
 
 
+def run_e2e_case(
+    *,
+    case: dict[str, Any],
+    repos: dict[str, Any],
+    prompt_template: str,
+    system_prompt: str,
+    tool_config: dict[str, Any],
+    model_settings: dict[str, Any] | None,
+    args: argparse.Namespace,
+    out_root: Path,
+) -> dict[str, Any]:
+    case_dir = out_root / safe_name(case["id"])
+    case_dir.mkdir(parents=True, exist_ok=True)
+    repo_path = repo_path_for_case(case, repos)
+    budget = ToolBudget(args.max_tool_calls, args.max_files_read, args.max_context_tokens)
+    toolbox = RepoToolbox(repo_path, include_tests=bool(case.get("include_tests")), budget=budget)
+    case_started_at = utc_now_iso()
+    case_started_perf = time.perf_counter()
+    case_timing: dict[str, Any] = {
+        "case_id": case["id"],
+        "started_at": case_started_at,
+        "finished_at": None,
+        "duration_seconds": None,
+        "status": "started",
+        "provider": args.provider,
+    }
+    prediction: dict[str, Any] | None = None
+    case_metrics: dict[str, Any] = {}
+    try:
+        prompt = build_e2e_prompt(case, prompt_template, budget, tool_config)
+        write_text(case_dir / "task.md", prompt)
+        write_json(case_dir / "case_metadata.json", case_metadata_for_e2e_prompt(case))
+
+        if args.provider == "dry-run":
+            case_timing["status"] = "dry_run"
+        elif args.provider == "mock-golden":
+            prediction = run_mock_golden_loop(case, toolbox)
+            write_yaml(case_dir / "prediction.yaml", prediction)
+            case_timing["status"] = "predicted"
+        elif args.provider == "openai-compatible":
+            try:
+                prediction = run_openai_compatible_loop(case, toolbox, prompt, system_prompt, model_settings or {}, args, case_dir)
+            except Exception as exc:
+                case_timing["status"] = "request_error"
+                write_text(case_dir / "request_error.txt", format_request_error(exc))
+            if prediction:
+                write_yaml(case_dir / "prediction.yaml", prediction)
+                case_timing["status"] = "predicted"
+            elif case_timing["status"] == "started":
+                case_timing["status"] = "no_prediction"
+    finally:
+        case_timing["finished_at"] = utc_now_iso()
+        case_timing["duration_seconds"] = round(time.perf_counter() - case_started_perf, 3)
+        case_metrics = {
+            "case_id": case["id"],
+            **retrieval_metrics(case, toolbox),
+            "duration_seconds": case_timing["duration_seconds"],
+        }
+        write_json(case_dir / "tool_trace.json", {"case_id": case["id"], "trace": toolbox.trace})
+        write_json(case_dir / "retrieval_metrics.json", case_metrics)
+        write_json(case_dir / "timing.json", case_timing)
+    return {"case_id": case["id"], "timing": case_timing, "prediction": prediction, "metrics": case_metrics}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run E2E Agentic Retrieval baseline for call-chain cases.")
     parser.add_argument("--cases", nargs="*", help="Case file, directory, or glob. Defaults to all call-chain v1 YAML cases.")
@@ -449,6 +575,11 @@ def main() -> int:
     parser.add_argument("--reasoning-max-tokens", type=int, help="Optional OpenRouter reasoning.max_tokens value.")
     parser.add_argument("--reasoning-exclude", action="store_true", help="Set OpenRouter reasoning.exclude=true.")
     parser.add_argument("--timeout-seconds", type=int, default=120)
+    parser.add_argument("--max-retries", type=int, default=0, help="Retry retryable model request failures this many times per model step.")
+    parser.add_argument("--retry-backoff-seconds", type=float, default=2.0, help="Linear backoff base between retryable attempts.")
+    parser.add_argument("--concurrency", type=int, default=1, help="Max case-level E2E agent loops to run concurrently.")
+    parser.add_argument("--warmup-cases", type=int, default=0, help="Run this many cases sequentially before concurrent dispatch, useful for provider prompt-cache warmup.")
+    parser.add_argument("--warmup-delay-seconds", type=float, default=0.0, help="Optional pause after sequential warmup cases before concurrent dispatch.")
     parser.add_argument("--max-agent-steps", type=int, default=DEFAULT_MAX_AGENT_STEPS)
     parser.add_argument("--max-tool-calls", type=int, default=DEFAULT_MAX_TOOL_CALLS)
     parser.add_argument("--max-files-read", type=int, default=DEFAULT_MAX_FILES_READ)
@@ -461,6 +592,16 @@ def main() -> int:
     parser.add_argument("--tool-version", default="e2e-tools-v0")
     parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
     args = parser.parse_args()
+    if args.concurrency <= 0:
+        raise ValueError("--concurrency must be positive")
+    if args.max_retries < 0:
+        raise ValueError("--max-retries must be non-negative")
+    if args.retry_backoff_seconds < 0:
+        raise ValueError("--retry-backoff-seconds must be non-negative")
+    if args.warmup_cases < 0:
+        raise ValueError("--warmup-cases must be non-negative")
+    if args.warmup_delay_seconds < 0:
+        raise ValueError("--warmup-delay-seconds must be non-negative")
 
     prompt_path = Path(args.prompt)
     system_prompt_path = Path(args.system_prompt)
@@ -557,6 +698,11 @@ def main() -> int:
         "reasoning_max_tokens": args.reasoning_max_tokens,
         "reasoning_exclude": args.reasoning_exclude,
         "timeout_seconds": args.timeout_seconds,
+        "max_retries": args.max_retries,
+        "retry_backoff_seconds": args.retry_backoff_seconds,
+        "concurrency": args.concurrency,
+        "warmup_cases": args.warmup_cases,
+        "warmup_delay_seconds": args.warmup_delay_seconds,
         "max_agent_steps": args.max_agent_steps,
         "max_tool_calls": args.max_tool_calls,
         "max_files_read": args.max_files_read,
@@ -575,60 +721,64 @@ def main() -> int:
 
     predictions: dict[str, dict[str, Any]] = {}
     metrics_by_case: list[dict[str, Any]] = []
-    for case in cases:
-        case_dir = out_root / safe_name(case["id"])
-        case_dir.mkdir(parents=True, exist_ok=True)
-        repo_path = repo_path_for_case(case, repos)
-        budget = ToolBudget(args.max_tool_calls, args.max_files_read, args.max_context_tokens)
-        toolbox = RepoToolbox(repo_path, include_tests=bool(case.get("include_tests")), budget=budget)
-        case_started_at = utc_now_iso()
-        case_started_perf = time.perf_counter()
-        case_timing: dict[str, Any] = {
-            "case_id": case["id"],
-            "started_at": case_started_at,
-            "finished_at": None,
-            "duration_seconds": None,
-            "status": "started",
-            "provider": args.provider,
-        }
-        prediction: dict[str, Any] | None = None
-        try:
-            prompt = build_e2e_prompt(case, prompt_template, budget, tool_config)
-            write_text(case_dir / "task.md", prompt)
-            write_json(case_dir / "case_metadata.json", case_metadata_for_e2e_prompt(case))
+    case_order = {case["id"]: idx for idx, case in enumerate(cases)}
+    results: list[dict[str, Any]] = []
+    if args.concurrency == 1 or len(cases) <= 1:
+        for case in cases:
+            results.append(
+                run_e2e_case(
+                    case=case,
+                    repos=repos,
+                    prompt_template=prompt_template,
+                    system_prompt=system_prompt,
+                    tool_config=tool_config,
+                    model_settings=model_settings,
+                    args=args,
+                    out_root=out_root,
+                )
+            )
+    else:
+        warmup_count = min(args.warmup_cases, len(cases))
+        for case in cases[:warmup_count]:
+            results.append(
+                run_e2e_case(
+                    case=case,
+                    repos=repos,
+                    prompt_template=prompt_template,
+                    system_prompt=system_prompt,
+                    tool_config=tool_config,
+                    model_settings=model_settings,
+                    args=args,
+                    out_root=out_root,
+                )
+            )
+        if warmup_count and args.warmup_delay_seconds:
+            time.sleep(args.warmup_delay_seconds)
+        remaining_cases = cases[warmup_count:]
+        with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
+            futures = [
+                executor.submit(
+                    run_e2e_case,
+                    case=case,
+                    repos=repos,
+                    prompt_template=prompt_template,
+                    system_prompt=system_prompt,
+                    tool_config=tool_config,
+                    model_settings=model_settings,
+                    args=args,
+                    out_root=out_root,
+                )
+                for case in remaining_cases
+            ]
+            for future in as_completed(futures):
+                results.append(future.result())
 
-            if args.provider == "dry-run":
-                case_timing["status"] = "dry_run"
-            elif args.provider == "mock-golden":
-                prediction = run_mock_golden_loop(case, toolbox)
-                predictions[case["id"]] = prediction
-                write_yaml(case_dir / "prediction.yaml", prediction)
-                case_timing["status"] = "predicted"
-            elif args.provider == "openai-compatible":
-                try:
-                    prediction = run_openai_compatible_loop(case, toolbox, prompt, system_prompt, model_settings or {}, args, case_dir)
-                except Exception as exc:
-                    case_timing["status"] = "request_error"
-                    write_text(case_dir / "request_error.txt", format_request_error(exc))
-                if prediction:
-                    predictions[case["id"]] = prediction
-                    write_yaml(case_dir / "prediction.yaml", prediction)
-                    case_timing["status"] = "predicted"
-                elif case_timing["status"] == "started":
-                    case_timing["status"] = "no_prediction"
-        finally:
-            case_timing["finished_at"] = utc_now_iso()
-            case_timing["duration_seconds"] = round(time.perf_counter() - case_started_perf, 3)
-            case_timings.append(case_timing)
-            case_metrics = {
-                "case_id": case["id"],
-                **retrieval_metrics(case, toolbox),
-                "duration_seconds": case_timing["duration_seconds"],
-            }
-            metrics_by_case.append(case_metrics)
-            write_json(case_dir / "tool_trace.json", {"case_id": case["id"], "trace": toolbox.trace})
-            write_json(case_dir / "retrieval_metrics.json", case_metrics)
-            write_json(case_dir / "timing.json", case_timing)
+    for result in sorted(results, key=lambda item: case_order.get(str(item.get("case_id")), 999999)):
+        case_timings.append(result["timing"])
+        metrics_by_case.append(result["metrics"])
+        prediction = result.get("prediction")
+        if prediction:
+            predictions[str(result["case_id"])] = prediction
 
     e2e_report = {"summary": summarize_e2e_metrics(metrics_by_case), "cases": metrics_by_case}
     write_json(out_root / "e2e_metrics.json", e2e_report)
