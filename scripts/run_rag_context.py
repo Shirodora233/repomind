@@ -4,6 +4,7 @@ import argparse
 import json
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,76 @@ DEFAULT_CONTEXT_PACK_DIR = PROJECT_ROOT / "runs" / "rag-context"
 RUNNER_VERSION = "rag-context-runner-v1"
 
 
+def run_rag_case(
+    *,
+    case: dict[str, Any],
+    context_case: dict[str, Any],
+    context_pack_path: Path,
+    model_settings: dict[str, Any] | None,
+    args: argparse.Namespace,
+    out_root: Path,
+) -> dict[str, Any]:
+    case_id = case["id"]
+    case_dir = out_root / safe_name(case_id)
+    case_dir.mkdir(parents=True, exist_ok=True)
+    case_started_at = utc_now_iso()
+    case_started_perf = time.perf_counter()
+    case_timing: dict[str, Any] = {
+        "case_id": case_id,
+        "started_at": case_started_at,
+        "finished_at": None,
+        "duration_seconds": None,
+        "status": "started",
+        "provider": args.provider,
+    }
+    prediction: dict[str, Any] | None = None
+    try:
+        prompt_file = project_path_from_context(context_case["prompt_file"], context_pack_path)
+        prompt = load_text(prompt_file)
+        write_text(case_dir / "prompt.md", prompt)
+        write_json(case_dir / "context_pack_case.json", context_case)
+        write_yaml(case_dir / "case_metadata.yaml", {key: value for key, value in case.items() if key not in {"golden", "oracle_context"}})
+
+        if args.provider == "dry-run":
+            case_timing["status"] = "dry_run"
+            return {"case_id": case_id, "timing": case_timing, "prediction": prediction}
+
+        model_started_at = utc_now_iso()
+        model_started_perf = time.perf_counter()
+        case_timing["model_call_started_at"] = model_started_at
+        try:
+            raw_response, attempts = call_openai_compatible_with_retry(prompt, model_settings or {}, args)
+            case_timing["model_attempts"] = attempts
+            write_json(case_dir / "request_attempts.json", attempts)
+        except ModelRequestFailed as exc:
+            case_timing["model_call_finished_at"] = utc_now_iso()
+            case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
+            case_timing["model_attempts"] = exc.attempts
+            case_timing["status"] = "request_error"
+            write_json(case_dir / "request_attempts.json", exc.attempts)
+            write_text(case_dir / "request_error.txt", str(exc))
+            return {"case_id": case_id, "timing": case_timing, "prediction": prediction}
+        case_timing["model_call_finished_at"] = utc_now_iso()
+        case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
+        write_json(case_dir / "raw_response.json", raw_response)
+        content = response_content(raw_response)
+        write_text(case_dir / "raw_response.txt", content)
+        try:
+            payload = extract_payload_from_text(content)
+            normalized = normalize_single_case_payload(payload, case_id, source=f"{case_id} raw_response")
+            prediction = normalized[case_id]
+            write_yaml(case_dir / "prediction.yaml", prediction)
+            case_timing["status"] = "predicted"
+        except Exception as exc:
+            case_timing["status"] = "parse_error"
+            write_text(case_dir / "parse_error.txt", str(exc))
+        return {"case_id": case_id, "timing": case_timing, "prediction": prediction}
+    finally:
+        case_timing["finished_at"] = utc_now_iso()
+        case_timing["duration_seconds"] = round(time.perf_counter() - case_started_perf, 3)
+        write_json(case_dir / "timing.json", case_timing)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run model generation over a RAG context pack.")
     parser.add_argument("--context-pack", required=True, help="context_pack.json path or directory from rag_pack_context.py.")
@@ -75,10 +146,13 @@ def main() -> int:
     parser.add_argument("--timeout-seconds", type=int, default=120)
     parser.add_argument("--max-retries", type=int, default=0, help="Retry retryable model request failures this many times per case.")
     parser.add_argument("--retry-backoff-seconds", type=float, default=2.0, help="Linear backoff base between retryable attempts.")
+    parser.add_argument("--concurrency", type=int, default=1, help="Max case-level model requests to run concurrently.")
     parser.add_argument("--line-tolerance", type=int, default=0)
     parser.add_argument("--runner-version", default=RUNNER_VERSION)
     parser.add_argument("--scorer-version", default="call-chain-scorer-v1")
     args = parser.parse_args()
+    if args.concurrency <= 0:
+        raise ValueError("--concurrency must be positive")
 
     context_pack_path, context_pack = load_context_pack(args.context_pack)
     load_env_file(Path(args.env_file))
@@ -170,6 +244,7 @@ def main() -> int:
         "timeout_seconds": args.timeout_seconds,
         "max_retries": args.max_retries,
         "retry_backoff_seconds": args.retry_backoff_seconds,
+        "concurrency": args.concurrency,
         "timing_file": "timing.json",
         "timing": {
             "started_at": run_started_at,
@@ -180,67 +255,42 @@ def main() -> int:
     }
     write_json(out_root / "run_config.json", run_config)
 
-    for case in ordered_cases:
-        case_id = case["id"]
-        case_dir = out_root / safe_name(case_id)
-        case_dir.mkdir(parents=True, exist_ok=True)
-        case_started_at = utc_now_iso()
-        case_started_perf = time.perf_counter()
-        case_timing: dict[str, Any] = {
-            "case_id": case_id,
-            "started_at": case_started_at,
-            "finished_at": None,
-            "duration_seconds": None,
-            "status": "started",
-            "provider": args.provider,
-        }
-        try:
-            context_case = context_cases[case_id]
-            prompt_file = project_path_from_context(context_case["prompt_file"], context_pack_path)
-            prompt = load_text(prompt_file)
-            write_text(case_dir / "prompt.md", prompt)
-            write_json(case_dir / "context_pack_case.json", context_case)
-            write_yaml(case_dir / "case_metadata.yaml", {key: value for key, value in case.items() if key not in {"golden", "oracle_context"}})
+    case_order = {case["id"]: idx for idx, case in enumerate(ordered_cases)}
+    results: list[dict[str, Any]] = []
+    if args.concurrency == 1 or len(ordered_cases) <= 1:
+        for case in ordered_cases:
+            results.append(
+                run_rag_case(
+                    case=case,
+                    context_case=context_cases[case["id"]],
+                    context_pack_path=context_pack_path,
+                    model_settings=model_settings,
+                    args=args,
+                    out_root=out_root,
+                )
+            )
+    else:
+        with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
+            futures = [
+                executor.submit(
+                    run_rag_case,
+                    case=case,
+                    context_case=context_cases[case["id"]],
+                    context_pack_path=context_pack_path,
+                    model_settings=model_settings,
+                    args=args,
+                    out_root=out_root,
+                )
+                for case in ordered_cases
+            ]
+            for future in as_completed(futures):
+                results.append(future.result())
 
-            if args.provider == "dry-run":
-                case_timing["status"] = "dry_run"
-                continue
-
-            model_started_at = utc_now_iso()
-            model_started_perf = time.perf_counter()
-            case_timing["model_call_started_at"] = model_started_at
-            try:
-                raw_response, attempts = call_openai_compatible_with_retry(prompt, model_settings or {}, args)
-                case_timing["model_attempts"] = attempts
-                write_json(case_dir / "request_attempts.json", attempts)
-            except ModelRequestFailed as exc:
-                case_timing["model_call_finished_at"] = utc_now_iso()
-                case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
-                case_timing["model_attempts"] = exc.attempts
-                case_timing["status"] = "request_error"
-                write_json(case_dir / "request_attempts.json", exc.attempts)
-                write_text(case_dir / "request_error.txt", str(exc))
-                continue
-            case_timing["model_call_finished_at"] = utc_now_iso()
-            case_timing["model_call_duration_seconds"] = round(time.perf_counter() - model_started_perf, 3)
-            write_json(case_dir / "raw_response.json", raw_response)
-            content = response_content(raw_response)
-            write_text(case_dir / "raw_response.txt", content)
-            try:
-                payload = extract_payload_from_text(content)
-                normalized = normalize_single_case_payload(payload, case_id, source=f"{case_id} raw_response")
-                prediction = normalized[case_id]
-                write_yaml(case_dir / "prediction.yaml", prediction)
-                predictions[case_id] = prediction
-                case_timing["status"] = "predicted"
-            except Exception as exc:
-                case_timing["status"] = "parse_error"
-                write_text(case_dir / "parse_error.txt", str(exc))
-        finally:
-            case_timing["finished_at"] = utc_now_iso()
-            case_timing["duration_seconds"] = round(time.perf_counter() - case_started_perf, 3)
-            write_json(case_dir / "timing.json", case_timing)
-            case_timings.append(case_timing)
+    for result in sorted(results, key=lambda item: case_order.get(str(item.get("case_id")), 999999)):
+        case_timings.append(result["timing"])
+        prediction = result.get("prediction")
+        if prediction:
+            predictions[str(result["case_id"])] = prediction
 
     if predictions:
         report = score_cases(ordered_cases, predictions, line_tolerance=args.line_tolerance)

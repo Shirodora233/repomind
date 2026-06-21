@@ -269,9 +269,9 @@
 - 首次发现阶段：PE 优化阶段
 - 状态：active
 - 最后复核：2026-06-21
-- 现象：运行 PE v2 扩展 Oracle 25-case DeepSeek pilot 时，单独误跑 `S+F+C+P` API 组合在 3/25 case 后失败。OpenRouter 返回 `HTTP Error 402: Payment Required`，错误信息包含 `Prompt tokens limit exceeded`，后续 case 只留下 `request_error.txt` / attempts 记录，没有有效 `prediction.yaml`。随后运行 RAG v1.2 candidate-control 20-case DeepSeek pilot 时，20/20 case 均返回 `HTTP Error 403: Forbidden`，错误信息为 `Key limit exceeded (daily limit)`，没有生成任何有效 prediction。
+- 现象：运行 PE v2 扩展 Oracle 25-case DeepSeek pilot 时，单独误跑 `S+F+C+P` API 组合在 3/25 case 后失败。OpenRouter 返回 `HTTP Error 402: Payment Required`，错误信息包含 `Prompt tokens limit exceeded`，后续 case 只留下 `request_error.txt` / attempts 记录，没有有效 `prediction.yaml`。随后运行 RAG v1.2 candidate-control 20-case DeepSeek pilot 时，20/20 case 均返回 `HTTP Error 403: Forbidden`，错误信息为 `Key limit exceeded (daily limit)`，没有生成任何有效 prediction。用户提高限额后，使用相同 context pack、DeepSeek direct routing 和 `--concurrency 4` 已完成 RAG 20-case 复跑，说明此前失败确认为 key limit / 配额问题。
 - 影响：这不是模型能力、prompt 格式或 provider routing 问题；如果把失败 run 直接纳入报告，会把未完成 case 计作 0 recall，污染 PE / RAG 对比。大上下文 Oracle / RAG 批量实验尤其容易触发该限制。
 - 原因：OpenRouter key 设置了日级 token / cost 限制；即使账户余额充足、DeepSeek direct provider routing 正确，超过 key daily limit 后仍会拒绝请求。
-- 解决方式：不要把失败批次作为正式指标来源。优先确认该组合是否真的需要额外 API；例如 `P` 只是 deterministic postprocess，不应单独重跑模型。若必须继续跑，等待限额重置或由用户调整 key daily limit 后，用相同 context pack / prompt / model config 重新运行，必要时用 `--case-id` 只补跑未完成 case，并在报告中写明 split / resume 原因。
-- 后续注意：正式批量实验前先用 dry-run 估算 prompt token 规模；PE/RAG 大 prompt 组合优先按小批次运行并及时汇总成本。报告必须区分“有效 API 成本”和“失败 diagnostic 成本”，并保留 direct provider / no-fallback 配置不变。
-- 相关文件：`configs/experiments/pe-v2.yaml`、`reports/pe/batches/pe-v2-expanded-oracle-25-deepseek-20260621.md`、`records/09-pe-optimization.md`
+- 解决方式：不要把失败批次作为正式指标来源。优先确认该组合是否真的需要额外 API；例如 `P` 只是 deterministic postprocess，不应单独重跑模型。若必须继续跑，等待限额重置或由用户调整 key daily limit 后，用相同 context pack / prompt / model config 重新运行，必要时用 `--case-id` 只补跑未完成 case，并在报告中写明 split / resume 原因。限额提高后可使用 runner 的 `--concurrency` 并发执行在线 API 批跑，但并发数必须显式记录在 run_config 和正式报告中。
+- 后续注意：正式批量实验前先用 dry-run 估算 prompt token 规模；PE/RAG 大 prompt 组合优先按小批次运行并及时汇总成本。报告必须区分“有效 API 成本”和“失败 diagnostic 成本”，并保留 direct provider / no-fallback 配置不变。提高并发只解决墙钟时间，不降低 token 成本，也可能更快触发 provider/key 限额。
+- 相关文件：`configs/experiments/pe-v2.yaml`、`reports/pe/batches/pe-v2-expanded-oracle-25-deepseek-20260621.md`、`reports/rag/batches/rag-v1-candidate-control-deepseek-pilot-20-concurrency4-20260621.md`、`records/09-pe-optimization.md`、`records/10-rag-pipeline.md`

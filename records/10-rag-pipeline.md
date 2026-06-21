@@ -122,3 +122,10 @@
   - 本地验证：20 个 case 均成功生成 prompt-ready context；最大 estimated context tokens 约 15,332，低于默认 24,000；`scrapy-feed-001` 的 `crawler.signals.connect` 已规范到 `scrapy.signalmanager.SignalManager.connect`；`astrbot-agent-001` 的 logger 与 `dataclasses.replace` 已进入 filtered examples，不进入主候选表。
   - API attempt：`runs/rag-context-runs/rag-v1-candidate-control-deepseek-pilot-20-20260621`；20/20 case 均因 OpenRouter `HTTP 403 Key limit exceeded (daily limit)` 失败，没有 prediction / score。
   - 结论：RAG v1.2 输入侧优化已完成，但成效评估尚未完成；key limit 恢复后应复用同一份 context pack 重跑 DeepSeek 20-case pilot，再与上一轮 RAG retry 指标对比。
+- 2026-06-21：为在线 API 批跑实现 case-level 并发，并完成 RAG v1.2 candidate-control DeepSeek 20-case 并发复跑；正式报告见 `reports/rag/batches/rag-v1-candidate-control-deepseek-pilot-20-concurrency4-20260621.md`。
+  - 修改 `scripts/run_oracle_context.py` 与 `scripts/run_rag_context.py`，新增 `--concurrency` 参数；默认值仍为 1，保持旧的串行行为。并发模式使用 per-case 线程执行，每个 case 只写自己的子目录，最终按原 case 顺序聚合 timing / prediction / score。
+  - 验证命令：`python -m py_compile scripts\run_oracle_context.py scripts\run_rag_context.py`；Oracle dry-run 使用 2 case / `--concurrency 2` 通过；RAG dry-run 使用 2 case / `--concurrency 2` 通过；`git diff --check` 通过。
+  - API run：`runs/rag-context-runs/rag-v1-candidate-control-deepseek-pilot-20-concurrency4-20260621`，使用 `deepseek-v4-pro-direct-no-reasoning`、OpenRouter `provider.only=["deepseek"]`、`allow_fallbacks=false`、`--max-retries 2`、`--concurrency 4`。
+  - 结果：20/20 case 成功，request errors 0，Precision 0.757576，Recall 0.669643，Evidence Accuracy 0.920000；wall-clock 41.956 秒，354,924 tokens，observed cost 0.160534575 USD，observed provider 为 DeepSeek 20/20。
+  - 与上一轮 RAG retry run 按 corrected golden 重评分相比，Precision 从 0.607143 提升到 0.757576，Recall 从 0.455357 提升到 0.669643，Excluded hits 从 3 降到 1；Evidence Accuracy 从 0.980392 降到 0.920000。
+  - 结论：并发 runner 可用于后续在线 API 批跑；RAG v1.2 candidate control 有效提升 edge precision / recall，但仍需继续处理 high fan-out callee 漏报、对象接收者 canonicalization、find_callers 边界过宽和 duplicate predictions。
